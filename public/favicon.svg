@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Trefoil knot - three interlocking loops -->
+  <g fill="none" stroke="#1e3a2f" stroke-width="3" stroke-linecap="round">
+    <!-- Top loop -->
+    <circle cx="32" cy="20" r="12"/>
+    <!-- Bottom-left loop -->
+    <circle cx="21.6" cy="38" r="12"/>
+    <!-- Bottom-right loop -->
+    <circle cx="42.4" cy="38" r="12"/>
+  </g>
+  <!-- Mask out intersections to create over/under weave effect -->
+  <g fill="#1e3a2f">
+    <!-- Small dots at the three crossing points -->
+    <circle cx="25" cy="27" r="2"/>
+    <circle cx="39" cy="27" r="2"/>
+    <circle cx="32" cy="42" r="2"/>
+  </g>
+</svg>

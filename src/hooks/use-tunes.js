@@ -37,8 +37,14 @@ export function useTunes(filters = {}) {
   }, [fetchTunes]);
 
   const createTune = useCallback(async (data) => {
+    // Ensure new tunes have a default proficiency label
+    const labels = data.labels || [];
+    if (!labels.some(l => l.type === 'proficiency')) {
+      labels.push({ type: 'proficiency', value: 'want to learn' });
+    }
     const record = await pb.collection('user_tunes').create({
       ...data,
+      labels,
       user: pb.authStore.record.id,
     });
     setTunes(prev => [record, ...prev]);

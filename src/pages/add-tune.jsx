@@ -7,7 +7,6 @@ import { TuneForm } from '../components/tune/tune-form';
 import { BulkImport } from '../components/bulk/bulk-import';
 import { searchTunes } from '../lib/session-api';
 import { useTunes } from '../hooks/use-tunes';
-import { pb } from '../lib/pb';
 
 export function AddTunePage() {
   const { createTune } = useTunes();
@@ -34,10 +33,7 @@ export function AddTunePage() {
   };
 
   const handleImport = async (tuneData) => {
-    const record = await pb.collection('user_tunes').create({
-      ...tuneData,
-      user: pb.authStore.record.id,
-    });
+    const record = await createTune(tuneData);
     route(`/tune/${record.id}`);
   };
 

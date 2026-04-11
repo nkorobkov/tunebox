@@ -4,7 +4,6 @@ import { LoginPage } from './pages/login';
 import { LibraryPage } from './pages/library';
 import { TunePage } from './pages/tune';
 import { AddTunePage } from './pages/add-tune';
-import { SearchPage } from './pages/search';
 import { PracticePage } from './pages/practice';
 import { SetsPage } from './pages/sets';
 import { SettingsPage } from './pages/settings';
@@ -29,7 +28,6 @@ function AppRouter() {
       <LibraryPage path="/" />
       <TunePage path="/tune/:id" />
       <AddTunePage path="/add" />
-      <SearchPage path="/search" />
       <PracticePage path="/practice" />
       <SetsPage path="/sets" />
       <SettingsPage path="/settings" />

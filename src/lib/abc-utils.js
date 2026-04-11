@@ -28,6 +28,23 @@ export function getDefaultTempo(tuneType) {
   return DEFAULT_TEMPOS[tuneType] || 100;
 }
 
+export function parseAbcMeta(abc) {
+  const field = (f) => { const m = abc.match(new RegExp(`^${f}:\\s*(.+)`, 'm')); return m ? m[1].trim() : null; };
+  const title = field('T') || 'Untitled';
+  const type = (field('R') || '').toLowerCase();
+  const key = field('K') || '';
+  const source = field('S') || '';
+  const author = field('Z') || '';
+  let session_id = null;
+  let session_url = null;
+  const sessionMatch = source.match(/thesession\.org\/tunes\/(\d+)/);
+  if (sessionMatch) {
+    session_id = Number(sessionMatch[1]);
+    session_url = source;
+  }
+  return { title, type, key, source, author, session_id, session_url };
+}
+
 export function buildAbcString(title, tuneType, key, abc) {
   const meter = getMeter(tuneType);
   // If the ABC already has headers, return as-is

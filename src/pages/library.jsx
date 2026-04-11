@@ -104,11 +104,7 @@ export function LibraryPage() {
             {tunes.length === 0 ? 'No tunes yet.' : 'No tunes match your filters.'}
           </p>
           {tunes.length === 0 && (
-            <div class="flex justify-center gap-3">
-              <a href="/add" class="text-sm text-blue-600 hover:underline">Add manually</a>
-              <span class="text-gray-300">or</span>
-              <a href="/search" class="text-sm text-blue-600 hover:underline">Search The Session</a>
-            </div>
+            <a href="/add" class="text-sm text-blue-600 hover:underline">Add a tune</a>
           )}
         </div>
       ) : (

@@ -1,9 +1,62 @@
 import { useState, useMemo } from 'preact/hooks';
 import { Shell } from '../components/layout/shell';
-import { TuneCard } from '../components/tune/tune-card';
+import { TuneCard, SetGroup } from '../components/tune/tune-card';
 import { LabelFilter } from '../components/library/label-filter';
 import { useTunes } from '../hooks/use-tunes';
 import { isDue, isNew } from '../lib/spaced-repetition';
+
+// Normalize set name for grouping: lowercase, collapse whitespace, strip punctuation
+function normalizeSetName(name) {
+  return name.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function TuneList({ tunes }) {
+  const items = [];
+  const setMap = new Map(); // normalized key -> { displayName, entries }
+  const inSet = new Set();
+
+  for (const tune of tunes) {
+    const setLabel = (tune.labels || []).find(l => l.type === 'set');
+    if (setLabel) {
+      const key = normalizeSetName(setLabel.value);
+      if (!setMap.has(key)) {
+        setMap.set(key, { displayName: setLabel.value, entries: [] });
+      }
+      setMap.get(key).entries.push({ tune, order: setLabel.order || 0 });
+      inSet.add(tune.id);
+    }
+  }
+
+  for (const [, group] of setMap) {
+    group.entries.sort((a, b) => a.order - b.order);
+  }
+
+  const placedSets = new Set();
+  for (const tune of tunes) {
+    const setLabel = (tune.labels || []).find(l => l.type === 'set');
+    if (setLabel) {
+      const key = normalizeSetName(setLabel.value);
+      if (!placedSets.has(key)) {
+        placedSets.add(key);
+        items.push({ type: 'set', name: setMap.get(key).displayName, tunes: setMap.get(key).entries.map(e => e.tune) });
+      }
+    } else if (!inSet.has(tune.id)) {
+      items.push({ type: 'tune', tune });
+    }
+  }
+
+  return (
+    <div class="grid gap-3">
+      {items.map(item =>
+        item.type === 'set' ? (
+          <SetGroup key={`set:${item.name}`} name={item.name} tunes={item.tunes} />
+        ) : (
+          <TuneCard key={item.tune.id} tune={item.tune} />
+        )
+      )}
+    </div>
+  );
+}
 
 export function LibraryPage() {
   const { tunes, loading } = useTunes();
@@ -108,11 +161,7 @@ export function LibraryPage() {
           )}
         </div>
       ) : (
-        <div class="grid gap-3">
-          {filtered.map(tune => (
-            <TuneCard key={tune.id} tune={tune} />
-          ))}
-        </div>
+        <TuneList tunes={filtered} />
       )}
     </Shell>
   );

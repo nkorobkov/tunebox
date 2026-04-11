@@ -9,6 +9,25 @@ import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
 
 export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const [editing, setEditing] = useState(false);
+  const [confirmRemoveSet, setConfirmRemoveSet] = useState(false);
+  const [addingSet, setAddingSet] = useState(false);
+  const [newSetName, setNewSetName] = useState('');
+
+  const setLabel = (tune.labels || []).find(l => l.type === 'set');
+
+  const handleRemoveSet = async () => {
+    const updated = (tune.labels || []).filter(l => l.type !== 'set');
+    await onUpdate({ labels: updated });
+    setConfirmRemoveSet(false);
+  };
+
+  const handleAddSet = async () => {
+    if (!newSetName.trim()) return;
+    const updated = [...(tune.labels || []).filter(l => l.type !== 'set'), { type: 'set', value: newSetName.trim(), order: 1 }];
+    await onUpdate({ labels: updated });
+    setNewSetName('');
+    setAddingSet(false);
+  };
 
   const fullAbc = tune.abc
     ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc)
@@ -41,6 +60,25 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
       <div class="flex items-start justify-between">
         <div>
           <h1 class="text-2xl font-bold text-gray-900">{tune.title}</h1>
+          {setLabel && (
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <span class="text-sm text-gray-400">
+                part of <span class="text-gray-600 font-medium">{setLabel.value}</span> set
+              </span>
+              {confirmRemoveSet ? (
+                <span class="flex items-center gap-1 text-xs">
+                  <button onClick={handleRemoveSet} class="text-red-500 hover:underline cursor-pointer">remove</button>
+                  <button onClick={() => setConfirmRemoveSet(false)} class="text-gray-400 hover:underline cursor-pointer">cancel</button>
+                </span>
+              ) : (
+                <button
+                  onClick={() => setConfirmRemoveSet(true)}
+                  class="text-gray-300 hover:text-red-400 cursor-pointer text-xs leading-none"
+                  title="Remove from set"
+                >&times;</button>
+              )}
+            </div>
+          )}
           <div class="flex items-center gap-3 mt-1 text-sm text-gray-500">
             {tune.type && <span class="capitalize">{tune.type}</span>}
             {tune.setting_key && <span>Key: {tune.setting_key}</span>}
@@ -84,13 +122,20 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
         </div>
       </div>
 
-      {/* Labels & Proficiency */}
+      {/* Tags, Set & Proficiency */}
       <div class="bg-white rounded-lg border border-gray-200 p-4">
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1 min-w-0">
             <LabelEditor
               labels={tune.labels || []}
               onUpdate={(labels) => onUpdate({ labels })}
+              setLabel={setLabel}
+              addingSet={addingSet}
+              onStartAddSet={() => setAddingSet(true)}
+              onCancelAddSet={() => { setAddingSet(false); setNewSetName(''); }}
+              newSetName={newSetName}
+              onSetNameInput={setNewSetName}
+              onAddSet={handleAddSet}
             />
           </div>
           <ProficiencyPicker

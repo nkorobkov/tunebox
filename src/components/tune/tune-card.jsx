@@ -1,11 +1,13 @@
-export function TuneCard({ tune }) {
+export function TuneCard({ tune, inSet = false }) {
   const proficiencyLabel = tune.labels?.find(l => l.type === 'proficiency');
   const sessionId = tune.session_id > 0 ? tune.session_id : null;
 
   return (
     <a
       href={`/tune/${tune.id}`}
-      class="block bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 hover:shadow-sm transition-all no-underline"
+      class={`block bg-white p-4 hover:bg-gray-50 transition-all no-underline ${
+        inSet ? '' : 'rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm'
+      }`}
     >
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
@@ -37,5 +39,22 @@ export function TuneCard({ tune }) {
         </div>
       </div>
     </a>
+  );
+}
+
+export function SetGroup({ tunes }) {
+  if (tunes.length === 1) {
+    return <TuneCard tune={tunes[0]} />;
+  }
+
+  return (
+    <div class="flex rounded-lg border border-gray-200 overflow-hidden">
+      <div class="w-1 bg-blue-400 shrink-0" />
+      <div class="flex-1 divide-y divide-gray-100">
+        {tunes.map(tune => (
+          <TuneCard key={tune.id} tune={tune} inSet />
+        ))}
+      </div>
+    </div>
   );
 }

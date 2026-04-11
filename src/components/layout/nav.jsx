@@ -20,7 +20,6 @@ export function Nav() {
               <a href="/" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Library</a>
               <a href="/add" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Add Tune</a>
               <a href="/practice" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Practice</a>
-              <a href="/sets" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Sets</a>
               <a href="/settings" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Settings</a>
             </div>
           )}

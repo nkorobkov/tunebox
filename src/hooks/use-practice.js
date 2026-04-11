@@ -1,38 +1,197 @@
 import { useState, useEffect, useCallback } from 'preact/hooks';
 import { pb } from '../lib/pb';
-import { isDue, isNew } from '../lib/spaced-repetition';
+import { getDefaultTempo } from '../lib/abc-utils';
+import {
+  calculatePriority,
+  getInstrumentData,
+  updateStability,
+  relearnTempo,
+  practicedToday,
+  INITIAL_STABILITY,
+} from '../lib/practice-algorithm';
 
-export function usePractice() {
+const LOCALSTORAGE_KEY = 'tunebox_default_instrument';
+
+export function getDefaultInstrument() {
+  try { return localStorage.getItem(LOCALSTORAGE_KEY) || ''; }
+  catch { return ''; }
+}
+
+export function saveDefaultInstrument(instrument) {
+  try { localStorage.setItem(LOCALSTORAGE_KEY, instrument); }
+  catch { /* noop */ }
+}
+
+// --- Standalone practice actions (no hook state) ---
+
+/**
+ * Save a learning-mode practice: update tempo, stability, optionally move to playing.
+ */
+export async function saveLearningPractice(tune, instrument, practicedTempo) {
+  const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
+  const instData = getInstrumentData(tune, instrument, fallback);
+  const movedToPlaying = practicedTempo >= instData.target_tempo;
+
+  const updatedInstruments = {
+    ...tune.instruments,
+    [instrument]: {
+      ...tune.instruments?.[instrument],
+      keys: instData.keys,
+      current_tempo: practicedTempo,
+      target_tempo: instData.target_tempo,
+      stability: updateStability(instData.stability, 'good'),
+      last_practiced: new Date().toISOString(),
+    },
+  };
+
+  const updateData = { instruments: updatedInstruments };
+  if (movedToPlaying) {
+    const labels = (tune.labels || []).filter(l => l.type !== 'proficiency');
+    labels.push({ type: 'proficiency', value: 'playing' });
+    updateData.labels = labels;
+  }
+
+  const updated = await pb.collection('user_tunes').update(tune.id, updateData);
+  await pb.collection('practice_log').create({
+    user: pb.authStore.record.id,
+    user_tune: tune.id,
+    instrument,
+    practiced_at: new Date().toISOString(),
+    tempo_used: practicedTempo,
+    fluency_rating: 4,
+  });
+
+  return { movedToPlaying, updated };
+}
+
+/**
+ * Save a playing-mode practice: update stability, optionally move to learning.
+ */
+export async function savePlayingPractice(tune, instrument, rating) {
+  const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
+  const instData = getInstrumentData(tune, instrument, fallback);
+  const isRelearn = rating === 'relearn';
+
+  const updatedInstruments = {
+    ...tune.instruments,
+    [instrument]: {
+      ...tune.instruments?.[instrument],
+      keys: instData.keys,
+      current_tempo: isRelearn ? relearnTempo(instData.target_tempo) : instData.current_tempo,
+      target_tempo: instData.target_tempo,
+      stability: isRelearn ? INITIAL_STABILITY : updateStability(instData.stability, rating),
+      last_practiced: new Date().toISOString(),
+    },
+  };
+
+  const updateData = { instruments: updatedInstruments };
+  if (isRelearn) {
+    const labels = (tune.labels || []).filter(l => l.type !== 'proficiency');
+    labels.push({ type: 'proficiency', value: 'learning' });
+    updateData.labels = labels;
+  }
+
+  const updated = await pb.collection('user_tunes').update(tune.id, updateData);
+  await pb.collection('practice_log').create({
+    user: pb.authStore.record.id,
+    user_tune: tune.id,
+    instrument,
+    practiced_at: new Date().toISOString(),
+    tempo_used: instData.target_tempo,
+    fluency_rating: rating === 'easy' ? 5 : rating === 'good' ? 4 : rating === 'hard' ? 2 : 1,
+  });
+
+  return { isRelearn, updated };
+}
+
+// --- Hooks ---
+
+export function useTunesByProficiency() {
   const [allTunes, setAllTunes] = useState([]);
-  const [queue, setQueue] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const fetchQueue = useCallback(async () => {
+  const fetch = useCallback(async () => {
     setLoading(true);
     try {
       const userId = pb.authStore.record.id;
       const result = await pb.collection('user_tunes').getList(1, 500, {
         filter: `user = "${userId}"`,
       });
-      const tunes = result.items;
-      setAllTunes(tunes);
-
-      // Due tunes first, then new tunes (no next_review set)
-      const due = tunes.filter(isDue);
-      const newTunes = tunes.filter(isNew);
-      setQueue([...due, ...newTunes]);
-      setCurrentIndex(0);
+      setAllTunes(result.items);
     } catch (err) {
-      console.error('Failed to fetch practice queue:', err);
+      console.error('Failed to fetch tunes:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (pb.authStore.isValid) fetchQueue();
-  }, [fetchQueue]);
+    if (pb.authStore.isValid) fetch();
+  }, [fetch]);
+
+  const getProficiency = (tune) =>
+    tune.labels?.find(l => l.type === 'proficiency')?.value || 'want to learn';
+
+  const learning = allTunes.filter(t => getProficiency(t) === 'learning');
+  const playing = allTunes.filter(t => getProficiency(t) === 'playing');
+  const wantToLearn = allTunes.filter(t => getProficiency(t) === 'want to learn');
+
+  return { allTunes, learning, playing, wantToLearn, loading, refetch: fetch };
+}
+
+export function usePracticeSession(instrument, { includePracticedToday = false } = {}) {
+  const [allTunes, setAllTunes] = useState([]);
+  const [queue, setQueue] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [skippedIds, setSkippedIds] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+
+  const buildQueue = useCallback((tunes, { includePracticedToday: incl = false } = {}) => {
+    const getProficiency = (t) =>
+      t.labels?.find(l => l.type === 'proficiency')?.value || 'want to learn';
+
+    const eligible = tunes.filter(t => {
+      const prof = getProficiency(t);
+      if (prof !== 'learning' && prof !== 'playing') return false;
+      const instKeys = Object.keys(t.instruments || {});
+      if (instKeys.length === 0) return true;
+      return !!t.instruments[instrument];
+    });
+
+    const filtered = incl
+      ? eligible
+      : eligible.filter(t => !practicedToday(t, instrument));
+
+    return filtered
+      .map(t => ({
+        tune: t,
+        priority: calculatePriority(t, instrument, t.canonical_tempo || getDefaultTempo(t.type)),
+      }))
+      .sort((a, b) => b.priority - a.priority)
+      .map(x => x.tune);
+  }, [instrument]);
+
+  const fetchAndBuild = useCallback(async () => {
+    setLoading(true);
+    try {
+      const userId = pb.authStore.record.id;
+      const result = await pb.collection('user_tunes').getList(1, 500, {
+        filter: `user = "${userId}"`,
+      });
+      setAllTunes(result.items);
+      setQueue(buildQueue(result.items, { includePracticedToday }));
+      setCurrentIndex(0);
+      setSkippedIds(new Set());
+    } catch (err) {
+      console.error('Failed to fetch practice queue:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [buildQueue, includePracticedToday]);
+
+  useEffect(() => {
+    if (pb.authStore.isValid && instrument) fetchAndBuild();
+  }, [fetchAndBuild, instrument]);
 
   const currentTune = queue[currentIndex] || null;
   const remaining = Math.max(0, queue.length - currentIndex);
@@ -41,9 +200,24 @@ export function usePractice() {
     setCurrentIndex(prev => prev + 1);
   }, []);
 
-  const updateCurrentTune = useCallback((updatedTune) => {
-    setQueue(prev => prev.map(t => t.id === updatedTune.id ? updatedTune : t));
-  }, []);
+  const skip = useCallback(() => {
+    if (currentTune) {
+      setSkippedIds(prev => new Set([...prev, currentTune.id]));
+    }
+    advance();
+  }, [currentTune, advance]);
+
+  const completeLearning = useCallback(async (tune, practicedTempo) => {
+    const res = await saveLearningPractice(tune, instrument, practicedTempo);
+    setQueue(prev => prev.map(t => t.id === res.updated.id ? res.updated : t));
+    return res;
+  }, [instrument]);
+
+  const completePlaying = useCallback(async (tune, rating) => {
+    const res = await savePlayingPractice(tune, instrument, rating);
+    setQueue(prev => prev.map(t => t.id === res.updated.id ? res.updated : t));
+    return res;
+  }, [instrument]);
 
   return {
     queue,
@@ -52,8 +226,9 @@ export function usePractice() {
     remaining,
     loading,
     advance,
-    updateCurrentTune,
-    totalDue: queue.length,
-    fetchQueue,
+    skip,
+    completeLearning,
+    completePlaying,
+    totalCount: queue.length,
   };
 }

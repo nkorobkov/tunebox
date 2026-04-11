@@ -11,7 +11,6 @@ export function useAttachments(tuneId) {
     try {
       const result = await pb.collection('attachments').getList(1, 100, {
         filter: `user_tune = "${tuneId}"`,
-        sort: '-created',
       });
       setAttachments(result.items);
     } catch (err) {

@@ -1,7 +1,5 @@
 import { useState } from 'preact/hooks';
 
-const COMFORT_LEVELS = ['learning', 'shaky', 'solid', 'performance'];
-
 export function InstrumentProgress({ instruments, userInstruments, onUpdate }) {
   const [adding, setAdding] = useState(false);
   const [newInstrument, setNewInstrument] = useState('');
@@ -9,7 +7,7 @@ export function InstrumentProgress({ instruments, userInstruments, onUpdate }) {
   const handleAdd = async () => {
     const name = newInstrument.trim();
     if (!name || instruments[name]) return;
-    const updated = { ...instruments, [name]: { keys: [], current_tempo: 0, target_tempo: 0, comfort: 'learning' } };
+    const updated = { ...instruments, [name]: { keys: [], current_tempo: 0, target_tempo: 0 } };
     await onUpdate(updated);
     setNewInstrument('');
     setAdding(false);
@@ -66,18 +64,6 @@ export function InstrumentProgress({ instruments, userInstruments, onUpdate }) {
               class="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
             />
           </div>
-          <select
-            value={data.comfort || 'learning'}
-            onChange={e => handleFieldChange(name, 'comfort', e.target.value)}
-            class={`text-xs px-2 py-1 rounded-full border-0 ${
-              data.comfort === 'performance' ? 'bg-green-100 text-green-700' :
-              data.comfort === 'solid' ? 'bg-blue-100 text-blue-700' :
-              data.comfort === 'shaky' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-gray-100 text-gray-600'
-            }`}
-          >
-            {COMFORT_LEVELS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
           <button
             onClick={() => handleRemove(name)}
             class="text-gray-400 hover:text-red-500 text-xs cursor-pointer"

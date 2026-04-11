@@ -113,6 +113,12 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
           )}
         </div>
         <div class="flex gap-2">
+          <a
+            href={`/practice?tune=${tune.id}`}
+            class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 no-underline"
+          >
+            Practice
+          </a>
           <button
             onClick={() => setEditing(true)}
             class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"

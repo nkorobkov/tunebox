@@ -6,100 +6,197 @@ import { Metronome } from './metronome';
 import { FluencyRater } from './fluency-rater';
 import { useAttachments } from '../../hooks/use-attachments';
 import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
-import { calculateNextReview } from '../../lib/spaced-repetition';
-import { pb } from '../../lib/pb';
+import { getInstrumentData, suggestLearningTempo } from '../../lib/practice-algorithm';
 
-export function PracticeCard({ tune, onComplete }) {
+export function PracticeCard({ tune, instrument, onCompleteLearning, onCompletePlaying, onSkip }) {
   const [saving, setSaving] = useState(false);
   const { mainSource } = useAttachments(tune.id);
+
+  const proficiency = tune.labels?.find(l => l.type === 'proficiency')?.value || 'want to learn';
+  const isLearning = proficiency === 'learning';
+
+  const fallbackTempo = tune.canonical_tempo || getDefaultTempo(tune.type);
+  const instData = getInstrumentData(tune, instrument, fallbackTempo);
 
   const fullAbc = tune.abc
     ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc)
     : null;
 
-  // Use last practice tempo if available, otherwise canonical, otherwise type default
-  const defaultTempo = tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type);
-  const [currentTempo, setCurrentTempo] = useState(defaultTempo);
-
-  const handleRate = async (fluencyRating) => {
+  const handleLearningComplete = async (tempo) => {
     setSaving(true);
     try {
-      // Calculate next review
-      const srUpdate = calculateNextReview({
-        interval_days: tune.interval_days || 1,
-        ease_factor: tune.ease_factor || 2.5,
-        consecutive_correct: tune.consecutive_correct || 0,
-      }, fluencyRating);
-
-      // Update SR fields + save the tempo they practiced at
-      const updated = await pb.collection('user_tunes').update(tune.id, {
-        ...srUpdate,
-        practice_tempo: currentTempo,
-      });
-
-      // Log the practice session
-      await pb.collection('practice_log').create({
-        user: pb.authStore.record.id,
-        user_tune: tune.id,
-        practiced_at: new Date().toISOString(),
-        fluency_rating: fluencyRating,
-        tempo_used: currentTempo,
-      });
-
-      onComplete(updated, fluencyRating);
+      await onCompleteLearning(tune, tempo);
     } catch (err) {
       console.error('Failed to save practice:', err);
       setSaving(false);
     }
   };
 
+  const handlePlayingRate = async (rating) => {
+    setSaving(true);
+    try {
+      await onCompletePlaying(tune, rating);
+    } catch (err) {
+      console.error('Failed to save practice:', err);
+      setSaving(false);
+    }
+  };
+
+  if (isLearning) {
+    return (
+      <LearningCard
+        tune={tune}
+        instrument={instrument}
+        instData={instData}
+        fullAbc={fullAbc}
+        mainSource={mainSource}
+        saving={saving}
+        onComplete={handleLearningComplete}
+        onSkip={onSkip}
+      />
+    );
+  }
+
+  return (
+    <PlayingCard
+      tune={tune}
+      instrument={instrument}
+      instData={instData}
+      fullAbc={fullAbc}
+      mainSource={mainSource}
+      saving={saving}
+      onRate={handlePlayingRate}
+      onSkip={onSkip}
+    />
+  );
+}
+
+function TuneHeader({ tune, instrument }) {
+  return (
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">{tune.title}</h2>
+      <div class="flex items-center gap-3 mt-1 text-sm text-gray-500">
+        {tune.type && <span class="capitalize">{tune.type}</span>}
+        {tune.setting_key && <span>Key: {tune.setting_key}</span>}
+        <span class="text-gray-400">{instrument}</span>
+      </div>
+    </div>
+  );
+}
+
+function SheetMusic({ mainSource, fullAbc }) {
+  if (mainSource) {
+    return (
+      <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <SheetMusicViewer attachment={mainSource} />
+      </div>
+    );
+  }
+  if (fullAbc) {
+    return (
+      <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <AbcViewer abc={fullAbc} />
+      </div>
+    );
+  }
+  return (
+    <div class="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-400">
+      No sheet music available for this tune
+    </div>
+  );
+}
+
+function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving, onComplete, onSkip }) {
+  const { suggestion, isFirstTime } = suggestLearningTempo(instData.current_tempo);
+  const [tempo, setTempo] = useState(suggestion);
+  const meetsTarget = tempo >= instData.target_tempo;
+
   return (
     <div class="space-y-4">
-      {/* Tune header */}
-      <div>
-        <h2 class="text-xl font-bold text-gray-900">{tune.title}</h2>
-        <div class="flex items-center gap-3 mt-1 text-sm text-gray-500">
-          {tune.type && <span class="capitalize">{tune.type}</span>}
-          {tune.setting_key && <span>Key: {tune.setting_key}</span>}
-          {tune.canonical_tempo > 0 && (
-            <span>Target: {tune.canonical_tempo} BPM</span>
-          )}
-          {tune.practice_tempo > 0 && tune.practice_tempo !== tune.canonical_tempo && (
-            <span>Last practiced: {tune.practice_tempo} BPM</span>
-          )}
-        </div>
+      <TuneHeader tune={tune} instrument={instrument} />
+
+      {/* Prompt */}
+      <div class="bg-blue-50 rounded-lg border border-blue-200 p-4">
+        <p class="text-sm text-blue-800 font-medium">
+          Practice at the max BPM where you can play reliably.
+        </p>
+        {isFirstTime ? (
+          <p class="text-sm text-blue-600 mt-1">
+            First time! Start at whatever tempo feels comfortable.
+            Target: {instData.target_tempo} BPM.
+          </p>
+        ) : (
+          <p class="text-sm text-blue-600 mt-1">
+            Last time: {instData.current_tempo} BPM. How about {suggestion} BPM today?
+          </p>
+        )}
       </div>
 
-      {/* Sheet music */}
-      {mainSource ? (
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <SheetMusicViewer attachment={mainSource} />
-        </div>
-      ) : fullAbc ? (
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <AbcViewer abc={fullAbc} />
-        </div>
-      ) : (
-        <div class="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-400">
-          No sheet music available for this tune
-        </div>
-      )}
+      <SheetMusic mainSource={mainSource} fullAbc={fullAbc} />
 
       {/* Playback + Metronome */}
       <div class="space-y-2">
-        {fullAbc && (
-          <AbcPlayer abc={fullAbc} defaultTempo={currentTempo} />
-        )}
-        <Metronome
-          defaultBpm={currentTempo}
-          onTempoChange={setCurrentTempo}
-        />
+        {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={tempo} />}
+        <Metronome defaultBpm={tempo} onTempoChange={setTempo} />
       </div>
 
-      {/* Fluency rating */}
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <FluencyRater onRate={handleRate} disabled={saving} />
+      {/* Complete button */}
+      <div class="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+        <button
+          onClick={() => onComplete(tempo)}
+          disabled={saving || !tempo}
+          class={`w-full py-3 rounded-lg text-white font-medium cursor-pointer disabled:opacity-50 ${
+            meetsTarget ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
+          }`}
+        >
+          {meetsTarget
+            ? `Practiced at ${tempo} BPM — move to Playing!`
+            : `Practiced with no mistakes at ${tempo} BPM`}
+        </button>
+        <button
+          onClick={onSkip}
+          class="w-full py-2 text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+        >
+          Skip for today
+        </button>
       </div>
+    </div>
+  );
+}
+
+function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, saving, onRate, onSkip }) {
+  const playTempo = instData.target_tempo;
+
+  return (
+    <div class="space-y-4">
+      <TuneHeader tune={tune} instrument={instrument} />
+
+      {/* Prompt */}
+      <div class="bg-green-50 rounded-lg border border-green-200 p-4">
+        <p class="text-sm text-green-800 font-medium">
+          Play at {playTempo} BPM
+        </p>
+      </div>
+
+      <SheetMusic mainSource={mainSource} fullAbc={fullAbc} />
+
+      {/* Playback + Metronome */}
+      <div class="space-y-2">
+        {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={playTempo} />}
+        <Metronome defaultBpm={playTempo} />
+      </div>
+
+      {/* Rating */}
+      <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <FluencyRater onRate={onRate} disabled={saving} />
+      </div>
+
+      <button
+        onClick={onSkip}
+        class="w-full py-2 text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+      >
+        Skip for today
+      </button>
     </div>
   );
 }

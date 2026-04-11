@@ -3,7 +3,6 @@ import { Shell } from '../components/layout/shell';
 import { TuneCard, SetGroup } from '../components/tune/tune-card';
 import { LabelFilter } from '../components/library/label-filter';
 import { useTunes } from '../hooks/use-tunes';
-import { isDue, isNew } from '../lib/spaced-repetition';
 
 // Normalize set name for grouping: lowercase, collapse whitespace, strip punctuation
 function normalizeSetName(name) {
@@ -64,9 +63,6 @@ export function LibraryPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [labelFilter, setLabelFilter] = useState(null);
 
-  const dueCount = useMemo(() => tunes.filter(isDue).length, [tunes]);
-  const newCount = useMemo(() => tunes.filter(isNew).length, [tunes]);
-
   const filtered = useMemo(() => {
     let result = tunes;
     if (search) {
@@ -100,19 +96,15 @@ export function LibraryPage() {
           <h1 class="text-2xl font-bold text-gray-900">My Tunes</h1>
           <p class="text-sm text-gray-500 mt-1">
             {tunes.length} tune{tunes.length !== 1 ? 's' : ''}
-            {dueCount > 0 && ` \u00b7 ${dueCount} due`}
-            {newCount > 0 && ` \u00b7 ${newCount} new`}
           </p>
         </div>
         <div class="flex items-center gap-3">
-          {(dueCount > 0 || newCount > 0) && (
-            <a
-              href="/practice"
-              class="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 no-underline"
-            >
-              Practice ({dueCount + newCount})
-            </a>
-          )}
+          <a
+            href="/practice"
+            class="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 no-underline"
+          >
+            Practice
+          </a>
           <a
             href="/add"
             class="text-sm px-3 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 no-underline"

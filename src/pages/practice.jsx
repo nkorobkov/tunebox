@@ -1,64 +1,205 @@
-import { useState } from 'preact/hooks';
+import { useState, useCallback, useEffect } from 'preact/hooks';
 import { Shell } from '../components/layout/shell';
 import { PracticeCard } from '../components/practice/practice-card';
-import { usePractice } from '../hooks/use-practice';
+import { PracticeEntry } from '../components/practice/practice-entry';
+import { useAuth } from '../lib/auth';
+import { pb } from '../lib/pb';
+import { getDefaultTempo } from '../lib/abc-utils';
+import { INITIAL_STABILITY, practicedToday } from '../lib/practice-algorithm';
+import {
+  useTunesByProficiency, usePracticeSession,
+  getDefaultInstrument, saveDefaultInstrument,
+  saveLearningPractice, savePlayingPractice,
+} from '../hooks/use-practice';
 
-export function PracticePage() {
-  const { currentTune, remaining, loading, advance, updateCurrentTune, totalDue } = usePractice();
+function learningResultMsg(tempo, movedToPlaying) {
+  return movedToPlaying
+    ? `Moved to Playing! You've reached target tempo.`
+    : `Good! We'll try ${Math.round(tempo * 1.1)} BPM next time.`;
+}
+
+const PLAYING_MESSAGES = {
+  easy: 'Easy! Stability increased.',
+  good: 'Good work! Stability increased.',
+  hard: 'Keep at it — we\'ll show this sooner.',
+  relearn: 'Moved back to Learning mode.',
+};
+
+export function PracticePage({ tune: tuneIdParam }) {
+  const { user } = useAuth();
+  const userInstruments = user?.instruments || [];
+  const [instrument, setInstrument] = useState(() => {
+    const saved = getDefaultInstrument();
+    return userInstruments.includes(saved) ? saved : (userInstruments[0] || '');
+  });
+  const [practicing, setPracticing] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  const [isReview, setIsReview] = useState(false);
+  const [singleTune, setSingleTune] = useState(null);
+  const [singleTuneLoading, setSingleTuneLoading] = useState(!!tuneIdParam);
 
-  const handleComplete = (updatedTune, rating) => {
-    updateCurrentTune(updatedTune);
-    const labels = ['', 'Blackout', 'Hard', 'OK', 'Good', 'Easy'];
-    setLastResult({
-      title: updatedTune.title,
-      rating: labels[rating],
-      nextReview: updatedTune.next_review,
-      intervalDays: updatedTune.interval_days,
-    });
-    // Brief delay so user sees the result, then advance
-    setTimeout(() => {
-      setLastResult(null);
-      advance();
-    }, 1500);
+  const { learning, playing, wantToLearn, loading: tunesLoading, refetch } = useTunesByProficiency();
+  const session = usePracticeSession(practicing && !singleTune ? instrument : null, { includePracticedToday: isReview });
+
+  // Load single tune if tuneId param is present
+  useEffect(() => {
+    if (!tuneIdParam) return;
+    setSingleTuneLoading(true);
+    pb.collection('user_tunes').getOne(tuneIdParam)
+      .then(t => { setSingleTune(t); setPracticing(true); })
+      .catch(err => console.error('Failed to load tune:', err))
+      .finally(() => setSingleTuneLoading(false));
+  }, [tuneIdParam]);
+
+  const handleSelectInstrument = (inst) => {
+    setInstrument(inst);
+    saveDefaultInstrument(inst);
   };
+
+  // Filter entry page counts by instrument
+  const matchesInstrument = (tune) => {
+    const instKeys = Object.keys(tune.instruments || {});
+    if (instKeys.length === 0) return true;
+    return !!tune.instruments[instrument];
+  };
+  const filteredLearning = learning.filter(matchesInstrument);
+  const filteredPlaying = playing.filter(matchesInstrument);
+  const allPracticeable = [...filteredLearning, ...filteredPlaying];
+  const unpracticedCount = allPracticeable.filter(t => !practicedToday(t, instrument)).length;
+  const practicedCount = allPracticeable.length - unpracticedCount;
+  const allDoneForToday = unpracticedCount === 0 && practicedCount > 0;
+
+  const handleStart = () => { setIsReview(false); setPracticing(true); setLastResult(null); };
+  const handleReviewAgain = () => { setIsReview(true); setPracticing(true); setLastResult(null); };
+
+  const handleStartLearning = useCallback(async (tune, targetBpm) => {
+    const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
+    const updatedInstruments = {
+      ...tune.instruments,
+      [instrument]: { keys: [], current_tempo: 0, target_tempo: targetBpm || fallback, stability: INITIAL_STABILITY, last_practiced: null },
+    };
+    const labels = (tune.labels || []).filter(l => l.type !== 'proficiency');
+    labels.push({ type: 'proficiency', value: 'learning' });
+    await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments, labels });
+    await refetch();
+  }, [instrument, refetch]);
+
+  const handleStop = () => {
+    if (singleTune) {
+      setSingleTune(null);
+      setLastResult(null);
+      setPracticing(false);
+      history.replaceState(null, '', '/practice');
+      refetch();
+      return;
+    }
+    setPracticing(false);
+    refetch();
+  };
+
+  // Shared completion handlers
+  const onCompleteLearning = useCallback(async (tune, tempo) => {
+    const res = singleTune
+      ? await saveLearningPractice(tune, instrument, tempo)
+      : await session.completeLearning(tune, tempo);
+    const msg = learningResultMsg(tempo, res.movedToPlaying);
+    if (singleTune) {
+      setLastResult(msg);
+    } else {
+      setLastResult(msg);
+      setTimeout(() => { setLastResult(null); session.advance(); }, 2000);
+    }
+    return res;
+  }, [singleTune, instrument, session]);
+
+  const onCompletePlaying = useCallback(async (tune, rating) => {
+    const res = singleTune
+      ? await savePlayingPractice(tune, instrument, rating)
+      : await session.completePlaying(tune, rating);
+    const msg = PLAYING_MESSAGES[rating];
+    if (singleTune) {
+      setLastResult(msg);
+    } else {
+      setLastResult(msg);
+      setTimeout(() => { setLastResult(null); session.advance(); }, 2000);
+    }
+    return res;
+  }, [singleTune, instrument, session]);
+
+  // Loading single tune
+  if (singleTuneLoading) {
+    return <Shell><p class="text-gray-400 text-center py-12">Loading...</p></Shell>;
+  }
+
+  // Entry page
+  if (!practicing) {
+    return (
+      <Shell>
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Practice</h1>
+        {tunesLoading ? (
+          <p class="text-gray-400 text-center py-12">Loading...</p>
+        ) : (
+          <PracticeEntry
+            userInstruments={userInstruments}
+            selectedInstrument={instrument}
+            onSelectInstrument={handleSelectInstrument}
+            learning={filteredLearning}
+            playing={filteredPlaying}
+            wantToLearn={wantToLearn}
+            onStart={handleStart}
+            onStartLearning={handleStartLearning}
+            allDoneForToday={allDoneForToday}
+            onReviewAgain={handleReviewAgain}
+          />
+        )}
+      </Shell>
+    );
+  }
+
+  // Active practice (single tune or queue)
+  const currentTune = singleTune || session.currentTune;
+  const isLoading = !singleTune && session.loading;
 
   return (
     <Shell>
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Practice</h1>
-        {!loading && totalDue > 0 && (
-          <span class="text-sm text-gray-500">
-            {remaining} tune{remaining !== 1 ? 's' : ''} remaining
-          </span>
-        )}
+        <div class="flex items-center gap-4">
+          {!singleTune && session.remaining > 0 && (
+            <span class="text-sm text-gray-500">{session.remaining} remaining</span>
+          )}
+          <button onClick={handleStop} class="text-sm text-gray-500 hover:text-gray-700 cursor-pointer">Stop</button>
+        </div>
       </div>
 
-      {loading ? (
-        <p class="text-gray-400 text-center py-12">Loading practice queue...</p>
+      {isLoading ? (
+        <p class="text-gray-400 text-center py-12">Building practice queue...</p>
       ) : lastResult ? (
         <div class="text-center py-12">
-          <p class="text-lg font-medium text-gray-900">{lastResult.title}</p>
-          <p class="text-sm text-gray-500 mt-1">
-            Rated: {lastResult.rating} — next review in {lastResult.intervalDays} day{lastResult.intervalDays !== 1 ? 's' : ''}
-          </p>
+          <p class="text-lg font-medium text-gray-900">{lastResult}</p>
+          {singleTune && (
+            <div class="flex items-center justify-center gap-4 mt-4">
+              <button onClick={handleStop} class="text-sm text-blue-600 hover:underline cursor-pointer">Practice more tunes</button>
+              <a href="/" class="text-sm text-gray-500 hover:text-gray-700 no-underline">Back to library</a>
+            </div>
+          )}
         </div>
       ) : !currentTune ? (
         <div class="text-center py-12">
           <p class="text-2xl mb-2">All done!</p>
           <p class="text-gray-500">
-            {totalDue === 0
-              ? 'No tunes to practice. Add tunes to your collection and they\'ll appear here.'
-              : 'You\'ve completed your practice session. Great work!'}
+            {session.totalCount === 0 ? 'No tunes to practice on this instrument.' : 'You\'ve gone through all your tunes. Great work!'}
           </p>
-          {totalDue > 0 && (
-            <a href="/" class="text-sm text-blue-600 hover:underline mt-4 inline-block">
-              Back to library
-            </a>
-          )}
+          <button onClick={handleStop} class="text-sm text-blue-600 hover:underline mt-4 inline-block cursor-pointer">Back to practice home</button>
         </div>
       ) : (
-        <PracticeCard tune={currentTune} onComplete={handleComplete} />
+        <PracticeCard
+          tune={currentTune}
+          instrument={instrument}
+          onCompleteLearning={onCompleteLearning}
+          onCompletePlaying={onCompletePlaying}
+          onSkip={singleTune ? handleStop : session.skip}
+        />
       )}
     </Shell>
   );

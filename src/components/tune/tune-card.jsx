@@ -1,10 +1,3 @@
-const COMFORT_COLORS = {
-  learning: 'bg-yellow-100 text-yellow-700',
-  shaky: 'bg-orange-100 text-orange-700',
-  solid: 'bg-blue-100 text-blue-700',
-  performance: 'bg-green-100 text-green-700',
-};
-
 const PROFICIENCY_COLORS = {
   'want to learn': 'bg-gray-100 text-gray-500',
   'learning': 'bg-yellow-50 text-yellow-600',
@@ -44,7 +37,7 @@ export function TuneCard({ tune, inSet = false }) {
           {instruments.map(([name, data]) => (
             <span
               key={name}
-              class={`text-xs px-1.5 py-0.5 rounded ${COMFORT_COLORS[data.comfort] || 'bg-gray-100 text-gray-600'}`}
+              class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600"
             >
               {name}
               {isLearning && data.current_tempo > 0 && data.target_tempo > 0 && (

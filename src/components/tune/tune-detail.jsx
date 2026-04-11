@@ -3,6 +3,7 @@ import { AbcViewer } from './abc-viewer';
 import { AbcPlayer } from './abc-player';
 import { TuneForm } from './tune-form';
 import { LabelEditor } from './label-editor';
+import { ProficiencyPicker } from './proficiency-picker';
 import { InstrumentProgress } from '../instruments/progress-tracker';
 import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
 
@@ -46,14 +47,24 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
             {tune.canonical_tempo > 0 && <span>{tune.canonical_tempo} BPM</span>}
             {tune.author && <span>by {tune.author}</span>}
           </div>
-          {tune.session_id > 0 && (
+          {(tune.session_id > 0 || tune.session_url || (tune.source_url && tune.source_url.includes('thesession.org'))) && (
             <a
-              href={tune.session_url || `https://thesession.org/tunes/${tune.session_id}`}
+              href={tune.session_url || tune.source_url || `https://thesession.org/tunes/${tune.session_id}`}
               target="_blank"
               rel="noopener"
               class="text-sm text-blue-500 hover:underline mt-1 inline-block"
             >
-              View on The Session (#{tune.session_id})
+              View on The Session{tune.session_id > 0 ? ` (#${tune.session_id})` : ''}
+            </a>
+          )}
+          {tune.source_url && !tune.source_url.includes('thesession.org') && (
+            <a
+              href={tune.source_url}
+              target="_blank"
+              rel="noopener"
+              class="text-sm text-blue-500 hover:underline mt-1 inline-block"
+            >
+              Source
             </a>
           )}
         </div>
@@ -73,19 +84,25 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
         </div>
       </div>
 
-      {/* Labels */}
+      {/* Labels & Proficiency */}
       <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <h3 class="text-sm font-medium text-gray-700 mb-2">Labels</h3>
-        <LabelEditor
-          labels={tune.labels || []}
-          onUpdate={(labels) => onUpdate({ labels })}
-        />
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1 min-w-0">
+            <LabelEditor
+              labels={tune.labels || []}
+              onUpdate={(labels) => onUpdate({ labels })}
+            />
+          </div>
+          <ProficiencyPicker
+            labels={tune.labels || []}
+            onUpdate={(labels) => onUpdate({ labels })}
+          />
+        </div>
       </div>
 
       {/* ABC Sheet Music */}
       {fullAbc && (
         <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 class="text-sm font-medium text-gray-700 mb-3">Sheet Music</h3>
           <AbcViewer abc={fullAbc} />
           <div class="mt-3">
             <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} />

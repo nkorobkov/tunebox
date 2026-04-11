@@ -1,11 +1,12 @@
 import { useState } from 'preact/hooks';
 
-const CATEGORY_PRESETS = ['want to learn', 'learning', 'playing', 'retired'];
-
 export function LabelEditor({ labels = [], onUpdate }) {
   const [adding, setAdding] = useState(false);
-  const [newType, setNewType] = useState('category');
+  const [newType, setNewType] = useState('session');
   const [newValue, setNewValue] = useState('');
+
+  // Filter out proficiency labels — those are managed separately
+  const displayLabels = labels.filter(l => l.type !== 'proficiency');
 
   const handleAdd = async () => {
     if (!newValue.trim()) return;
@@ -16,14 +17,17 @@ export function LabelEditor({ labels = [], onUpdate }) {
   };
 
   const handleRemove = async (index) => {
-    const updated = labels.filter((_, i) => i !== index);
+    // Find the actual index in the full labels array
+    const label = displayLabels[index];
+    const actualIndex = labels.indexOf(label);
+    const updated = labels.filter((_, i) => i !== actualIndex);
     await onUpdate(updated);
   };
 
   return (
     <div class="space-y-2">
       <div class="flex flex-wrap gap-2">
-        {labels.map((label, i) => (
+        {displayLabels.map((label, i) => (
           <span
             key={i}
             class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600"
@@ -57,33 +61,19 @@ export function LabelEditor({ labels = [], onUpdate }) {
             }}
             class="text-sm border border-gray-300 rounded px-2 py-1"
           >
-            <option value="category">Category</option>
             <option value="session">Session</option>
             <option value="set">Set</option>
             <option value="tag">Tag</option>
           </select>
 
-          {newType === 'category' ? (
-            <select
-              value={newValue}
-              onChange={e => setNewValue(e.target.value)}
-              class="text-sm border border-gray-300 rounded px-2 py-1"
-            >
-              <option value="">Select...</option>
-              {CATEGORY_PRESETS.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="text"
-              value={newValue}
-              onInput={e => setNewValue(e.target.value)}
-              placeholder={newType === 'set' ? 'Set name...' : newType === 'session' ? 'Session name...' : 'Tag...'}
-              class="text-sm border border-gray-300 rounded px-2 py-1 flex-1"
-              onKeyDown={e => e.key === 'Enter' && handleAdd()}
-            />
-          )}
+          <input
+            type="text"
+            value={newValue}
+            onInput={e => setNewValue(e.target.value)}
+            placeholder={newType === 'set' ? 'Set name...' : newType === 'session' ? 'Session name...' : 'Tag...'}
+            class="text-sm border border-gray-300 rounded px-2 py-1 flex-1"
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          />
 
           <button
             onClick={handleAdd}

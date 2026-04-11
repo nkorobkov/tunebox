@@ -1,5 +1,6 @@
 export function TuneCard({ tune }) {
-  const categoryLabel = tune.labels?.find(l => l.type === 'category');
+  const proficiencyLabel = tune.labels?.find(l => l.type === 'proficiency');
+  const sessionId = tune.session_id > 0 ? tune.session_id : null;
 
   return (
     <a
@@ -16,15 +17,15 @@ export function TuneCard({ tune }) {
             {tune.setting_key && (
               <span class="text-xs text-gray-400">{tune.setting_key}</span>
             )}
-            {tune.session_id && (
-              <span class="text-xs text-blue-500">thesession #{tune.session_id}</span>
+            {sessionId && (
+              <span class="text-xs text-blue-500">thesession #{sessionId}</span>
             )}
           </div>
         </div>
         <div class="flex flex-col items-end gap-1 shrink-0">
-          {categoryLabel && (
+          {(proficiencyLabel || !tune.labels?.some(l => l.type === 'proficiency')) && (
             <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">
-              {categoryLabel.value}
+              {proficiencyLabel?.value || 'want to learn'}
             </span>
           )}
           {tune.abc && (

@@ -1,18 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- Trefoil knot - three interlocking loops -->
-  <g fill="none" stroke="#1e3a2f" stroke-width="3" stroke-linecap="round">
-    <!-- Top loop -->
-    <circle cx="32" cy="20" r="12"/>
-    <!-- Bottom-left loop -->
-    <circle cx="21.6" cy="38" r="12"/>
-    <!-- Bottom-right loop -->
-    <circle cx="42.4" cy="38" r="12"/>
-  </g>
-  <!-- Mask out intersections to create over/under weave effect -->
-  <g fill="#1e3a2f">
-    <!-- Small dots at the three crossing points -->
-    <circle cx="25" cy="27" r="2"/>
-    <circle cx="39" cy="27" r="2"/>
-    <circle cx="32" cy="42" r="2"/>
+  <!--
+    Triquetra: three interlocking leaf shapes.
+    Each leaf connects two crossing points through an outer tip.
+    Crossing points form inner triangle, tips form outer triangle.
+
+    Crossings: C1(24,35) C2(40,35) C3(32,48)
+    Tips:      T1(32,12)  T2(53,52) T3(11,52)
+    Arc radius: 24
+  -->
+  <g fill="none" stroke="#5b8c72" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Top leaf: C1 → tip top → C2 -->
+    <path d="M 24,35 A 24,24 0 0,1 32,12 A 24,24 0 0,1 40,35"/>
+    <!-- Bottom-right leaf: C2 → tip bottom-right → C3 -->
+    <path d="M 40,35 A 24,24 0 0,1 53,52 A 24,24 0 0,1 32,48"/>
+    <!-- Bottom-left leaf: C3 → tip bottom-left → C1 -->
+    <path d="M 32,48 A 24,24 0 0,1 11,52 A 24,24 0 0,1 24,35"/>
   </g>
 </svg>

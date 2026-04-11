@@ -8,10 +8,12 @@ export function Nav() {
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-6">
           <a href="/" class="flex items-center gap-2 text-xl font-bold text-gray-900 no-underline">
-            <svg viewBox="0 0 64 64" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
-              <circle cx="32" cy="20" r="12"/>
-              <circle cx="21.6" cy="38" r="12"/>
-              <circle cx="42.4" cy="38" r="12"/>
+            <svg viewBox="0 0 64 64" class="w-6 h-6">
+              <g fill="none" stroke="#5b8c72" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M 24,35 A 24,24 0 0,1 32,12 A 24,24 0 0,1 40,35"/>
+                <path d="M 40,35 A 24,24 0 0,1 53,52 A 24,24 0 0,1 32,48"/>
+                <path d="M 32,48 A 24,24 0 0,1 11,52 A 24,24 0 0,1 24,35"/>
+              </g>
             </svg>
             TuneBox
           </a>

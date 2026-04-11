@@ -1,14 +1,17 @@
 import { useState } from 'preact/hooks';
 import { AbcViewer } from '../tune/abc-viewer';
 import { AbcPlayer } from '../tune/abc-player';
+import { SheetMusicViewer } from '../tune/sheet-music-viewer';
 import { Metronome } from './metronome';
 import { FluencyRater } from './fluency-rater';
+import { useAttachments } from '../../hooks/use-attachments';
 import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
 import { calculateNextReview } from '../../lib/spaced-repetition';
 import { pb } from '../../lib/pb';
 
 export function PracticeCard({ tune, onComplete }) {
   const [saving, setSaving] = useState(false);
+  const { mainSource } = useAttachments(tune.id);
 
   const fullAbc = tune.abc
     ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc)
@@ -68,7 +71,11 @@ export function PracticeCard({ tune, onComplete }) {
       </div>
 
       {/* Sheet music */}
-      {fullAbc ? (
+      {mainSource ? (
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <SheetMusicViewer attachment={mainSource} />
+        </div>
+      ) : fullAbc ? (
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <AbcViewer abc={fullAbc} />
         </div>

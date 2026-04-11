@@ -4,7 +4,11 @@ import { AbcPlayer } from './abc-player';
 import { TuneForm } from './tune-form';
 import { LabelEditor } from './label-editor';
 import { ProficiencyPicker } from './proficiency-picker';
+import { AttachmentList } from './attachment-list';
+import { AttachmentUpload } from './attachment-upload';
+import { SheetMusicViewer } from './sheet-music-viewer';
 import { InstrumentProgress } from '../instruments/progress-tracker';
+import { useAttachments } from '../../hooks/use-attachments';
 import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
 
 export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
@@ -12,6 +16,8 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const [confirmRemoveSet, setConfirmRemoveSet] = useState(false);
   const [addingSet, setAddingSet] = useState(false);
   const [newSetName, setNewSetName] = useState('');
+  const [showUpload, setShowUpload] = useState(false);
+  const { attachments, loading: attachmentsLoading, upload, remove, setMainSource, mainSource } = useAttachments(tune.id);
 
   const setLabel = (tune.labels || []).find(l => l.type === 'set');
 
@@ -145,15 +151,24 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
         </div>
       </div>
 
-      {/* ABC Sheet Music */}
-      {fullAbc && (
+      {/* Sheet Music */}
+      {mainSource ? (
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <SheetMusicViewer attachment={mainSource} />
+          {fullAbc && (
+            <div class="mt-3">
+              <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} />
+            </div>
+          )}
+        </div>
+      ) : fullAbc ? (
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <AbcViewer abc={fullAbc} />
           <div class="mt-3">
             <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} />
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Instrument Progress */}
       <div class="bg-white rounded-lg border border-gray-200 p-4">
@@ -171,6 +186,32 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
           <h3 class="text-sm font-medium text-gray-700 mb-2">Notes</h3>
           <div class="text-sm text-gray-600 prose" dangerouslySetInnerHTML={{ __html: tune.notes }} />
         </div>
+      )}
+
+      {/* Attachments */}
+      <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-700">
+            Attachments{attachments.length > 0 && ` (${attachments.length})`}
+          </h3>
+          <button
+            onClick={() => setShowUpload(true)}
+            class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer"
+          >
+            + Add
+          </button>
+        </div>
+        {attachmentsLoading ? (
+          <p class="text-sm text-gray-400">Loading...</p>
+        ) : attachments.length === 0 ? (
+          <p class="text-sm text-gray-400">No attachments yet.</p>
+        ) : (
+          <AttachmentList attachments={attachments} onDelete={remove} onSetMainSource={setMainSource} />
+        )}
+      </div>
+
+      {showUpload && (
+        <AttachmentUpload onUpload={upload} onClose={() => setShowUpload(false)} />
       )}
 
       {/* Practice info */}

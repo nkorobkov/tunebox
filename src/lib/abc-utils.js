@@ -49,5 +49,7 @@ export function buildAbcString(title, tuneType, key, abc) {
   const meter = getMeter(tuneType);
   // If the ABC already has headers, return as-is
   if (abc.trim().startsWith('X:')) return abc;
-  return `X:1\nT:${title}\nM:${meter}\nL:1/8\nK:${key}\n${abc}`;
+  // thesession.org uses "! " as line breaks in ABC — convert to newlines
+  const body = abc.replace(/!\s*/g, '\n');
+  return `X:1\nT:${title}\nM:${meter}\nL:1/8\nK:${key}\n${body}`;
 }

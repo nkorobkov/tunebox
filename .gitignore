@@ -14,7 +14,12 @@ dist-ssr
 
 # Environment / secrets
 .env
-.env.*
+.env.local
+.env.*.local
+
+# Committed env files (no secrets, just VITE_ public vars):
+# .env.production
+# .env.development
 
 # Editor directories and files
 .vscode/*

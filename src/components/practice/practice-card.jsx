@@ -87,14 +87,14 @@ function TuneHeader({ tune, instrument }) {
 function SheetMusic({ mainSource, fullAbc }) {
   if (mainSource) {
     return (
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
+      <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4">
         <SheetMusicViewer attachment={mainSource} />
       </div>
     );
   }
   if (fullAbc) {
     return (
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
+      <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4 practice-abc">
         <AbcViewer abc={fullAbc} />
       </div>
     );

@@ -67,9 +67,10 @@ export function Nav() {
                     <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline" onClick={() => setMenuOpen(false)}>Library</a>
                     <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline" onClick={() => setMenuOpen(false)}>Settings</a>
                     <hr class="my-1 border-gray-100" />
+                    <span class="block px-4 pt-1.5 text-xs text-gray-400 truncate">{user.email?.split('@')[0]}</span>
                     <button
                       onClick={() => { setMenuOpen(false); logout(); }}
-                      class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      class="w-full text-left px-4 py-1.5 pb-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
                     >
                       Logout
                     </button>

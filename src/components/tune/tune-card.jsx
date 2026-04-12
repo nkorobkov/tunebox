@@ -14,20 +14,17 @@ export function TuneCard({ tune, inSet = false }) {
   return (
     <a
       href={`/tune/${tune.id}`}
-      class={`block bg-white p-4 hover:bg-gray-50 transition-all no-underline ${
+      class={`block bg-white p-3 lg:p-4 hover:bg-gray-50 transition-all no-underline overflow-hidden ${
         inSet ? '' : 'rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm'
       }`}
     >
-      <div class="flex items-center justify-between gap-3">
+      {/* Desktop: single row */}
+      <div class="hidden lg:flex items-center justify-between gap-3">
         <div class="min-w-0">
           <h3 class="text-base font-semibold text-gray-900 truncate">{tune.title}</h3>
           <div class="flex items-center gap-2 mt-0.5">
-            {tune.type && (
-              <span class="text-xs text-gray-500 capitalize">{tune.type}</span>
-            )}
-            {tune.setting_key && (
-              <span class="text-xs text-gray-400">{tune.setting_key}</span>
-            )}
+            {tune.type && <span class="text-xs text-gray-500 capitalize">{tune.type}</span>}
+            {tune.setting_key && <span class="text-xs text-gray-400">{tune.setting_key}</span>}
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
@@ -35,10 +32,7 @@ export function TuneCard({ tune, inSet = false }) {
             <span key={i} class="text-xs text-gray-400">#{tag.value}</span>
           ))}
           {instruments.map(([name, data]) => (
-            <span
-              key={name}
-              class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600"
-            >
+            <span key={name} class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
               {name}
               {isLearning && data.current_tempo > 0 && data.target_tempo > 0 && (
                 <span class="ml-1 opacity-75">({data.current_tempo}/{data.target_tempo})</span>
@@ -49,6 +43,35 @@ export function TuneCard({ tune, inSet = false }) {
             {proficiency}
           </span>
         </div>
+      </div>
+
+      {/* Mobile: stacked */}
+      <div class="lg:hidden">
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="text-sm font-semibold text-gray-900 truncate">{tune.title}</h3>
+          <span class={`text-[11px] px-1.5 py-0.5 rounded-full shrink-0 ${PROFICIENCY_COLORS[proficiency] || 'bg-gray-100 text-gray-500'}`}>
+            {proficiency}
+          </span>
+        </div>
+        <div class="flex items-center gap-2 mt-0.5">
+          {tune.type && <span class="text-[11px] text-gray-500 capitalize">{tune.type}</span>}
+          {tune.setting_key && <span class="text-[11px] text-gray-400">{tune.setting_key}</span>}
+          {instruments.map(([name, data]) => (
+            <span key={name} class="text-[11px] px-1 py-0.5 rounded bg-gray-100 text-gray-600">
+              {name}
+              {isLearning && data.current_tempo > 0 && data.target_tempo > 0 && (
+                <span class="ml-0.5 opacity-75">({data.current_tempo}/{data.target_tempo})</span>
+              )}
+            </span>
+          ))}
+        </div>
+        {tags.length > 0 && (
+          <div class="flex items-center gap-1.5 mt-1">
+            {tags.map((tag, i) => (
+              <span key={i} class="text-[11px] text-gray-400">#{tag.value}</span>
+            ))}
+          </div>
+        )}
       </div>
     </a>
   );

@@ -91,53 +91,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
             {tune.canonical_tempo > 0 && <span>{tune.canonical_tempo} BPM</span>}
             {tune.author && <span>by {tune.author}</span>}
           </div>
-          {(tune.session_id > 0 || tune.session_url || (tune.source_url && tune.source_url.includes('thesession.org'))) && (
-            <a
-              href={tune.session_url || tune.source_url || `https://thesession.org/tunes/${tune.session_id}`}
-              target="_blank"
-              rel="noopener"
-              class="text-sm text-blue-500 hover:underline mt-1 inline-block"
-            >
-              View on The Session{tune.session_id > 0 ? ` (#${tune.session_id})` : ''}
-            </a>
-          )}
-          {tune.source_url && !tune.source_url.includes('thesession.org') && (
-            <a
-              href={tune.source_url}
-              target="_blank"
-              rel="noopener"
-              class="text-sm text-blue-500 hover:underline mt-1 inline-block"
-            >
-              Source
-            </a>
-          )}
-        </div>
-        <div class="flex gap-2">
-          <a
-            href={`/practice?tune=${tune.id}`}
-            class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 no-underline"
-          >
-            Practice
-          </a>
-          <button
-            onClick={() => setEditing(true)}
-            class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
-          >
-            Edit
-          </button>
-          <button
-            onClick={onDelete}
-            class="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-md hover:bg-red-50 cursor-pointer"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-
-      {/* Tags, Set & Proficiency */}
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <div class="flex items-start justify-between gap-4">
-          <div class="flex-1 min-w-0">
+          <div class="mt-2 hidden lg:block">
             <LabelEditor
               labels={tune.labels || []}
               onUpdate={(labels) => onUpdate({ labels })}
@@ -150,10 +104,42 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
               onAddSet={handleAddSet}
             />
           </div>
-          <ProficiencyPicker
-            labels={tune.labels || []}
-            onUpdate={(labels) => onUpdate({ labels })}
-          />
+        </div>
+        <div class="flex flex-col items-end gap-2">
+          <div class="flex gap-2">
+            <a
+              href={`/practice?tune=${tune.id}`}
+              class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 no-underline"
+            >
+              Practice
+            </a>
+            <button
+              onClick={() => setEditing(true)}
+              class="px-2 lg:px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer flex items-center gap-1"
+              title="Edit"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
+              </svg>
+              <span class="hidden lg:inline">Edit</span>
+            </button>
+            <button
+              onClick={onDelete}
+              class="px-2 lg:px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-md hover:bg-red-50 cursor-pointer flex items-center gap-1"
+              title="Delete"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+              <span class="hidden lg:inline">Delete</span>
+            </button>
+          </div>
+          <div class="hidden lg:block">
+            <ProficiencyPicker
+              labels={tune.labels || []}
+              onUpdate={(labels) => onUpdate({ labels })}
+            />
+          </div>
         </div>
       </div>
 
@@ -175,6 +161,25 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
           </div>
         </div>
       ) : null}
+
+      {/* Tags & Proficiency — mobile only, above instruments */}
+      <div class="lg:hidden space-y-3">
+        <ProficiencyPicker
+          labels={tune.labels || []}
+          onUpdate={(labels) => onUpdate({ labels })}
+        />
+        <LabelEditor
+          labels={tune.labels || []}
+          onUpdate={(labels) => onUpdate({ labels })}
+          setLabel={setLabel}
+          addingSet={addingSet}
+          onStartAddSet={() => setAddingSet(true)}
+          onCancelAddSet={() => { setAddingSet(false); setNewSetName(''); }}
+          newSetName={newSetName}
+          onSetNameInput={setNewSetName}
+          onAddSet={handleAddSet}
+        />
+      </div>
 
       {/* Instrument Progress */}
       <div class="bg-white rounded-lg border border-gray-200 p-4">
@@ -230,6 +235,28 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
             <p>Streak: {tune.consecutive_correct}</p>
           </div>
         </div>
+      )}
+
+      {/* External links */}
+      {(tune.session_id > 0 || tune.session_url || (tune.source_url && tune.source_url.includes('thesession.org'))) && (
+        <a
+          href={tune.session_url || tune.source_url || `https://thesession.org/tunes/${tune.session_id}`}
+          target="_blank"
+          rel="noopener"
+          class="text-sm text-blue-500 hover:underline inline-block"
+        >
+          View on The Session{tune.session_id > 0 ? ` (#${tune.session_id})` : ''}
+        </a>
+      )}
+      {tune.source_url && !tune.source_url.includes('thesession.org') && (
+        <a
+          href={tune.source_url}
+          target="_blank"
+          rel="noopener"
+          class="text-sm text-blue-500 hover:underline inline-block"
+        >
+          Source
+        </a>
       )}
     </div>
   );

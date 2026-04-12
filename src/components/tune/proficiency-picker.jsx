@@ -9,12 +9,12 @@ export function ProficiencyPicker({ labels = [], onUpdate }) {
   };
 
   return (
-    <div class="flex shrink-0">
+    <div class="flex shrink-0 w-full lg:w-auto">
       {LEVELS.map((level, i) => (
         <button
           key={level}
           onClick={() => handleSelect(level)}
-          class={`text-xs px-2 py-1.5 cursor-pointer capitalize border border-gray-300 ${
+          class={`text-xs px-2 py-1.5 cursor-pointer capitalize border border-gray-300 flex-1 lg:flex-initial ${
             i === 0 ? 'rounded-l' : ''
           }${i === LEVELS.length - 1 ? 'rounded-r' : ''
           }${i > 0 ? ' -ml-px' : ''} ${

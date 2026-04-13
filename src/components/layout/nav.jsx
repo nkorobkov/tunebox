@@ -9,15 +9,9 @@ export function Nav() {
     <nav class="bg-white border-b border-gray-200 px-4 py-3">
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-6">
-          <a href="/" class="flex items-center gap-2 text-xl font-bold text-gray-900 no-underline">
-            <svg viewBox="0 0 64 64" class="w-6 h-6">
-              <g fill="none" stroke="#5b8c72" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M 24,35 A 24,24 0 0,1 32,12 A 24,24 0 0,1 40,35"/>
-                <path d="M 40,35 A 24,24 0 0,1 53,52 A 24,24 0 0,1 32,48"/>
-                <path d="M 32,48 A 24,24 0 0,1 11,52 A 24,24 0 0,1 24,35"/>
-              </g>
-            </svg>
-            <span class="hidden lg:inline">TuneBox</span>
+          <a href="/" class="flex items-center gap-2 no-underline">
+            <img src="/tunebook-logo.svg" alt="" class="h-7" />
+            <img src="/tunebook-word.svg" alt="TuneBox" class="hidden lg:block h-6" />
           </a>
           {user && (
             <>

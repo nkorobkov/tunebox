@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { parseAbcMeta, getDefaultTempo } from '../../lib/abc-utils';
 
-const TUNE_TYPES = ['reel', 'jig', 'slip jig', 'hornpipe', 'polka', 'slide', 'waltz', 'mazurka', 'other'];
+const TUNE_TYPES = ['reel', 'jig', 'slip jig', 'hornpipe', 'polka', 'slide', 'waltz', 'mazurka', 'march', 'barndance', 'other'];
 
 export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
   const [title, setTitle] = useState(initial.title || '');
@@ -49,14 +49,17 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-          <select
+          <input
+            type="text"
             value={type}
-            onChange={e => setType(e.target.value)}
+            onInput={e => setType(e.target.value)}
+            list="tune-types"
+            placeholder="e.g. reel, jig, march"
             class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select type...</option>
-            {TUNE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+          />
+          <datalist id="tune-types">
+            {TUNE_TYPES.map(t => <option key={t} value={t} />)}
+          </datalist>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Key</label>
@@ -113,7 +116,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
             if (val.includes('X:')) {
               const meta = parseAbcMeta(val);
               if (meta.title && meta.title !== 'Untitled' && !title) setTitle(meta.title);
-              if (meta.type && TUNE_TYPES.includes(meta.type) && !type) setType(meta.type);
+              if (meta.type && !type) setType(meta.type);
               if (meta.key && !settingKey) setSettingKey(meta.key);
               if (meta.author && !author) setAuthor(meta.author);
               if (meta.source && !sourceUrl) setSourceUrl(meta.source);

@@ -51,10 +51,7 @@ curl -s -X POST "$PB/api/collections" \
       },
       {
         "name": "type",
-        "type": "select",
-        "options": {
-          "values": ["reel","jig","slip jig","hornpipe","polka","slide","waltz","mazurka","other"]
-        }
+        "type": "text"
       },
       {
         "name": "abc",

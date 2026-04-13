@@ -7,6 +7,8 @@ const METERS = {
   'slide': '12/8',
   'waltz': '3/4',
   'mazurka': '3/4',
+  'march': '4/4',
+  'barndance': '4/4',
 };
 
 const DEFAULT_TEMPOS = {
@@ -18,6 +20,8 @@ const DEFAULT_TEMPOS = {
   'slide': 130,
   'waltz': 90,
   'mazurka': 90,
+  'march': 100,
+  'barndance': 112,
 };
 
 export function getMeter(tuneType) {

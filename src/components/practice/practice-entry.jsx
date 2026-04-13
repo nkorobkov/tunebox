@@ -3,22 +3,34 @@ import { getDefaultTempo } from '../../lib/abc-utils';
 
 export function PracticeEntry({ userInstruments, selectedInstrument, onSelectInstrument, learning, playing, wantToLearn, onStart, onStartLearning, allDoneForToday, onReviewAgain }) {
   const [expandWantToLearn, setExpandWantToLearn] = useState(false);
-  const [learningTune, setLearningTune] = useState(null);
+  const [expandingTuneId, setExpandingTuneId] = useState(null);
   const [targetBpm, setTargetBpm] = useState('');
+  const [learnInstrument, setLearnInstrument] = useState(selectedInstrument);
+  const [saving, setSaving] = useState(false);
 
   const totalPracticeable = learning.length + playing.length;
 
-  const handleStartLearning = (tune) => {
+  const handleExpandLearning = (tune) => {
+    if (expandingTuneId === tune.id) {
+      setExpandingTuneId(null);
+      return;
+    }
     const defaultBpm = tune.canonical_tempo || getDefaultTempo(tune.type) || 100;
     setTargetBpm(defaultBpm);
-    setLearningTune(tune);
+    setLearnInstrument(selectedInstrument);
+    setExpandingTuneId(tune.id);
   };
 
-  const handleConfirmLearning = async () => {
-    if (!learningTune || !selectedInstrument) return;
-    await onStartLearning(learningTune, Number(targetBpm));
-    setLearningTune(null);
-    setTargetBpm('');
+  const handleConfirmLearning = async (tune) => {
+    if (!learnInstrument || !targetBpm) return;
+    setSaving(true);
+    try {
+      await onStartLearning(tune, Number(targetBpm), learnInstrument);
+      setExpandingTuneId(null);
+      setTargetBpm('');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -103,64 +115,77 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
           </button>
 
           {expandWantToLearn && (
-            <div class="mt-3 space-y-2">
+            <div class="mt-3 space-y-1">
               {wantToLearn.map(tune => (
-                <div key={tune.id} class="flex items-center justify-between py-1.5">
-                  <div class="min-w-0">
-                    <span class="text-sm text-gray-800 truncate block">{tune.title}</span>
-                    <span class="text-xs text-gray-400">
-                      {tune.type && <span class="capitalize">{tune.type}</span>}
-                      {tune.canonical_tempo > 0 && <span> — {tune.canonical_tempo} BPM</span>}
-                    </span>
+                <div key={tune.id}>
+                  <div class="flex items-center justify-between py-1.5">
+                    <div class="min-w-0">
+                      <span class="text-sm text-gray-800 truncate block">{tune.title}</span>
+                      <span class="text-xs text-gray-400">
+                        {tune.type && <span class="capitalize">{tune.type}</span>}
+                        {tune.canonical_tempo > 0 && <span> — {tune.canonical_tempo} BPM</span>}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleExpandLearning(tune)}
+                      class="text-xs text-blue-600 hover:text-blue-700 cursor-pointer shrink-0 ml-2"
+                    >
+                      {expandingTuneId === tune.id ? 'Cancel' : 'Start learning'}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleStartLearning(tune)}
-                    class="text-xs text-blue-600 hover:text-blue-700 cursor-pointer shrink-0 ml-2"
-                  >
-                    Start learning
-                  </button>
+
+                  {expandingTuneId === tune.id && (
+                    <div class="ml-1 mb-2 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                      {/* Instrument picker */}
+                      {userInstruments.length > 1 && (
+                        <div>
+                          <label class="text-xs text-gray-500 block mb-1">Instrument</label>
+                          <div class="flex shrink-0">
+                            {userInstruments.map((inst, i) => (
+                              <button
+                                key={inst}
+                                onClick={() => setLearnInstrument(inst)}
+                                class={`text-xs px-2 py-1.5 cursor-pointer capitalize border border-gray-300 ${
+                                  i === 0 ? 'rounded-l' : ''
+                                }${i === userInstruments.length - 1 ? ' rounded-r' : ''
+                                }${i > 0 ? ' -ml-px' : ''} ${
+                                  learnInstrument === inst
+                                    ? 'bg-blue-600 text-white border-blue-600 z-10 relative'
+                                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                                }`}
+                              >
+                                {inst}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* BPM + Add button */}
+                      <div class="flex items-end gap-2">
+                        <div class="flex-1">
+                          <label class="text-xs text-gray-500 block mb-1">Target BPM</label>
+                          <input
+                            type="number"
+                            value={targetBpm}
+                            onInput={e => setTargetBpm(e.target.value)}
+                            class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleConfirmLearning(tune)}
+                          disabled={!targetBpm || saving}
+                          class="px-4 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                        >
+                          {saving ? 'Adding...' : 'Add to learning'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Start learning dialog */}
-      {learningTune && (
-        <div class="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div class="bg-white rounded-lg p-6 w-full max-w-sm shadow-lg">
-            <h3 class="text-lg font-semibold text-gray-900 mb-1">
-              Start learning: {learningTune.title}
-            </h3>
-            <p class="text-sm text-gray-500 mb-4">
-              on {selectedInstrument}
-            </p>
-            <div class="mb-4">
-              <label class="text-sm text-gray-600 block mb-1">Target BPM</label>
-              <input
-                type="number"
-                value={targetBpm}
-                onInput={e => setTargetBpm(e.target.value)}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              />
-            </div>
-            <div class="flex gap-2">
-              <button
-                onClick={handleConfirmLearning}
-                disabled={!targetBpm}
-                class="flex-1 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
-              >
-                Start
-              </button>
-              <button
-                onClick={() => { setLearningTune(null); setTargetBpm(''); }}
-                class="px-4 py-2 text-gray-500 hover:text-gray-700 cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

@@ -9,7 +9,6 @@ export function TunePage({ id }) {
   const { user } = useAuth();
 
   const handleDelete = async () => {
-    if (!confirm('Delete this tune from your collection?')) return;
     const { pb } = await import('../lib/pb');
     await pb.collection('user_tunes').delete(id);
     route('/');

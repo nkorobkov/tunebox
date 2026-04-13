@@ -3,23 +3,54 @@ import { Shell } from '../components/layout/shell';
 import { InstrumentManager } from '../components/instruments/instrument-manager';
 import { useAuth } from '../lib/auth';
 import { pb } from '../lib/pb';
+import { getDefaultInstrument, saveDefaultInstrument } from '../hooks/use-practice';
 
 export function SettingsPage() {
   const { user } = useAuth();
   const [instruments, setInstruments] = useState(user?.instruments || []);
   const [saving, setSaving] = useState(false);
+  const [defaultInst, setDefaultInst] = useState(() => {
+    const saved = getDefaultInstrument();
+    const list = user?.instruments || [];
+    return list.includes(saved) ? saved : (list[0] || '');
+  });
 
-  const handleUpdateInstruments = useCallback(async (updated) => {
+  const handleUpdateInstruments = useCallback(async (updated, removedInstrument) => {
     setSaving(true);
     try {
       await pb.collection('users').update(user.id, { instruments: updated });
       setInstruments(updated);
+      // If default instrument was removed, reset to first
+      if (!updated.includes(defaultInst)) {
+        const newDefault = updated[0] || '';
+        setDefaultInst(newDefault);
+        saveDefaultInstrument(newDefault);
+      }
+      // Strip progress for the removed instrument from all tunes
+      if (removedInstrument) {
+        const userId = pb.authStore.record.id;
+        const result = await pb.collection('user_tunes').getList(1, 500, {
+          filter: `user = "${userId}"`,
+        });
+        for (const tune of result.items) {
+          if (tune.instruments?.[removedInstrument]) {
+            const { [removedInstrument]: _, ...rest } = tune.instruments;
+            await pb.collection('user_tunes').update(tune.id, { instruments: rest });
+          }
+        }
+      }
     } catch (err) {
       console.error('Failed to update instruments:', err);
     } finally {
       setSaving(false);
     }
-  }, [user]);
+  }, [user, defaultInst]);
+
+  const handleSetDefault = (inst) => {
+    const val = inst || instruments[0] || '';
+    setDefaultInst(val);
+    saveDefaultInstrument(val);
+  };
 
   return (
     <Shell>
@@ -44,6 +75,8 @@ export function SettingsPage() {
           <InstrumentManager
             instruments={instruments}
             onUpdate={handleUpdateInstruments}
+            defaultInstrument={defaultInst}
+            onSetDefault={handleSetDefault}
           />
           {saving && <p class="text-xs text-gray-400 mt-2">Saving...</p>}
         </div>

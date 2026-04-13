@@ -104,14 +104,46 @@ export async function savePlayingPractice(tune, instrument, rating) {
   return { isRelearn, updated };
 }
 
+/**
+ * Save a learning-mode struggle: lower stability, don't update tempo.
+ */
+export async function saveLearningStruggle(tune, instrument) {
+  const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
+  const instData = getInstrumentData(tune, instrument, fallback);
+
+  const updatedInstruments = {
+    ...tune.instruments,
+    [instrument]: {
+      ...tune.instruments?.[instrument],
+      keys: instData.keys,
+      current_tempo: instData.current_tempo,
+      target_tempo: instData.target_tempo,
+      stability: updateStability(instData.stability, 'hard'),
+      last_practiced: new Date().toISOString(),
+    },
+  };
+
+  const updated = await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments });
+  await pb.collection('practice_log').create({
+    user: pb.authStore.record.id,
+    user_tune: tune.id,
+    instrument,
+    practiced_at: new Date().toISOString(),
+    tempo_used: instData.current_tempo,
+    fluency_rating: 2,
+  });
+
+  return { updated };
+}
+
 // --- Hooks ---
 
 export function useTunesByProficiency() {
   const [allTunes, setAllTunes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
+  const fetch = useCallback(async (silent) => {
+    if (!silent) setLoading(true);
     try {
       const userId = pb.authStore.record.id;
       const result = await pb.collection('user_tunes').getList(1, 500, {
@@ -213,6 +245,12 @@ export function usePracticeSession(instrument, { includePracticedToday = false }
     return res;
   }, [instrument]);
 
+  const completeLearningStruggle = useCallback(async (tune) => {
+    const res = await saveLearningStruggle(tune, instrument);
+    setQueue(prev => prev.map(t => t.id === res.updated.id ? res.updated : t));
+    return res;
+  }, [instrument]);
+
   const completePlaying = useCallback(async (tune, rating) => {
     const res = await savePlayingPractice(tune, instrument, rating);
     setQueue(prev => prev.map(t => t.id === res.updated.id ? res.updated : t));
@@ -228,6 +266,7 @@ export function usePracticeSession(instrument, { includePracticedToday = false }
     advance,
     skip,
     completeLearning,
+    completeLearningStruggle,
     completePlaying,
     totalCount: queue.length,
   };

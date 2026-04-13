@@ -6,6 +6,7 @@ import { LabelEditor } from './label-editor';
 import { ProficiencyPicker } from './proficiency-picker';
 import { AttachmentList } from './attachment-list';
 import { AttachmentUpload } from './attachment-upload';
+import { AudioRecorder } from './audio-recorder';
 import { SheetMusicViewer } from './sheet-music-viewer';
 import { InstrumentProgress } from '../instruments/progress-tracker';
 import { useAttachments } from '../../hooks/use-attachments';
@@ -17,6 +18,8 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const [addingSet, setAddingSet] = useState(false);
   const [newSetName, setNewSetName] = useState('');
   const [showUpload, setShowUpload] = useState(false);
+  const [showRecorder, setShowRecorder] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { attachments, loading: attachmentsLoading, upload, remove, setMainSource, mainSource } = useAttachments(tune.id);
 
   const setLabel = (tune.labels || []).find(l => l.type === 'set');
@@ -124,7 +127,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
               <span class="hidden lg:inline">Edit</span>
             </button>
             <button
-              onClick={onDelete}
+              onClick={() => setConfirmDelete(true)}
               class="px-2 lg:px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-md hover:bg-red-50 cursor-pointer flex items-center gap-1"
               title="Delete"
             >
@@ -205,12 +208,21 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
           <h3 class="text-sm font-medium text-gray-700">
             Attachments{attachments.length > 0 && ` (${attachments.length})`}
           </h3>
-          <button
-            onClick={() => setShowUpload(true)}
-            class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer"
-          >
-            + Add
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              onClick={() => setShowRecorder(true)}
+              class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer"
+            >
+              Record
+            </button>
+            <span class="text-gray-300">|</span>
+            <button
+              onClick={() => setShowUpload(true)}
+              class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer"
+            >
+              Add
+            </button>
+          </div>
         </div>
         {attachmentsLoading ? (
           <p class="text-sm text-gray-400">Loading...</p>
@@ -223,6 +235,10 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
 
       {showUpload && (
         <AttachmentUpload onUpload={upload} onClose={() => setShowUpload(false)} />
+      )}
+
+      {showRecorder && (
+        <AudioRecorder onUpload={upload} onClose={() => setShowRecorder(false)} />
       )}
 
       {/* Practice info */}
@@ -257,6 +273,34 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
         >
           Source
         </a>
+      )}
+
+      {confirmDelete && (
+        <>
+          <div class="fixed inset-0 bg-black/40 z-30" onClick={() => setConfirmDelete(false)} />
+          <div class="fixed inset-0 z-40 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-5 space-y-4">
+              <h3 class="text-base font-semibold text-gray-900">Delete {tune.title}?</h3>
+              <p class="text-sm text-gray-600">
+                This tune and all its practice history will be permanently removed from your collection.
+              </p>
+              <div class="flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  class="text-sm px-3 py-2 border border-gray-300 rounded text-gray-600 hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={onDelete}
+                  class="text-sm px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -9,7 +9,7 @@ import { INITIAL_STABILITY, practicedToday } from '../lib/practice-algorithm';
 import {
   useTunesByProficiency, usePracticeSession,
   getDefaultInstrument, saveDefaultInstrument,
-  saveLearningPractice, savePlayingPractice,
+  saveLearningPractice, saveLearningStruggle, savePlayingPractice,
 } from '../hooks/use-practice';
 
 function learningResultMsg(tempo, movedToPlaying) {
@@ -72,16 +72,17 @@ export function PracticePage({ tune: tuneIdParam }) {
   const handleStart = () => { setIsReview(false); setPracticing(true); setLastResult(null); };
   const handleReviewAgain = () => { setIsReview(true); setPracticing(true); setLastResult(null); };
 
-  const handleStartLearning = useCallback(async (tune, targetBpm) => {
+  const handleStartLearning = useCallback(async (tune, targetBpm, forInstrument) => {
+    const inst = forInstrument || instrument;
     const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
     const updatedInstruments = {
       ...tune.instruments,
-      [instrument]: { keys: [], current_tempo: 0, target_tempo: targetBpm || fallback, stability: INITIAL_STABILITY, last_practiced: null },
+      [inst]: { keys: [], current_tempo: 0, target_tempo: targetBpm || fallback, stability: INITIAL_STABILITY, last_practiced: null },
     };
     const labels = (tune.labels || []).filter(l => l.type !== 'proficiency');
     labels.push({ type: 'proficiency', value: 'learning' });
     await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments, labels });
-    await refetch();
+    await refetch(true);
   }, [instrument, refetch]);
 
   const handleStop = () => {
@@ -103,6 +104,20 @@ export function PracticePage({ tune: tuneIdParam }) {
       ? await saveLearningPractice(tune, instrument, tempo)
       : await session.completeLearning(tune, tempo);
     const msg = learningResultMsg(tempo, res.movedToPlaying);
+    if (singleTune) {
+      setLastResult(msg);
+    } else {
+      setLastResult(msg);
+      setTimeout(() => { setLastResult(null); session.advance(); }, 2000);
+    }
+    return res;
+  }, [singleTune, instrument, session]);
+
+  const onStruggleLearning = useCallback(async (tune) => {
+    const res = singleTune
+      ? await saveLearningStruggle(tune, instrument)
+      : await session.completeLearningStruggle(tune);
+    const msg = 'Good effort! We\'ll try again next time.';
     if (singleTune) {
       setLastResult(msg);
     } else {
@@ -197,6 +212,7 @@ export function PracticePage({ tune: tuneIdParam }) {
           tune={currentTune}
           instrument={instrument}
           onCompleteLearning={onCompleteLearning}
+          onStruggleLearning={onStruggleLearning}
           onCompletePlaying={onCompletePlaying}
           onSkip={singleTune ? handleStop : session.skip}
         />

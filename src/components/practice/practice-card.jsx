@@ -5,10 +5,10 @@ import { SheetMusicViewer } from '../tune/sheet-music-viewer';
 import { Metronome } from './metronome';
 import { FluencyRater } from './fluency-rater';
 import { useAttachments } from '../../hooks/use-attachments';
-import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
+import { buildAbcString, getDefaultTempo, getMeter } from '../../lib/abc-utils';
 import { getInstrumentData, suggestLearningTempo } from '../../lib/practice-algorithm';
 
-export function PracticeCard({ tune, instrument, onCompleteLearning, onCompletePlaying, onSkip }) {
+export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleLearning, onCompletePlaying, onSkip }) {
   const [saving, setSaving] = useState(false);
   const { mainSource } = useAttachments(tune.id);
 
@@ -26,6 +26,16 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onCompleteP
     setSaving(true);
     try {
       await onCompleteLearning(tune, tempo);
+    } catch (err) {
+      console.error('Failed to save practice:', err);
+      setSaving(false);
+    }
+  };
+
+  const handleLearningStruggle = async () => {
+    setSaving(true);
+    try {
+      await onStruggleLearning(tune);
     } catch (err) {
       console.error('Failed to save practice:', err);
       setSaving(false);
@@ -52,6 +62,7 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onCompleteP
         mainSource={mainSource}
         saving={saving}
         onComplete={handleLearningComplete}
+        onStruggle={handleLearningStruggle}
         onSkip={onSkip}
       />
     );
@@ -106,7 +117,7 @@ function SheetMusic({ mainSource, fullAbc }) {
   );
 }
 
-function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving, onComplete, onSkip }) {
+function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving, onComplete, onStruggle, onSkip }) {
   const { suggestion, isFirstTime } = suggestLearningTempo(instData.current_tempo);
   const [tempo, setTempo] = useState(suggestion);
   const meetsTarget = tempo >= instData.target_tempo;
@@ -137,7 +148,7 @@ function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving,
       {/* Playback + Metronome */}
       <div class="space-y-2">
         {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={tempo} />}
-        <Metronome defaultBpm={tempo} onTempoChange={setTempo} />
+        <Metronome defaultBpm={tempo} defaultTimeSignature={getMeter(tune.type)} onTempoChange={setTempo} />
       </div>
 
       {/* Complete button */}
@@ -152,6 +163,13 @@ function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving,
           {meetsTarget
             ? `Practiced at ${tempo} BPM — move to Playing!`
             : `Practiced with no mistakes at ${tempo} BPM`}
+        </button>
+        <button
+          onClick={onStruggle}
+          disabled={saving}
+          class="w-full py-3 rounded-lg text-amber-700 bg-amber-50 border border-amber-200 font-medium cursor-pointer disabled:opacity-50 hover:bg-amber-100"
+        >
+          Can't play with metronome yet
         </button>
         <button
           onClick={onSkip}
@@ -183,7 +201,7 @@ function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, saving, 
       {/* Playback + Metronome */}
       <div class="space-y-2">
         {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={playTempo} />}
-        <Metronome defaultBpm={playTempo} />
+        <Metronome defaultBpm={playTempo} defaultTimeSignature={getMeter(tune.type)} />
       </div>
 
       {/* Rating */}

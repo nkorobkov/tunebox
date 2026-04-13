@@ -98,7 +98,7 @@ export function LibraryPage() {
             {tunes.length} tune{tunes.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="hidden lg:flex items-center gap-3">
           <a
             href="/practice"
             class="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 no-underline"
@@ -122,12 +122,12 @@ export function LibraryPage() {
             value={search}
             onInput={e => setSearch(e.target.value)}
             placeholder="Search tunes..."
-            class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <select
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
-            class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All types</option>
             {types.map(t => <option key={t} value={t}>{t}</option>)}

@@ -7,5 +7,5 @@ export function AbcViewer({ abc }) {
     return <p class="text-gray-400 italic">No ABC notation available</p>;
   }
 
-  return <div ref={ref} class="abc-viewer overflow-x-auto" />;
+  return <div ref={ref} class="abc-viewer" />;
 }

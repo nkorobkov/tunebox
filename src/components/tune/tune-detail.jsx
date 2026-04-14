@@ -21,6 +21,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const [showRecorder, setShowRecorder] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickingInstrument, setPickingInstrument] = useState(false);
+  const [transpose, setTranspose] = useState(tune.transpose || 0);
   const { attachments, loading: attachmentsLoading, upload, remove, setMainSource, mainSource } = useAttachments(tune.id);
 
   const allInstruments = [...new Set([...Object.keys(tune.instruments || {}), ...(userInstruments || [])])];
@@ -181,15 +182,21 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
           <SheetMusicViewer attachment={mainSource} />
           {fullAbc && (
             <div class="mt-3">
-              <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} />
+              <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} transpose={transpose} />
             </div>
           )}
         </div>
       ) : fullAbc ? (
         <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <AbcViewer abc={fullAbc} />
+          <AbcViewer
+            abc={fullAbc}
+            transpose={transpose}
+            onTransposeChange={setTranspose}
+            savedTranspose={tune.transpose || 0}
+            onSave={(val) => onUpdate({ transpose: val })}
+          />
           <div class="mt-3">
-            <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} />
+            <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} transpose={transpose} />
           </div>
         </div>
       ) : null}

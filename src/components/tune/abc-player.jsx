@@ -13,7 +13,7 @@ function setAbcTempo(abc, qpm) {
   return abc.replace(/^(K:.*)$/m, `$1\nQ:1/4=${qpm}`);
 }
 
-export function AbcPlayer({ abc, defaultTempo = 120 }) {
+export function AbcPlayer({ abc, defaultTempo = 120, transpose = 0 }) {
   const containerRef = useRef(null);
   const controllerRef = useRef(null);
 
@@ -21,7 +21,7 @@ export function AbcPlayer({ abc, defaultTempo = 120 }) {
     if (!abc || !containerRef.current) return;
 
     const abcWithTempo = setAbcTempo(abc, defaultTempo);
-    const visualObj = abcjs.renderAbc('*', abcWithTempo, { responsive: 'resize' })[0];
+    const visualObj = abcjs.renderAbc('*', abcWithTempo, { responsive: 'resize', visualTranspose: transpose })[0];
     const controller = new abcjs.synth.SynthController();
 
     controller.load(containerRef.current, null, {
@@ -32,14 +32,14 @@ export function AbcPlayer({ abc, defaultTempo = 120 }) {
       displayWarp: true,
     });
 
-    controller.setTune(visualObj, false, { qpm: defaultTempo });
+    controller.setTune(visualObj, false, { qpm: defaultTempo, midiTranspose: transpose });
     controllerRef.current = controller;
 
     return () => {
       try { controller.pause(); } catch (e) {}
       controllerRef.current = null;
     };
-  }, [abc, defaultTempo]);
+  }, [abc, defaultTempo, transpose]);
 
   if (!abc) return null;
 

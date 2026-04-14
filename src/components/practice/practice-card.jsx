@@ -96,7 +96,7 @@ function TuneHeader({ tune, instrument }) {
   );
 }
 
-function SheetMusic({ mainSource, fullAbc }) {
+function SheetMusic({ mainSource, fullAbc, transpose, onTransposeChange }) {
   if (mainSource) {
     return (
       <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4">
@@ -107,7 +107,7 @@ function SheetMusic({ mainSource, fullAbc }) {
   if (fullAbc) {
     return (
       <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4 practice-abc">
-        <AbcViewer abc={fullAbc} />
+        <AbcViewer abc={fullAbc} transpose={transpose} onTransposeChange={onTransposeChange} />
       </div>
     );
   }
@@ -121,6 +121,7 @@ function SheetMusic({ mainSource, fullAbc }) {
 function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving, onComplete, onStruggle, onSkip }) {
   const { suggestion, isFirstTime } = suggestLearningTempo(instData.current_tempo);
   const [tempo, setTempo] = useState(suggestion);
+  const [transpose, setTranspose] = useState(tune.transpose || 0);
   const meetsTarget = tempo >= instData.target_tempo;
 
   return (
@@ -144,11 +145,11 @@ function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving,
         )}
       </div>
 
-      <SheetMusic mainSource={mainSource} fullAbc={fullAbc} />
+      <SheetMusic mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={setTranspose} />
 
       {/* Playback + Metronome */}
       <div class="space-y-2">
-        {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={tempo} />}
+        {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={tempo} transpose={transpose} />}
         <Metronome defaultBpm={tempo} defaultTimeSignature={getMeter(tune.type)} onTempoChange={setTempo} />
       </div>
 
@@ -185,6 +186,7 @@ function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving,
 
 function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, saving, onRate, onSkip }) {
   const playTempo = instData.target_tempo;
+  const [transpose, setTranspose] = useState(tune.transpose || 0);
 
   return (
     <div class="space-y-4">
@@ -197,11 +199,11 @@ function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, saving, 
         </p>
       </div>
 
-      <SheetMusic mainSource={mainSource} fullAbc={fullAbc} />
+      <SheetMusic mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={setTranspose} />
 
       {/* Playback + Metronome */}
       <div class="space-y-2">
-        {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={playTempo} />}
+        {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={playTempo} transpose={transpose} />}
         <Metronome defaultBpm={playTempo} defaultTimeSignature={getMeter(tune.type)} />
       </div>
 

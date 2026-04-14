@@ -13,7 +13,7 @@ export function useAbcRender(abc, options = {}) {
         ...options,
       });
     }
-  }, [abc]);
+  }, [abc, options.visualTranspose]);
 
   return { ref, visualObj: visualObjRef };
 }

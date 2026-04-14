@@ -75,8 +75,8 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
 
   return (
     <div class="space-y-6">
-      <div class="flex items-start justify-between">
-        <div>
+      <div class="flex flex-wrap items-start justify-between gap-2">
+        <div class="min-w-0">
           <h1 class="text-2xl font-bold text-gray-900">{tune.title}</h1>
           {setLabel && (
             <div class="flex items-center gap-1.5 mt-0.5">

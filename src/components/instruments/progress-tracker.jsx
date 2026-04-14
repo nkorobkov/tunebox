@@ -43,13 +43,6 @@ export function InstrumentProgress({ instruments, userInstruments, onUpdate, onP
         return (
           <div key={name} class="flex items-center gap-3 text-sm flex-wrap">
             <span class="font-medium text-gray-800 w-24 shrink-0">{name}</span>
-            <input
-              type="text"
-              value={(data.keys || []).join(', ')}
-              onChange={e => handleKeysChange(name, e.target.value)}
-              placeholder="Keys (e.g. D, G)"
-              class="w-28 px-2 py-1 border border-gray-300 rounded text-xs"
-            />
             <div class="flex items-center gap-1">
               <input
                 type="number"

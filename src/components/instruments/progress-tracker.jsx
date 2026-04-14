@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 
-export function InstrumentProgress({ instruments, userInstruments, onUpdate }) {
+export function InstrumentProgress({ instruments, userInstruments, onUpdate, onPractice }) {
   const [adding, setAdding] = useState(false);
   const [newInstrument, setNewInstrument] = useState('');
 
@@ -37,41 +37,64 @@ export function InstrumentProgress({ instruments, userInstruments, onUpdate }) {
 
   return (
     <div class="space-y-3">
-      {Object.entries(instruments).map(([name, data]) => (
-        <div key={name} class="flex items-center gap-3 text-sm flex-wrap">
-          <span class="font-medium text-gray-800 w-24 shrink-0">{name}</span>
-          <input
-            type="text"
-            value={(data.keys || []).join(', ')}
-            onChange={e => handleKeysChange(name, e.target.value)}
-            placeholder="Keys (e.g. D, G)"
-            class="w-28 px-2 py-1 border border-gray-300 rounded text-xs"
-          />
-          <div class="flex items-center gap-1">
+      {Object.entries(instruments).map(([name, data]) => {
+        const isPlaying = data.current_tempo >= data.target_tempo && data.target_tempo > 0;
+        const isLearning = !isPlaying && data.target_tempo > 0;
+        return (
+          <div key={name} class="flex items-center gap-3 text-sm flex-wrap">
+            <span class="font-medium text-gray-800 w-24 shrink-0">{name}</span>
             <input
-              type="number"
-              value={data.current_tempo || ''}
-              onChange={e => handleFieldChange(name, 'current_tempo', Number(e.target.value))}
-              placeholder="BPM"
-              class="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+              type="text"
+              value={(data.keys || []).join(', ')}
+              onChange={e => handleKeysChange(name, e.target.value)}
+              placeholder="Keys (e.g. D, G)"
+              class="w-28 px-2 py-1 border border-gray-300 rounded text-xs"
             />
-            <span class="text-gray-400 text-xs">/</span>
-            <input
-              type="number"
-              value={data.target_tempo || ''}
-              onChange={e => handleFieldChange(name, 'target_tempo', Number(e.target.value))}
-              placeholder="Target"
-              class="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
-            />
+            <div class="flex items-center gap-1">
+              <input
+                type="number"
+                value={data.current_tempo || ''}
+                onChange={e => handleFieldChange(name, 'current_tempo', Number(e.target.value))}
+                placeholder="BPM"
+                class="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+              />
+              <span class="text-gray-400 text-xs">/</span>
+              <input
+                type="number"
+                value={data.target_tempo || ''}
+                onChange={e => handleFieldChange(name, 'target_tempo', Number(e.target.value))}
+                placeholder="Target"
+                class="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+              />
+            </div>
+            {isPlaying && (
+              <span class="text-xs text-green-600">playing</span>
+            )}
+            {isLearning && (
+              <button
+                onClick={() => handleFieldChange(name, 'current_tempo', data.target_tempo)}
+                class="text-xs text-green-600 hover:text-green-700 cursor-pointer"
+              >
+                mark as playing
+              </button>
+            )}
+            {onPractice && (
+              <button
+                onClick={() => onPractice(name)}
+                class="text-blue-600 hover:text-blue-700 text-xs cursor-pointer"
+              >
+                practice
+              </button>
+            )}
+            <button
+              onClick={() => handleRemove(name)}
+              class="text-gray-400 hover:text-red-500 text-xs cursor-pointer"
+            >
+              remove
+            </button>
           </div>
-          <button
-            onClick={() => handleRemove(name)}
-            class="text-gray-400 hover:text-red-500 text-xs cursor-pointer"
-          >
-            remove
-          </button>
-        </div>
-      ))}
+        );
+      })}
 
       {!adding ? (
         <button

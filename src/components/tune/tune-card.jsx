@@ -1,15 +1,8 @@
-const PROFICIENCY_COLORS = {
-  'want to learn': 'bg-gray-100 text-gray-500',
-  'learning': 'bg-yellow-50 text-yellow-600',
-  'playing': 'bg-green-50 text-green-600',
-  'retired': 'bg-gray-100 text-gray-400',
-};
+import { instrumentProficiency } from '../../lib/practice-algorithm';
 
 export function TuneCard({ tune, inSet = false }) {
-  const proficiency = tune.labels?.find(l => l.type === 'proficiency')?.value || 'want to learn';
   const tags = (tune.labels || []).filter(l => l.type === 'tag');
   const instruments = Object.entries(tune.instruments || {});
-  const isLearning = proficiency === 'learning';
 
   return (
     <a
@@ -31,17 +24,23 @@ export function TuneCard({ tune, inSet = false }) {
           {tags.map((tag, i) => (
             <span key={i} class="text-xs text-gray-400">#{tag.value}</span>
           ))}
-          {instruments.map(([name, data]) => (
-            <span key={name} class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
-              {name}
-              {isLearning && data.current_tempo > 0 && data.target_tempo > 0 && (
-                <span class="ml-1 opacity-75">({data.current_tempo}/{data.target_tempo})</span>
-              )}
-            </span>
-          ))}
-          <span class={`text-xs px-2 py-0.5 rounded-full ${PROFICIENCY_COLORS[proficiency] || 'bg-gray-100 text-gray-500'}`}>
-            {proficiency}
-          </span>
+          {instruments.map(([name, data]) => {
+            const prof = instrumentProficiency(tune, name);
+            const isPlaying = prof === 'playing';
+            return (
+              <span
+                key={name}
+                class={`text-xs px-1.5 py-0.5 rounded ${
+                  isPlaying ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
+                }`}
+              >
+                {isPlaying ? 'Playing' : 'Learning'} on {name}
+                {!isPlaying && data.current_tempo > 0 && data.target_tempo > 0 && (
+                  <span class="ml-1 opacity-75">({data.current_tempo}/{data.target_tempo})</span>
+                )}
+              </span>
+            );
+          })}
         </div>
       </div>
 
@@ -49,21 +48,27 @@ export function TuneCard({ tune, inSet = false }) {
       <div class="lg:hidden">
         <div class="flex items-center justify-between gap-2">
           <h3 class="text-sm font-semibold text-gray-900 truncate">{tune.title}</h3>
-          <span class={`text-[11px] px-1.5 py-0.5 rounded-full shrink-0 ${PROFICIENCY_COLORS[proficiency] || 'bg-gray-100 text-gray-500'}`}>
-            {proficiency}
-          </span>
         </div>
-        <div class="flex items-center gap-2 mt-0.5">
+        <div class="flex items-center gap-2 mt-0.5 flex-wrap">
           {tune.type && <span class="text-[11px] text-gray-500 capitalize">{tune.type}</span>}
           {tune.setting_key && <span class="text-[11px] text-gray-400">{tune.setting_key}</span>}
-          {instruments.map(([name, data]) => (
-            <span key={name} class="text-[11px] px-1 py-0.5 rounded bg-gray-100 text-gray-600">
-              {name}
-              {isLearning && data.current_tempo > 0 && data.target_tempo > 0 && (
-                <span class="ml-0.5 opacity-75">({data.current_tempo}/{data.target_tempo})</span>
-              )}
-            </span>
-          ))}
+          {instruments.map(([name, data]) => {
+            const prof = instrumentProficiency(tune, name);
+            const isPlaying = prof === 'playing';
+            return (
+              <span
+                key={name}
+                class={`text-[11px] px-1 py-0.5 rounded ${
+                  isPlaying ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
+                }`}
+              >
+                {isPlaying ? 'Playing' : 'Learning'} on {name}
+                {!isPlaying && data.current_tempo > 0 && data.target_tempo > 0 && (
+                  <span class="ml-0.5 opacity-75">({data.current_tempo}/{data.target_tempo})</span>
+                )}
+              </span>
+            );
+          })}
         </div>
         {tags.length > 0 && (
           <div class="flex items-center gap-1.5 mt-1">

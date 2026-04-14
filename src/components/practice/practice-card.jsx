@@ -6,14 +6,13 @@ import { Metronome } from './metronome';
 import { FluencyRater } from './fluency-rater';
 import { useAttachments } from '../../hooks/use-attachments';
 import { buildAbcString, getDefaultTempo, getMeter } from '../../lib/abc-utils';
-import { getInstrumentData, suggestLearningTempo } from '../../lib/practice-algorithm';
+import { getInstrumentData, instrumentProficiency, suggestLearningTempo } from '../../lib/practice-algorithm';
 
 export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleLearning, onCompletePlaying, onSkip }) {
   const [saving, setSaving] = useState(false);
   const { mainSource } = useAttachments(tune.id);
 
-  const proficiency = tune.labels?.find(l => l.type === 'proficiency')?.value || 'want to learn';
-  const isLearning = proficiency === 'learning';
+  const isLearning = instrumentProficiency(tune, instrument) === 'learning';
 
   const fallbackTempo = tune.canonical_tempo || getDefaultTempo(tune.type);
   const instData = getInstrumentData(tune, instrument, fallbackTempo);
@@ -85,7 +84,9 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
 function TuneHeader({ tune, instrument }) {
   return (
     <div>
-      <h2 class="text-xl font-bold text-gray-900">{tune.title}</h2>
+      <h2 class="text-xl font-bold text-gray-900">
+        <a href={`/tune/${tune.id}`} class="hover:text-blue-600 no-underline text-gray-900">{tune.title}</a>
+      </h2>
       <div class="flex items-center gap-3 mt-1 text-sm text-gray-500">
         {tune.type && <span class="capitalize">{tune.type}</span>}
         {tune.setting_key && <span>Key: {tune.setting_key}</span>}

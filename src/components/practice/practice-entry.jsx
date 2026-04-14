@@ -1,8 +1,8 @@
 import { useState } from 'preact/hooks';
 import { getDefaultTempo } from '../../lib/abc-utils';
 
-export function PracticeEntry({ userInstruments, selectedInstrument, onSelectInstrument, learning, playing, wantToLearn, onStart, onStartLearning, allDoneForToday, onReviewAgain }) {
-  const [expandWantToLearn, setExpandWantToLearn] = useState(false);
+export function PracticeEntry({ userInstruments, selectedInstrument, onSelectInstrument, learning, playing, notStarted, onStart, onStartLearning, allDoneForToday, onReviewAgain }) {
+  const [expandNotStarted, setExpandNotStarted] = useState(false);
   const [expandingTuneId, setExpandingTuneId] = useState(null);
   const [targetBpm, setTargetBpm] = useState('');
   const [learnInstrument, setLearnInstrument] = useState(selectedInstrument);
@@ -101,22 +101,22 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
         </div>
       )}
 
-      {/* Want to learn */}
-      {selectedInstrument && wantToLearn.length > 0 && (
+      {/* Start learning */}
+      {selectedInstrument && notStarted.length > 0 && (
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <button
-            onClick={() => setExpandWantToLearn(!expandWantToLearn)}
+            onClick={() => setExpandNotStarted(!expandNotStarted)}
             class="flex items-center justify-between w-full cursor-pointer"
           >
             <h3 class="text-sm font-medium text-gray-700">
-              Want to learn ({wantToLearn.length})
+              Start learning ({notStarted.length})
             </h3>
-            <span class="text-gray-400 text-xs">{expandWantToLearn ? 'hide' : 'show'}</span>
+            <span class="text-gray-400 text-xs">{expandNotStarted ? 'hide' : 'show'}</span>
           </button>
 
-          {expandWantToLearn && (
+          {expandNotStarted && (
             <div class="mt-3 space-y-1">
-              {wantToLearn.map(tune => (
+              {notStarted.map(tune => (
                 <div key={tune.id}>
                   <div class="flex items-center justify-between py-1.5">
                     <div class="min-w-0">

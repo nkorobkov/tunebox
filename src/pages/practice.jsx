@@ -7,7 +7,7 @@ import { pb } from '../lib/pb';
 import { getDefaultTempo } from '../lib/abc-utils';
 import { INITIAL_STABILITY, practicedToday } from '../lib/practice-algorithm';
 import {
-  useTunesByProficiency, usePracticeSession,
+  useTunesByInstrument, usePracticeSession,
   getDefaultInstrument, saveDefaultInstrument,
   saveLearningPractice, saveLearningStruggle, savePlayingPractice,
 } from '../hooks/use-practice';
@@ -38,7 +38,7 @@ export function PracticePage({ tune: tuneIdParam }) {
   const [singleTune, setSingleTune] = useState(null);
   const [singleTuneLoading, setSingleTuneLoading] = useState(!!tuneIdParam);
 
-  const { learning, playing, wantToLearn, loading: tunesLoading, refetch } = useTunesByProficiency();
+  const { forInstrument, loading: tunesLoading, refetch } = useTunesByInstrument();
   const session = usePracticeSession(practicing && !singleTune ? instrument : null, { includePracticedToday: isReview });
 
   // Load single tune if tuneId param is present
@@ -56,15 +56,9 @@ export function PracticePage({ tune: tuneIdParam }) {
     saveDefaultInstrument(inst);
   };
 
-  // Filter entry page counts by instrument
-  const matchesInstrument = (tune) => {
-    const instKeys = Object.keys(tune.instruments || {});
-    if (instKeys.length === 0) return true;
-    return !!tune.instruments[instrument];
-  };
-  const filteredLearning = learning.filter(matchesInstrument);
-  const filteredPlaying = playing.filter(matchesInstrument);
-  const allPracticeable = [...filteredLearning, ...filteredPlaying];
+  // Derive learning/playing/notStarted for the selected instrument
+  const { learning, playing, notStarted } = forInstrument(instrument);
+  const allPracticeable = [...learning, ...playing];
   const unpracticedCount = allPracticeable.filter(t => !practicedToday(t, instrument)).length;
   const practicedCount = allPracticeable.length - unpracticedCount;
   const allDoneForToday = unpracticedCount === 0 && practicedCount > 0;
@@ -79,9 +73,7 @@ export function PracticePage({ tune: tuneIdParam }) {
       ...tune.instruments,
       [inst]: { keys: [], current_tempo: 0, target_tempo: targetBpm || fallback, stability: INITIAL_STABILITY, last_practiced: null },
     };
-    const labels = (tune.labels || []).filter(l => l.type !== 'proficiency');
-    labels.push({ type: 'proficiency', value: 'learning' });
-    await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments, labels });
+    await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments });
     await refetch(true);
   }, [instrument, refetch]);
 
@@ -158,9 +150,9 @@ export function PracticePage({ tune: tuneIdParam }) {
             userInstruments={userInstruments}
             selectedInstrument={instrument}
             onSelectInstrument={handleSelectInstrument}
-            learning={filteredLearning}
-            playing={filteredPlaying}
-            wantToLearn={wantToLearn}
+            learning={learning}
+            playing={playing}
+            notStarted={notStarted}
             onStart={handleStart}
             onStartLearning={handleStartLearning}
             allDoneForToday={allDoneForToday}

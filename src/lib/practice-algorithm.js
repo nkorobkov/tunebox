@@ -116,4 +116,15 @@ export function practicedToday(tune, instrument) {
   return last.toDateString() === now.toDateString();
 }
 
+/**
+ * Derive proficiency for a tune+instrument from BPM data.
+ * Returns 'playing' if current >= target, otherwise 'learning'.
+ */
+export function instrumentProficiency(tune, instrument) {
+  const data = tune.instruments?.[instrument];
+  if (!data) return null;
+  if (data.current_tempo >= data.target_tempo && data.target_tempo > 0) return 'playing';
+  return 'learning';
+}
+
 export { INITIAL_STABILITY, TEMPO_INCREMENT };

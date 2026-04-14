@@ -3,7 +3,7 @@ export function LabelFilter({ tunes, selectedLabel, onSelect }) {
   const allLabels = new Map();
   for (const tune of tunes) {
     for (const label of (tune.labels || [])) {
-      if (label.type === 'set') continue;
+      if (label.type === 'set' || label.type === 'proficiency') continue;
       const key = `${label.type}:${label.value}`;
       if (!allLabels.has(key)) {
         allLabels.set(key, { ...label, count: 0 });

@@ -4,6 +4,7 @@ import { getDefaultTempo } from '../lib/abc-utils';
 import {
   calculatePriority,
   getInstrumentData,
+  instrumentProficiency,
   updateStability,
   relearnTempo,
   practicedToday,
@@ -44,14 +45,7 @@ export async function saveLearningPractice(tune, instrument, practicedTempo) {
     },
   };
 
-  const updateData = { instruments: updatedInstruments };
-  if (movedToPlaying) {
-    const labels = (tune.labels || []).filter(l => l.type !== 'proficiency');
-    labels.push({ type: 'proficiency', value: 'playing' });
-    updateData.labels = labels;
-  }
-
-  const updated = await pb.collection('user_tunes').update(tune.id, updateData);
+  const updated = await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments });
   await pb.collection('practice_log').create({
     user: pb.authStore.record.id,
     user_tune: tune.id,
@@ -84,14 +78,7 @@ export async function savePlayingPractice(tune, instrument, rating) {
     },
   };
 
-  const updateData = { instruments: updatedInstruments };
-  if (isRelearn) {
-    const labels = (tune.labels || []).filter(l => l.type !== 'proficiency');
-    labels.push({ type: 'proficiency', value: 'learning' });
-    updateData.labels = labels;
-  }
-
-  const updated = await pb.collection('user_tunes').update(tune.id, updateData);
+  const updated = await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments });
   await pb.collection('practice_log').create({
     user: pb.authStore.record.id,
     user_tune: tune.id,
@@ -138,7 +125,7 @@ export async function saveLearningStruggle(tune, instrument) {
 
 // --- Hooks ---
 
-export function useTunesByProficiency() {
+export function useTunesByInstrument() {
   const [allTunes, setAllTunes] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -161,14 +148,20 @@ export function useTunesByProficiency() {
     if (pb.authStore.isValid) fetch();
   }, [fetch]);
 
-  const getProficiency = (tune) =>
-    tune.labels?.find(l => l.type === 'proficiency')?.value || 'want to learn';
+  const forInstrument = (instrument) => {
+    const learning = [];
+    const playing = [];
+    const notStarted = [];
+    for (const t of allTunes) {
+      const prof = instrumentProficiency(t, instrument);
+      if (prof === 'learning') learning.push(t);
+      else if (prof === 'playing') playing.push(t);
+      else notStarted.push(t);
+    }
+    return { learning, playing, notStarted };
+  };
 
-  const learning = allTunes.filter(t => getProficiency(t) === 'learning');
-  const playing = allTunes.filter(t => getProficiency(t) === 'playing');
-  const wantToLearn = allTunes.filter(t => getProficiency(t) === 'want to learn');
-
-  return { allTunes, learning, playing, wantToLearn, loading, refetch: fetch };
+  return { allTunes, forInstrument, loading, refetch: fetch };
 }
 
 export function usePracticeSession(instrument, { includePracticedToday = false } = {}) {
@@ -179,15 +172,9 @@ export function usePracticeSession(instrument, { includePracticedToday = false }
   const [loading, setLoading] = useState(true);
 
   const buildQueue = useCallback((tunes, { includePracticedToday: incl = false } = {}) => {
-    const getProficiency = (t) =>
-      t.labels?.find(l => l.type === 'proficiency')?.value || 'want to learn';
-
     const eligible = tunes.filter(t => {
-      const prof = getProficiency(t);
-      if (prof !== 'learning' && prof !== 'playing') return false;
-      const instKeys = Object.keys(t.instruments || {});
-      if (instKeys.length === 0) return true;
-      return !!t.instruments[instrument];
+      const prof = instrumentProficiency(t, instrument);
+      return prof === 'learning' || prof === 'playing';
     });
 
     const filtered = incl

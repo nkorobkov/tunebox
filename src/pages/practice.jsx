@@ -90,48 +90,43 @@ export function PracticePage({ tune: tuneIdParam }) {
     refetch();
   };
 
-  // Shared completion handlers
-  const onCompleteLearning = useCallback(async (tune, tempo) => {
-    const res = singleTune
-      ? await saveLearningPractice(tune, instrument, tempo)
-      : await session.completeLearning(tune, tempo);
-    const msg = learningResultMsg(tempo, res.movedToPlaying);
-    if (singleTune) {
-      setLastResult(msg);
-    } else {
-      setLastResult(msg);
+  // Shared handler: save practice, show message, advance queue if in session
+  const completePractice = useCallback(async (saveFn, getMsg) => {
+    const res = await saveFn();
+    const msg = typeof getMsg === 'function' ? getMsg(res) : getMsg;
+    setLastResult(msg);
+    if (!singleTune) {
       setTimeout(() => { setLastResult(null); session.advance(); }, 2000);
     }
     return res;
-  }, [singleTune, instrument, session]);
+  }, [singleTune, session]);
+
+  const onCompleteLearning = useCallback(async (tune, tempo) => {
+    return completePractice(
+      () => singleTune
+        ? saveLearningPractice(tune, instrument, tempo)
+        : session.completeLearning(tune, tempo),
+      (res) => learningResultMsg(tempo, res.movedToPlaying),
+    );
+  }, [singleTune, instrument, session, completePractice]);
 
   const onStruggleLearning = useCallback(async (tune) => {
-    const res = singleTune
-      ? await saveLearningStruggle(tune, instrument)
-      : await session.completeLearningStruggle(tune);
-    const msg = 'Good effort! We\'ll try again next time.';
-    if (singleTune) {
-      setLastResult(msg);
-    } else {
-      setLastResult(msg);
-      setTimeout(() => { setLastResult(null); session.advance(); }, 2000);
-    }
-    return res;
-  }, [singleTune, instrument, session]);
+    return completePractice(
+      () => singleTune
+        ? saveLearningStruggle(tune, instrument)
+        : session.completeLearningStruggle(tune),
+      'Good effort! We\'ll try again next time.',
+    );
+  }, [singleTune, instrument, session, completePractice]);
 
   const onCompletePlaying = useCallback(async (tune, rating) => {
-    const res = singleTune
-      ? await savePlayingPractice(tune, instrument, rating)
-      : await session.completePlaying(tune, rating);
-    const msg = PLAYING_MESSAGES[rating];
-    if (singleTune) {
-      setLastResult(msg);
-    } else {
-      setLastResult(msg);
-      setTimeout(() => { setLastResult(null); session.advance(); }, 2000);
-    }
-    return res;
-  }, [singleTune, instrument, session]);
+    return completePractice(
+      () => singleTune
+        ? savePlayingPractice(tune, instrument, rating)
+        : session.completePlaying(tune, rating),
+      PLAYING_MESSAGES[rating],
+    );
+  }, [singleTune, instrument, session, completePractice]);
 
   // Loading single tune
   if (singleTuneLoading) {

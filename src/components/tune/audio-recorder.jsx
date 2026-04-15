@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'preact/hooks';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'preact/hooks';
 
 export function AudioRecorder({ onUpload, onClose }) {
   const [state, setState] = useState('idle'); // idle | recording | stopped
@@ -13,6 +13,11 @@ export function AudioRecorder({ onUpload, onClose }) {
   const chunks = useRef([]);
   const timerRef = useRef(null);
   const streamRef = useRef(null);
+
+  const blobUrl = useMemo(() => blob ? URL.createObjectURL(blob) : null, [blob]);
+  useEffect(() => {
+    return () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
+  }, [blobUrl]);
 
   const startRecording = useCallback(async () => {
     setError('');
@@ -139,7 +144,7 @@ export function AudioRecorder({ onUpload, onClose }) {
             <>
               <div class="flex flex-col items-center gap-2">
                 <span class="text-sm text-gray-500">Recorded {formatTime(duration)}</span>
-                {blob && <audio src={URL.createObjectURL(blob)} controls class="w-full" />}
+                {blobUrl && <audio src={blobUrl} controls class="w-full" />}
               </div>
 
               <div>

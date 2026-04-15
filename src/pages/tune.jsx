@@ -3,13 +3,13 @@ import { Shell } from '../components/layout/shell';
 import { TuneDetail } from '../components/tune/tune-detail';
 import { useTune } from '../hooks/use-tunes';
 import { useAuth } from '../lib/auth';
+import { pb } from '../lib/pb';
 
 export function TunePage({ id }) {
   const { tune, loading, updateTune } = useTune(id);
   const { user } = useAuth();
 
   const handleDelete = async () => {
-    const { pb } = await import('../lib/pb');
     await pb.collection('user_tunes').delete(id);
     route('/');
   };

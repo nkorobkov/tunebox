@@ -21,35 +21,20 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
     ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc)
     : null;
 
-  const handleLearningComplete = async (tempo) => {
+  const withSaving = (fn) => async (...args) => {
     setSaving(true);
     try {
-      await onCompleteLearning(tune, tempo);
+      await fn(...args);
     } catch (err) {
       console.error('Failed to save practice:', err);
+    } finally {
       setSaving(false);
     }
   };
 
-  const handleLearningStruggle = async () => {
-    setSaving(true);
-    try {
-      await onStruggleLearning(tune);
-    } catch (err) {
-      console.error('Failed to save practice:', err);
-      setSaving(false);
-    }
-  };
-
-  const handlePlayingRate = async (rating) => {
-    setSaving(true);
-    try {
-      await onCompletePlaying(tune, rating);
-    } catch (err) {
-      console.error('Failed to save practice:', err);
-      setSaving(false);
-    }
-  };
+  const handleLearningComplete = withSaving((tempo) => onCompleteLearning(tune, tempo));
+  const handleLearningStruggle = withSaving(() => onStruggleLearning(tune));
+  const handlePlayingRate = withSaving((rating) => onCompletePlaying(tune, rating));
 
   if (isLearning) {
     return (

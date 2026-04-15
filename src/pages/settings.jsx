@@ -32,11 +32,16 @@ export function SettingsPage() {
         const result = await pb.collection('user_tunes').getList(1, 500, {
           filter: `user = "${userId}"`,
         });
-        for (const tune of result.items) {
-          if (tune.instruments?.[removedInstrument]) {
+        const updates = result.items
+          .filter(tune => tune.instruments?.[removedInstrument])
+          .map(tune => {
             const { [removedInstrument]: _, ...rest } = tune.instruments;
-            await pb.collection('user_tunes').update(tune.id, { instruments: rest });
-          }
+            return pb.collection('user_tunes').update(tune.id, { instruments: rest });
+          });
+        const results = await Promise.allSettled(updates);
+        const failed = results.filter(r => r.status === 'rejected');
+        if (failed.length) {
+          console.error(`Failed to clean up ${failed.length} tune(s):`, failed);
         }
       }
     } catch (err) {

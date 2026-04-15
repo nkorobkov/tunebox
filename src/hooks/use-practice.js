@@ -26,36 +26,59 @@ export function saveDefaultInstrument(instrument) {
 // --- Standalone practice actions (no hook state) ---
 
 /**
- * Save a learning-mode practice: update tempo, stability, optionally move to playing.
+ * Core helper: update instrument data on a tune and log the practice.
  */
-export async function saveLearningPractice(tune, instrument, practicedTempo) {
+async function savePractice(tune, instrument, { current_tempo, stability, tempo_used, fluency_rating }) {
   const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
   const instData = getInstrumentData(tune, instrument, fallback);
-  const movedToPlaying = practicedTempo >= instData.target_tempo;
 
   const updatedInstruments = {
     ...tune.instruments,
     [instrument]: {
       ...tune.instruments?.[instrument],
       keys: instData.keys,
-      current_tempo: practicedTempo,
+      current_tempo: current_tempo ?? instData.current_tempo,
       target_tempo: instData.target_tempo,
-      stability: updateStability(instData.stability, 'good'),
+      stability: stability ?? instData.stability,
       last_practiced: new Date().toISOString(),
     },
   };
 
+  const previousInstruments = tune.instruments;
   const updated = await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments });
-  await pb.collection('practice_log').create({
-    user: pb.authStore.record.id,
-    user_tune: tune.id,
-    instrument,
-    practiced_at: new Date().toISOString(),
+  try {
+    await pb.collection('practice_log').create({
+      user: pb.authStore.record.id,
+      user_tune: tune.id,
+      instrument,
+      practiced_at: new Date().toISOString(),
+      tempo_used,
+      fluency_rating,
+    });
+  } catch (err) {
+    // Roll back the tune update so data stays consistent
+    await pb.collection('user_tunes').update(tune.id, { instruments: previousInstruments });
+    throw err;
+  }
+
+  return { updated, instData };
+}
+
+/**
+ * Save a learning-mode practice: update tempo, stability, optionally move to playing.
+ */
+export async function saveLearningPractice(tune, instrument, practicedTempo) {
+  const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
+  const instData = getInstrumentData(tune, instrument, fallback);
+
+  const { updated } = await savePractice(tune, instrument, {
+    current_tempo: practicedTempo,
+    stability: updateStability(instData.stability, 'good'),
     tempo_used: practicedTempo,
     fluency_rating: 4,
   });
 
-  return { movedToPlaying, updated };
+  return { movedToPlaying: practicedTempo >= instData.target_tempo, updated };
 }
 
 /**
@@ -66,26 +89,13 @@ export async function savePlayingPractice(tune, instrument, rating) {
   const instData = getInstrumentData(tune, instrument, fallback);
   const isRelearn = rating === 'relearn';
 
-  const updatedInstruments = {
-    ...tune.instruments,
-    [instrument]: {
-      ...tune.instruments?.[instrument],
-      keys: instData.keys,
-      current_tempo: isRelearn ? relearnTempo(instData.target_tempo) : instData.current_tempo,
-      target_tempo: instData.target_tempo,
-      stability: isRelearn ? INITIAL_STABILITY : updateStability(instData.stability, rating),
-      last_practiced: new Date().toISOString(),
-    },
-  };
+  const fluencyMap = { easy: 5, good: 4, hard: 2 };
 
-  const updated = await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments });
-  await pb.collection('practice_log').create({
-    user: pb.authStore.record.id,
-    user_tune: tune.id,
-    instrument,
-    practiced_at: new Date().toISOString(),
+  const { updated } = await savePractice(tune, instrument, {
+    current_tempo: isRelearn ? relearnTempo(instData.target_tempo) : instData.current_tempo,
+    stability: isRelearn ? INITIAL_STABILITY : updateStability(instData.stability, rating),
     tempo_used: instData.target_tempo,
-    fluency_rating: rating === 'easy' ? 5 : rating === 'good' ? 4 : rating === 'hard' ? 2 : 1,
+    fluency_rating: fluencyMap[rating] || 1,
   });
 
   return { isRelearn, updated };
@@ -98,24 +108,8 @@ export async function saveLearningStruggle(tune, instrument) {
   const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
   const instData = getInstrumentData(tune, instrument, fallback);
 
-  const updatedInstruments = {
-    ...tune.instruments,
-    [instrument]: {
-      ...tune.instruments?.[instrument],
-      keys: instData.keys,
-      current_tempo: instData.current_tempo,
-      target_tempo: instData.target_tempo,
-      stability: updateStability(instData.stability, 'hard'),
-      last_practiced: new Date().toISOString(),
-    },
-  };
-
-  const updated = await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments });
-  await pb.collection('practice_log').create({
-    user: pb.authStore.record.id,
-    user_tune: tune.id,
-    instrument,
-    practiced_at: new Date().toISOString(),
+  const { updated } = await savePractice(tune, instrument, {
+    stability: updateStability(instData.stability, 'hard'),
     tempo_used: instData.current_tempo,
     fluency_rating: 2,
   });

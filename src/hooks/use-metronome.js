@@ -1,21 +1,25 @@
 import { useState, useRef, useCallback, useEffect } from 'preact/hooks';
 
-// For compound meters (6/8, 9/8, 12/8), beats are grouped in 3s
-// so we click per dotted-quarter group, not per eighth note.
 function getBeatsPerMeasure(timeSignature) {
-  const [num, den] = timeSignature.split('/').map(Number);
-  // Compound meters: denominator is 8 and numerator divisible by 3
-  if (den === 8 && num % 3 === 0) return num / 3;
+  const [num] = timeSignature.split('/').map(Number);
   return num;
 }
+
+// Lookahead scheduling constants
+const SCHEDULE_AHEAD = 0.1; // seconds to schedule into the future
+const LOOKAHEAD_MS = 25;    // how often the scheduler runs (ms)
 
 export function useMetronome(initialBpm = 120, initialTimeSignature = '4/4') {
   const [bpm, setBpm] = useState(initialBpm);
   const [timeSignature, setTimeSignature] = useState(initialTimeSignature);
   const [playing, setPlaying] = useState(false);
   const audioCtxRef = useRef(null);
-  const intervalRef = useRef(null);
+  const timerRef = useRef(null);
+  const nextNoteTimeRef = useRef(0);
   const beatRef = useRef(0);
+  // Refs for current values so the scheduler always sees latest
+  const bpmRef = useRef(bpm);
+  const tsRef = useRef(timeSignature);
 
   const getCtx = () => {
     if (!audioCtxRef.current) {
@@ -24,37 +28,46 @@ export function useMetronome(initialBpm = 120, initialTimeSignature = '4/4') {
     return audioCtxRef.current;
   };
 
-  const click = useCallback((ctx, accent) => {
+  const scheduleClick = useCallback((ctx, time, accent) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
-    // Accented beat: higher pitch + louder
     osc.frequency.value = accent ? 1500 : 1000;
-    gain.gain.value = accent ? 0.4 : 0.2;
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.05);
+    gain.gain.setValueAtTime(accent ? 0.9 : 0.5, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+    osc.start(time);
+    osc.stop(time + 0.08);
   }, []);
 
-  const startLoop = useCallback((bpmVal, tsSig) => {
+  const startScheduler = useCallback(() => {
     const ctx = getCtx();
-    const beats = getBeatsPerMeasure(tsSig);
-    beatRef.current = 0;
+    if (ctx.state === 'suspended') ctx.resume();
 
-    const tick = () => {
-      click(ctx, beatRef.current === 0);
-      beatRef.current = (beatRef.current + 1) % beats;
+    const beats = getBeatsPerMeasure(tsRef.current);
+    beatRef.current = 0;
+    nextNoteTimeRef.current = ctx.currentTime;
+
+    const scheduler = () => {
+      const currentBpm = bpmRef.current;
+      const currentBeats = getBeatsPerMeasure(tsRef.current);
+      const secondsPerBeat = 60.0 / currentBpm;
+
+      while (nextNoteTimeRef.current < ctx.currentTime + SCHEDULE_AHEAD) {
+        scheduleClick(ctx, nextNoteTimeRef.current, beatRef.current === 0);
+        beatRef.current = (beatRef.current + 1) % currentBeats;
+        nextNoteTimeRef.current += secondsPerBeat;
+      }
     };
 
-    tick();
-    intervalRef.current = setInterval(tick, 60000 / bpmVal);
-  }, [click]);
+    scheduler();
+    timerRef.current = setInterval(scheduler, LOOKAHEAD_MS);
+  }, [scheduleClick]);
 
   const stop = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
     setPlaying(false);
   }, []);
@@ -64,34 +77,41 @@ export function useMetronome(initialBpm = 120, initialTimeSignature = '4/4') {
       stop();
       return;
     }
-    startLoop(bpm, timeSignature);
+    startScheduler();
     setPlaying(true);
-  }, [bpm, timeSignature, playing, stop, startLoop]);
+  }, [playing, stop, startScheduler]);
 
   const updateBpm = useCallback((newBpm) => {
     setBpm(newBpm);
-    if (playing) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      startLoop(newBpm, timeSignature);
-    }
-  }, [playing, timeSignature, startLoop]);
+    bpmRef.current = newBpm;
+  }, []);
 
   const updateTimeSignature = useCallback((newTs) => {
     setTimeSignature(newTs);
-    if (playing) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      startLoop(bpm, newTs);
-    }
-  }, [playing, bpm, startLoop]);
+    tsRef.current = newTs;
+  }, []);
 
-  // Sync initialBpm changes (e.g. when tune changes)
+  // Sync when props change (e.g. navigating to a new tune)
   useEffect(() => {
     setBpm(initialBpm);
+    bpmRef.current = initialBpm;
   }, [initialBpm]);
 
   useEffect(() => {
     setTimeSignature(initialTimeSignature);
+    tsRef.current = initialTimeSignature;
   }, [initialTimeSignature]);
+
+  // Cleanup on unmount — stop scheduler and close AudioContext
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close();
+        audioCtxRef.current = null;
+      }
+    };
+  }, []);
 
   return { bpm, timeSignature, playing, start, stop, updateBpm, updateTimeSignature };
 }

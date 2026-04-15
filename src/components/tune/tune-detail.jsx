@@ -51,6 +51,18 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
     ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc)
     : null;
 
+  const labelEditorProps = {
+    labels: tune.labels || [],
+    onUpdate: (labels) => onUpdate({ labels }),
+    setLabel,
+    addingSet,
+    onStartAddSet: () => setAddingSet(true),
+    onCancelAddSet: () => { setAddingSet(false); setNewSetName(''); },
+    newSetName,
+    onSetNameInput: setNewSetName,
+    onAddSet: handleAddSet,
+  };
+
   const handleUpdate = async (data) => {
     await onUpdate(data);
     setEditing(false);
@@ -104,17 +116,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
             {tune.author && <span>by {tune.author}</span>}
           </div>
           <div class="mt-2 hidden lg:block">
-            <LabelEditor
-              labels={tune.labels || []}
-              onUpdate={(labels) => onUpdate({ labels })}
-              setLabel={setLabel}
-              addingSet={addingSet}
-              onStartAddSet={() => setAddingSet(true)}
-              onCancelAddSet={() => { setAddingSet(false); setNewSetName(''); }}
-              newSetName={newSetName}
-              onSetNameInput={setNewSetName}
-              onAddSet={handleAddSet}
-            />
+            <LabelEditor {...labelEditorProps} />
           </div>
         </div>
         <div class="flex flex-col items-end gap-2">
@@ -203,17 +205,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
 
       {/* Tags — mobile only, above instruments */}
       <div class="lg:hidden space-y-3">
-        <LabelEditor
-          labels={tune.labels || []}
-          onUpdate={(labels) => onUpdate({ labels })}
-          setLabel={setLabel}
-          addingSet={addingSet}
-          onStartAddSet={() => setAddingSet(true)}
-          onCancelAddSet={() => { setAddingSet(false); setNewSetName(''); }}
-          newSetName={newSetName}
-          onSetNameInput={setNewSetName}
-          onAddSet={handleAddSet}
-        />
+        <LabelEditor {...labelEditorProps} />
       </div>
 
       {/* Instrument Progress */}

@@ -1,5 +1,5 @@
-import { useState } from 'preact/hooks';
-import { useAbcRender } from '../../hooks/use-abc-render';
+import { useState, useRef, useEffect } from 'preact/hooks';
+import abcjs from 'abcjs';
 
 const KEYS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const KEY_MAP = { 'C#': 1, 'Db': 1, 'D#': 3, 'Eb': 3, 'F#': 6, 'Gb': 6, 'G#': 8, 'Ab': 8, 'A#': 10, 'Bb': 10 };
@@ -19,7 +19,16 @@ export function AbcViewer({ abc, transpose = 0, onTransposeChange, savedTranspos
   const t = onTransposeChange ? transpose : localTranspose;
   const setT = onTransposeChange || setLocalTranspose;
 
-  const { ref } = useAbcRender(abc, { visualTranspose: t });
+  const ref = useRef();
+  useEffect(() => {
+    if (ref.current && abc) {
+      abcjs.renderAbc(ref.current, abc, {
+        responsive: 'resize',
+        add_classes: true,
+        visualTranspose: t,
+      });
+    }
+  }, [abc, t]);
 
   if (!abc) {
     return <p class="text-gray-400 italic">No ABC notation available</p>;

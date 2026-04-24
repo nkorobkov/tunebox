@@ -1,11 +1,10 @@
-import { useState } from 'preact/hooks';
+import { useState, useMemo } from 'preact/hooks';
 import { AbcViewer } from '../tune/abc-viewer';
-import { AbcPlayer } from '../tune/abc-player';
 import { SheetMusicViewer } from '../tune/sheet-music-viewer';
-import { Metronome } from './metronome';
 import { FluencyRater } from './fluency-rater';
+import { PracticeTools } from './practice-tools';
 import { useAttachments } from '../../hooks/use-attachments';
-import { buildAbcString, getDefaultTempo, getMeter } from '../../lib/abc-utils';
+import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
 import { getInstrumentData, instrumentProficiency, suggestLearningTempo } from '../../lib/practice-algorithm';
 
 export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleLearning, onCompletePlaying, onSkip }) {
@@ -17,9 +16,10 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
   const fallbackTempo = tune.canonical_tempo || getDefaultTempo(tune.type);
   const instData = getInstrumentData(tune, instrument, fallbackTempo);
 
-  const fullAbc = tune.abc
-    ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc)
-    : null;
+  const fullAbc = useMemo(
+    () => tune.abc ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc) : null,
+    [tune.abc, tune.title, tune.type, tune.setting_key]
+  );
 
   const withSaving = (fn) => async (...args) => {
     setSaving(true);
@@ -113,7 +113,6 @@ function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving,
     <div class="space-y-4">
       <TuneHeader tune={tune} instrument={instrument} />
 
-      {/* Prompt */}
       <div class="bg-blue-50 rounded-lg border border-blue-200 p-4">
         <p class="text-sm text-blue-800 font-medium">
           Practice at the max BPM where you can play reliably.
@@ -132,13 +131,14 @@ function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving,
 
       <SheetMusic mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={setTranspose} />
 
-      {/* Playback + Metronome */}
-      <div class="space-y-2">
-        {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={tempo} transpose={transpose} />}
-        <Metronome defaultBpm={tempo} defaultTimeSignature={getMeter(tune.type)} onTempoChange={setTempo} />
-      </div>
+      <PracticeTools
+        tune={tune}
+        fullAbc={fullAbc}
+        tempo={tempo}
+        transpose={transpose}
+        onTempoChange={setTempo}
+      />
 
-      {/* Complete button */}
       <div class="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
         <button
           onClick={() => onComplete(tempo)}
@@ -177,7 +177,6 @@ function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, saving, 
     <div class="space-y-4">
       <TuneHeader tune={tune} instrument={instrument} />
 
-      {/* Prompt */}
       <div class="bg-green-50 rounded-lg border border-green-200 p-4">
         <p class="text-sm text-green-800 font-medium">
           Play at {playTempo} BPM
@@ -186,13 +185,13 @@ function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, saving, 
 
       <SheetMusic mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={setTranspose} />
 
-      {/* Playback + Metronome */}
-      <div class="space-y-2">
-        {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={playTempo} transpose={transpose} />}
-        <Metronome defaultBpm={playTempo} defaultTimeSignature={getMeter(tune.type)} />
-      </div>
+      <PracticeTools
+        tune={tune}
+        fullAbc={fullAbc}
+        tempo={playTempo}
+        transpose={transpose}
+      />
 
-      {/* Rating */}
       <div class="bg-white rounded-lg border border-gray-200 p-4">
         <FluencyRater onRate={onRate} disabled={saving} />
       </div>

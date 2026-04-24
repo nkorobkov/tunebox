@@ -12,7 +12,8 @@
     "abcjs": "^6.6.2",
     "pocketbase": "^0.26.8",
     "preact": "^10.29.1",
-    "preact-router": "^4.1.2"
+    "preact-router": "^4.1.2",
+    "tonal": "^6.4.3"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",

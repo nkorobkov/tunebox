@@ -10,7 +10,8 @@ import { SheetMusicViewer } from './sheet-music-viewer';
 import { InstrumentProgress } from '../instruments/progress-tracker';
 import { useAttachments } from '../../hooks/use-attachments';
 import { saveDefaultInstrument } from '../../hooks/use-practice';
-import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
+import { buildAbcString, getDefaultTempo, getMeter, hasChordAnnotations, stripChordAnnotations } from '../../lib/abc-utils';
+import { generateChords } from '../../lib/chord-generator';
 
 export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const [editing, setEditing] = useState(false);
@@ -22,6 +23,8 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickingInstrument, setPickingInstrument] = useState(false);
   const [transpose, setTranspose] = useState(tune.transpose || 0);
+  const [chordsAbc, setChordsAbc] = useState(null);
+  const [rawChordsAbc, setRawChordsAbc] = useState(null);
   const { attachments, loading: attachmentsLoading, upload, remove, setMainSource, mainSource } = useAttachments(tune.id);
 
   const allInstruments = [...new Set([...Object.keys(tune.instruments || {}), ...(userInstruments || [])])];
@@ -50,6 +53,27 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const fullAbc = tune.abc
     ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc)
     : null;
+
+  const displayAbc = chordsAbc || fullAbc;
+  const abcHasChords = fullAbc && hasChordAnnotations(fullAbc);
+  const showGenerateButton = fullAbc && !abcHasChords && !chordsAbc;
+
+  const handleGenerateChords = () => {
+    const rawWithChords = generateChords(tune.abc, tune.setting_key, getMeter(tune.type));
+    setRawChordsAbc(rawWithChords);
+    setChordsAbc(buildAbcString(tune.title, tune.type, tune.setting_key, rawWithChords));
+  };
+
+  const handleSaveChords = async () => {
+    await onUpdate({ abc: rawChordsAbc });
+    setChordsAbc(null);
+    setRawChordsAbc(null);
+  };
+
+  const handleRemoveChords = async () => {
+    const stripped = stripChordAnnotations(tune.abc);
+    await onUpdate({ abc: stripped });
+  };
 
   const labelEditorProps = {
     labels: tune.labels || [],
@@ -182,23 +206,57 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
       {mainSource ? (
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <SheetMusicViewer attachment={mainSource} />
-          {fullAbc && (
+          {displayAbc && (
             <div class="mt-3">
-              <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} transpose={transpose} />
+              <AbcPlayer abc={displayAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} transpose={transpose} />
             </div>
           )}
         </div>
-      ) : fullAbc ? (
+      ) : displayAbc ? (
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <AbcViewer
-            abc={fullAbc}
+            abc={displayAbc}
             transpose={transpose}
             onTransposeChange={setTranspose}
             savedTranspose={tune.transpose || 0}
             onSave={(val) => onUpdate({ transpose: val })}
           />
           <div class="mt-3">
-            <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} transpose={transpose} />
+            <AbcPlayer abc={displayAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} transpose={transpose} />
+          </div>
+          <div class="mt-3 flex items-center gap-2">
+            {showGenerateButton && (
+              <button
+                onClick={handleGenerateChords}
+                class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer"
+              >
+                Generate Chords
+              </button>
+            )}
+            {chordsAbc && (
+              <>
+                <button
+                  onClick={handleSaveChords}
+                  class="text-sm text-green-600 hover:text-green-700 cursor-pointer"
+                >
+                  Save Chords
+                </button>
+                <button
+                  onClick={() => { setChordsAbc(null); setRawChordsAbc(null); }}
+                  class="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  Discard
+                </button>
+              </>
+            )}
+            {abcHasChords && !chordsAbc && (
+              <button
+                onClick={handleRemoveChords}
+                class="text-sm text-red-500 hover:text-red-600 cursor-pointer"
+              >
+                Remove All Chords
+              </button>
+            )}
           </div>
         </div>
       ) : null}

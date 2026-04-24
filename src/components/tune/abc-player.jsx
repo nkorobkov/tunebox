@@ -1,26 +1,29 @@
 import { useRef, useEffect } from 'preact/hooks';
 import abcjs from 'abcjs';
+import { getAbcMeter, isCompoundMeter } from '../../lib/abc-utils';
 
-/**
- * Inject or replace Q: tempo header in ABC string so abcjs uses it natively.
- */
-function setAbcTempo(abc, qpm) {
-  // If ABC already has a Q: field, replace it
+function setAbcTempo(abc, bpm, meter) {
+  const qField = isCompoundMeter(meter) ? `Q:3/8=${bpm}` : `Q:1/4=${bpm}`;
   if (/^Q:/m.test(abc)) {
-    return abc.replace(/^Q:.*$/m, `Q:1/4=${qpm}`);
+    return abc.replace(/^Q:.*$/m, qField);
   }
-  // Insert Q: after K: line (key is typically the last header before the body)
-  return abc.replace(/^(K:.*)$/m, `$1\nQ:1/4=${qpm}`);
+  return abc.replace(/^(K:.*)$/m, `$1\n${qField}`);
 }
 
-export function AbcPlayer({ abc, defaultTempo = 120, transpose = 0 }) {
+function toQpm(bpm, meter) {
+  return isCompoundMeter(meter) ? bpm * 1.5 : bpm;
+}
+
+export function AbcPlayer({ abc, defaultTempo = 120, transpose = 0, onController }) {
   const containerRef = useRef(null);
   const controllerRef = useRef(null);
 
   useEffect(() => {
     if (!abc || !containerRef.current) return;
 
-    const abcWithTempo = setAbcTempo(abc, defaultTempo);
+    const meter = getAbcMeter(abc);
+    const abcWithTempo = setAbcTempo(abc, defaultTempo, meter);
+    const qpm = toQpm(defaultTempo, meter);
     const visualObj = abcjs.renderAbc('*', abcWithTempo, { responsive: 'resize', visualTranspose: transpose })[0];
     const controller = new abcjs.synth.SynthController();
 
@@ -32,12 +35,14 @@ export function AbcPlayer({ abc, defaultTempo = 120, transpose = 0 }) {
       displayWarp: true,
     });
 
-    controller.setTune(visualObj, false, { qpm: defaultTempo, midiTranspose: transpose });
+    controller.setTune(visualObj, false, { qpm, midiTranspose: transpose });
     controllerRef.current = controller;
+    if (onController) onController(controller);
 
     return () => {
       try { controller.pause(); } catch (e) {}
       controllerRef.current = null;
+      if (onController) onController(null);
     };
   }, [abc, defaultTempo, transpose]);
 

@@ -16,9 +16,8 @@ export function LoginPage() {
   return (
     <div class="min-h-screen bg-gray-50 flex items-center justify-center">
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-sm w-full text-center">
-        <div class="flex items-center justify-center gap-2 mb-2">
-          <img src="/tunebook-logo.svg" alt="" class="h-9" />
-          <img src="/tunebook-word.svg" alt="TuneBox" class="h-8" />
+        <div class="flex items-center justify-center mb-2">
+          <img src="/tunebook.svg" alt="TuneBox" class="h-9" />
         </div>
         <p class="text-gray-500 mb-8">Manage your tune collection and practice with spaced repetition.</p>
         <button

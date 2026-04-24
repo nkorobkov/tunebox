@@ -10,8 +10,8 @@ export function Nav() {
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-6">
           <a href="/" class="flex items-center gap-2 no-underline">
-            <img src="/tunebook-logo.svg" alt="" class="h-7" />
-            <img src="/tunebook-word.svg" alt="TuneBox" class="hidden lg:block h-6" />
+            <img src="/tunebook-logo.svg" alt="TuneBox" class="h-7 lg:hidden" />
+            <img src="/tunebook.svg" alt="TuneBox" class="hidden lg:block h-7" />
           </a>
           {user && (
             <>

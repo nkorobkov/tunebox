@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "abcjs/abcjs-audio.css";
 
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+}
+
 @media (max-width: 1023px) {
   .practice-abc {
     margin-left: -16px;

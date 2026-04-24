@@ -30,7 +30,7 @@ export function Metronome({ defaultBpm = 120, defaultTimeSignature = '4/4', onTe
       <div class="flex items-center gap-2">
         <button
           onClick={playing ? stop : start}
-          class={`px-4 py-2 rounded-md text-sm font-medium cursor-pointer touch-manipulation ${
+          class={`px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${
             playing
               ? 'bg-red-600 text-white hover:bg-red-700'
               : 'bg-gray-800 text-white hover:bg-gray-900'
@@ -43,7 +43,7 @@ export function Metronome({ defaultBpm = 120, defaultTimeSignature = '4/4', onTe
         <div class="relative" ref={pickerRef}>
           <button
             onClick={() => setShowTsPicker(!showTsPicker)}
-            class="px-3 py-2 rounded-md text-sm font-mono font-medium border border-gray-300 bg-white hover:bg-gray-100 cursor-pointer touch-manipulation"
+            class="px-3 py-2 rounded-md text-sm font-mono font-medium border border-gray-300 bg-white hover:bg-gray-100 cursor-pointer"
           >
             {timeSignature}
           </button>

@@ -3,6 +3,8 @@ import { Shell } from '../components/layout/shell';
 import { TuneCard, SetGroup } from '../components/tune/tune-card';
 import { LabelFilter } from '../components/library/label-filter';
 import { useTunes } from '../hooks/use-tunes';
+import { useAuth } from '../lib/auth';
+import { instrumentProficiency } from '../lib/practice-algorithm';
 
 // Normalize set name for grouping: lowercase, collapse whitespace, strip punctuation
 function normalizeSetName(name) {
@@ -57,11 +59,57 @@ function TuneList({ tunes }) {
   );
 }
 
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+  { value: 'a-z', label: 'A–Z' },
+  { value: 'z-a', label: 'Z–A' },
+];
+
+function sortTunes(tunes, sort) {
+  const sorted = [...tunes];
+  switch (sort) {
+    case 'oldest':
+      sorted.sort((a, b) => a.created.localeCompare(b.created));
+      break;
+    case 'a-z':
+      sorted.sort((a, b) => a.title.localeCompare(b.title));
+      break;
+    case 'z-a':
+      sorted.sort((a, b) => b.title.localeCompare(a.title));
+      break;
+    case 'newest':
+    default:
+      sorted.sort((a, b) => b.created.localeCompare(a.created));
+      break;
+  }
+  return sorted;
+}
+
 export function LibraryPage() {
   const { tunes, loading } = useTunes();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [sort, setSort] = useState('newest');
   const [labelFilter, setLabelFilter] = useState(null);
+  const [proficiencyFilter, setProficiencyFilter] = useState('');
+  const [instrumentFilter, setInstrumentFilter] = useState('');
+
+  // Collect all instruments across all tunes
+  const allInstruments = useMemo(() => {
+    const set = new Set();
+    for (const t of tunes) {
+      for (const name of Object.keys(t.instruments || {})) {
+        set.add(name);
+      }
+    }
+    // Also include user instruments
+    if (user?.instruments) {
+      for (const name of user.instruments) set.add(name);
+    }
+    return [...set].sort();
+  }, [tunes, user]);
 
   const filtered = useMemo(() => {
     let result = tunes;
@@ -81,8 +129,20 @@ export function LibraryPage() {
         (t.labels || []).some(l => l.type === type && l.value === value)
       );
     }
-    return result;
-  }, [tunes, search, typeFilter, labelFilter]);
+    if (proficiencyFilter) {
+      result = result.filter(t =>
+        Object.keys(t.instruments || {}).some(name =>
+          instrumentProficiency(t, name) === proficiencyFilter
+        )
+      );
+    }
+    if (instrumentFilter) {
+      result = result.filter(t =>
+        t.instruments && instrumentFilter in t.instruments
+      );
+    }
+    return sortTunes(result, sort);
+  }, [tunes, search, typeFilter, labelFilter, proficiencyFilter, instrumentFilter, sort]);
 
   const types = useMemo(() =>
     [...new Set(tunes.map(t => t.type).filter(Boolean))].sort(),
@@ -132,11 +192,25 @@ export function LibraryPage() {
             <option value="">All types</option>
             {types.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
+          <select
+            value={sort}
+            onChange={e => setSort(e.target.value)}
+            class="min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {SORT_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
         </div>
         <LabelFilter
           tunes={tunes}
           selectedLabel={labelFilter}
           onSelect={setLabelFilter}
+          proficiencyFilter={proficiencyFilter}
+          onProficiencyChange={setProficiencyFilter}
+          instrumentFilter={instrumentFilter}
+          onInstrumentChange={setInstrumentFilter}
+          instruments={allInstruments}
         />
       </div>
 

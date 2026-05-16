@@ -1,5 +1,4 @@
 import { useAuth } from '../lib/auth';
-import { route } from 'preact-router';
 
 export function LoginPage() {
   const { loginWithGoogle } = useAuth();
@@ -7,7 +6,6 @@ export function LoginPage() {
   const handleLogin = async () => {
     try {
       await loginWithGoogle();
-      route('/');
     } catch (err) {
       console.error('Login failed:', err);
     }

@@ -52,7 +52,7 @@ export function parseAbcMeta(abc) {
 export function buildAbcString(title, tuneType, key, abc) {
   const meter = getMeter(tuneType);
   // If the ABC already has headers, strip transcription/source lines
-  if (abc.trim().startsWith('X:')) {
+  if (/^X:/m.test(abc)) {
     return abc.split('\n').filter(l => !/^[ZS]:/.test(l.trim())).join('\n');
   }
   // thesession.org uses "! " as line breaks in ABC — convert to newlines

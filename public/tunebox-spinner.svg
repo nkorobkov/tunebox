@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="13.954789mm"
+   height="13.954786mm"
+   viewBox="0 0 13.954789 13.954786"
+   version="1.1"
+   id="svg1"
+   inkscape:export-filename="tunebook.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   inkscape:version="1.4 (e7c3feb1, 2024-10-09)"
+   sodipodi:docname="tuneboxlogo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showguides="true"
+     inkscape:zoom="1.0385607"
+     inkscape:cx="202.68435"
+     inkscape:cy="372.63108"
+     inkscape:window-width="1104"
+     inkscape:window-height="710"
+     inkscape:window-x="0"
+     inkscape:window-y="34"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1">
+    <sodipodi:guide
+       position="-16.915823,32.667771"
+       orientation="0,-1"
+       id="guide4"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="-11.138769,83.639659"
+       orientation="0,-1"
+       id="guide5"
+       inkscape:locked="false" />
+    <inkscape:page
+       x="3.9149175e-16"
+       y="5.0387529e-15"
+       width="13.954788"
+       height="13.954785"
+       id="page2"
+       margin="0"
+       bleed="0" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-34.628004,-114.11017)">
+    <g
+       id="g47-8"
+       transform="matrix(1.3020766,0,0,-1.3020766,-65.022653,221.1393)"
+       inkscape:export-filename="../Code/tunebox/public/tunebook-logo.svg"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96">
+      <path
+         id="path4-37-0"
+         style="fill:none;fill-opacity:1;stroke:#389833;stroke-width:0.786;stroke-dasharray:none;stroke-dashoffset:64.6682;stroke-opacity:1;paint-order:fill markers stroke"
+         d="m 81.899394,75.078621 a 3.9878449,3.9878449 0 0 0 -1.589051,3.172933 3.9878449,3.9878449 0 0 0 1.581299,3.167766 3.9878449,3.9878449 0 0 0 1.581299,-3.167766 3.9878449,3.9878449 0 0 0 -1.573547,-3.172933 z" />
+      <path
+         id="path4-3-6-2"
+         style="fill:none;fill-opacity:1;stroke:#389833;stroke-width:0.786;stroke-dasharray:none;stroke-dashoffset:64.6682;stroke-opacity:1;paint-order:fill markers stroke"
+         d="m 84.298214,74.264201 a 3.9878449,3.9878449 0 0 0 -3.948596,3.433382 3.9878449,3.9878449 0 0 0 1.603002,0.340031 3.9878449,3.9878449 0 0 0 3.948597,-3.435966 3.9878449,3.9878449 0 0 0 -1.603003,-0.337447 z" />
+      <path
+         id="circle46-4"
+         style="fill:none;fill-opacity:1;stroke:#389833;stroke-width:0.786;stroke-dasharray:none;stroke-dashoffset:64.6682;stroke-opacity:1;paint-order:fill markers stroke"
+         d="m 79.485071,74.264201 a 3.9878449,3.9878449 0 0 0 -1.483631,0.295589 3.9878449,3.9878449 0 0 0 3.95118,3.477824 3.9878449,3.9878449 0 0 0 1.486215,-0.296623 3.9878449,3.9878449 0 0 0 -3.953764,-3.47679 z" />
+    </g>
+    <circle
+       style="fill:none;stroke:none;stroke-width:0.786;stroke-linecap:round;stroke-linejoin:round;stroke-dashoffset:57.3347"
+       id="path3"
+       cx="41.737549"
+       cy="120.97871"
+       r="8.5105791" />
+    <path
+       style="fill:none;stroke:#389833;stroke-width:0.3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:57.3347;stroke-opacity:1"
+       d="M 46.82731,124.00224 Z"
+       id="path6" />
+    <circle
+       style="fill:none;stroke:#389833;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:57.3347;stroke-opacity:1"
+       id="path8"
+       cx="41.605396"
+       cy="121.08755"
+       r="6.9773927"
+       inkscape:export-filename="../Code/tunebox/public/tunebox-spiner.svg"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96" />
+  </g>
+</svg>

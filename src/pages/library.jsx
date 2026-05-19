@@ -2,6 +2,7 @@ import { useState, useMemo } from 'preact/hooks';
 import { Shell } from '../components/layout/shell';
 import { TuneCard, SetGroup } from '../components/tune/tune-card';
 import { LabelFilter } from '../components/library/label-filter';
+import { LoadingIndicator } from '../components/loading-indicator';
 import { useTunes } from '../hooks/use-tunes';
 import { useAuth } from '../lib/auth';
 import { instrumentProficiency } from '../lib/practice-algorithm';
@@ -216,7 +217,7 @@ export function LibraryPage() {
 
       {/* Tune List */}
       {loading ? (
-        <p class="text-gray-400 text-center py-12">Loading...</p>
+        <LoadingIndicator />
       ) : filtered.length === 0 ? (
         <div class="text-center py-12">
           <p class="text-gray-400 mb-4">

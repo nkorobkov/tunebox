@@ -5,6 +5,15 @@ button, a, input, select, textarea, [role="button"] {
   touch-action: manipulation;
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+  animation: spin 1.2s linear infinite;
+}
+
 @media (max-width: 1023px) {
   .practice-abc {
     margin-left: -16px;

@@ -6,6 +6,7 @@ import { TunePage } from './pages/tune';
 import { AddTunePage } from './pages/add-tune';
 import { PracticePage } from './pages/practice';
 import { SettingsPage } from './pages/settings';
+import { LoadingIndicator } from './components/loading-indicator';
 
 function AppRouter() {
   const { user, loading } = useAuth();
@@ -13,7 +14,7 @@ function AppRouter() {
   if (loading) {
     return (
       <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p class="text-gray-400">Loading...</p>
+        <LoadingIndicator />
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import { route } from 'preact-router';
 import { Shell } from '../components/layout/shell';
 import { TuneDetail } from '../components/tune/tune-detail';
+import { LoadingIndicator } from '../components/loading-indicator';
 import { useTune } from '../hooks/use-tunes';
 import { useAuth } from '../lib/auth';
 import { pb } from '../lib/pb';
@@ -17,7 +18,7 @@ export function TunePage({ id }) {
   return (
     <Shell>
       {loading ? (
-        <p class="text-gray-400 text-center py-12">Loading...</p>
+        <LoadingIndicator />
       ) : !tune ? (
         <p class="text-gray-400 text-center py-12">Tune not found.</p>
       ) : (

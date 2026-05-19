@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth';
 import { pb } from '../lib/pb';
 import { getDefaultTempo } from '../lib/abc-utils';
 import { INITIAL_STABILITY, practicedToday } from '../lib/practice-algorithm';
+import { LoadingIndicator } from '../components/loading-indicator';
 import {
   useTunesByInstrument, usePracticeSession,
   getDefaultInstrument, saveDefaultInstrument,
@@ -130,7 +131,7 @@ export function PracticePage({ tune: tuneIdParam }) {
 
   // Loading single tune
   if (singleTuneLoading) {
-    return <Shell><p class="text-gray-400 text-center py-12">Loading...</p></Shell>;
+    return <Shell><LoadingIndicator /></Shell>;
   }
 
   // Entry page
@@ -139,7 +140,7 @@ export function PracticePage({ tune: tuneIdParam }) {
       <Shell>
         <h1 class="text-2xl font-bold text-gray-900 mb-6">Practice</h1>
         {tunesLoading ? (
-          <p class="text-gray-400 text-center py-12">Loading...</p>
+          <LoadingIndicator />
         ) : (
           <PracticeEntry
             userInstruments={userInstruments}
@@ -175,7 +176,7 @@ export function PracticePage({ tune: tuneIdParam }) {
       </div>
 
       {isLoading ? (
-        <p class="text-gray-400 text-center py-12">Building practice queue...</p>
+        <LoadingIndicator text="Building practice queue" />
       ) : lastResult ? (
         <div class="text-center py-12">
           <p class="text-lg font-medium text-gray-900">{lastResult}</p>

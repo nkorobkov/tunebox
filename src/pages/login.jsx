@@ -12,7 +12,7 @@ export function LoginPage() {
   };
 
   return (
-    <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-sm w-full text-center">
         <div class="flex items-center justify-center mb-2">
           <img src="/tunebook.svg" alt="TuneBox" class="h-9" />
@@ -31,6 +31,11 @@ export function LoginPage() {
           Continue with Google
         </button>
       </div>
+      <p class="text-xs text-gray-400 absolute bottom-4">
+        <a href="/privacy.html" class="underline hover:text-gray-600">Privacy Policy</a>
+        {' '}&middot;{' '}
+        <a href="/terms.html" class="underline hover:text-gray-600">Terms of Service</a>
+      </p>
     </div>
   );
 }

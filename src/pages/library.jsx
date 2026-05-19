@@ -188,20 +188,35 @@ export function LibraryPage() {
           <select
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
-            class="min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="hidden lg:block min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All types</option>
             {types.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <select
-            value={sort}
-            onChange={e => setSort(e.target.value)}
-            class="min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <button
+            onClick={() => {
+              const i = SORT_OPTIONS.findIndex(o => o.value === sort);
+              setSort(SORT_OPTIONS[(i + 1) % SORT_OPTIONS.length].value);
+            }}
+            title={`Sort: ${SORT_OPTIONS.find(o => o.value === sort)?.label}`}
+            class="flex items-center justify-center gap-0.5 w-10 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {SORT_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+            {sort === 'newest' || sort === 'oldest' ? (
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+            ) : (
+              <span class="text-xs font-bold leading-none">{sort === 'a-z' ? 'A' : 'Z'}</span>
+            )}
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              {sort === 'newest' || sort === 'a-z' ? (
+                <path d="M12 5v14m0 0l-6-6m6 6l6-6" />
+              ) : (
+                <path d="M12 19V5m0 0L6 11m6-6l6 6" />
+              )}
+            </svg>
+          </button>
         </div>
         <LabelFilter
           tunes={tunes}

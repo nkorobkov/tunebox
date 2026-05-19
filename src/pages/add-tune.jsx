@@ -5,6 +5,7 @@ import { SessionSearch } from '../components/search/session-search';
 import { SearchResults } from '../components/search/search-results';
 import { TuneForm } from '../components/tune/tune-form';
 import { BulkImport } from '../components/bulk/bulk-import';
+import { LoadingIndicator } from '../components/loading-indicator';
 import { searchTunes } from '../lib/session-api';
 import { useTunes } from '../hooks/use-tunes';
 
@@ -80,7 +81,7 @@ export function AddTunePage() {
           </div>
 
           {loading && (
-            <p class="text-gray-400 text-center py-8">Searching...</p>
+            <LoadingIndicator text="Searching" />
           )}
 
           {results && !loading && (

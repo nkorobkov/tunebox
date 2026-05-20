@@ -158,22 +158,28 @@ export function useTunesByInstrument() {
   return { allTunes, forInstrument, loading, refetch: fetch };
 }
 
-export function usePracticeSession(instrument, { includePracticedToday = false } = {}) {
+export function usePracticeSession(instrument, { includePracticedToday = false, tags = [] } = {}) {
   const [allTunes, setAllTunes] = useState([]);
   const [queue, setQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [skippedIds, setSkippedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
-  const buildQueue = useCallback((tunes, { includePracticedToday: incl = false } = {}) => {
+  const buildQueue = useCallback((tunes, { includePracticedToday: incl = false, tags: filterTags = [] } = {}) => {
     const eligible = tunes.filter(t => {
       const prof = instrumentProficiency(t, instrument);
       return prof === 'learning' || prof === 'playing';
     });
 
-    const filtered = incl
+    let filtered = incl
       ? eligible
       : eligible.filter(t => !practicedToday(t, instrument));
+
+    if (filterTags.length > 0) {
+      filtered = filtered.filter(t =>
+        (t.labels || []).some(l => l.type === 'tag' && filterTags.includes(l.value))
+      );
+    }
 
     return filtered
       .map(t => ({
@@ -192,7 +198,7 @@ export function usePracticeSession(instrument, { includePracticedToday = false }
         filter: `user = "${userId}"`,
       });
       setAllTunes(result.items);
-      setQueue(buildQueue(result.items, { includePracticedToday }));
+      setQueue(buildQueue(result.items, { includePracticedToday, tags }));
       setCurrentIndex(0);
       setSkippedIds(new Set());
     } catch (err) {
@@ -200,7 +206,7 @@ export function usePracticeSession(instrument, { includePracticedToday = false }
     } finally {
       setLoading(false);
     }
-  }, [buildQueue, includePracticedToday]);
+  }, [buildQueue, includePracticedToday, tags]);
 
   useEffect(() => {
     if (pb.authStore.isValid && instrument) fetchAndBuild();

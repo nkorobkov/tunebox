@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { getDefaultTempo } from '../../lib/abc-utils';
 
-export function PracticeEntry({ userInstruments, selectedInstrument, onSelectInstrument, learning, playing, notStarted, onStart, onStartLearning, allDoneForToday, onReviewAgain }) {
+export function PracticeEntry({ userInstruments, selectedInstrument, onSelectInstrument, learning, playing, notStarted, onStart, onStartLearning, allDoneForToday, onReviewAgain, allTags = [], selectedTags = [], onToggleTag }) {
   const [expandNotStarted, setExpandNotStarted] = useState(false);
   const [expandingTuneId, setExpandingTuneId] = useState(null);
   const [targetBpm, setTargetBpm] = useState('');
@@ -96,6 +96,24 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
               >
                 Start Practice
               </button>
+            </div>
+          )}
+          {allTags.length > 0 && (
+            <div class="flex items-center gap-1.5 flex-wrap mt-3 pt-3 border-t border-gray-100">
+              <span class="text-xs text-gray-400 mr-0.5">Filter:</span>
+              {allTags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => onToggleTag(tag)}
+                  class={`px-2.5 py-1 text-xs rounded-full border cursor-pointer ${
+                    selectedTags.includes(tag)
+                      ? 'bg-gray-800 text-white border-gray-800'
+                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
             </div>
           )}
         </div>

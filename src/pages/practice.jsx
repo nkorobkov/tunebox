@@ -38,9 +38,10 @@ export function PracticePage({ tune: tuneIdParam }) {
   const [isReview, setIsReview] = useState(false);
   const [singleTune, setSingleTune] = useState(null);
   const [singleTuneLoading, setSingleTuneLoading] = useState(!!tuneIdParam);
+  const [selectedTags, setSelectedTags] = useState([]);
 
   const { forInstrument, loading: tunesLoading, refetch } = useTunesByInstrument();
-  const session = usePracticeSession(practicing && !singleTune ? instrument : null, { includePracticedToday: isReview });
+  const session = usePracticeSession(practicing && !singleTune ? instrument : null, { includePracticedToday: isReview, tags: selectedTags });
 
   // Load single tune if tuneId param is present
   useEffect(() => {
@@ -58,11 +59,34 @@ export function PracticePage({ tune: tuneIdParam }) {
   };
 
   // Derive learning/playing/notStarted for the selected instrument
-  const { learning, playing, notStarted } = forInstrument(instrument);
+  const { learning: allLearning, playing: allPlaying, notStarted } = forInstrument(instrument);
+
+  // Collect all unique tags from practiceable tunes
+  const allTags = [...new Set(
+    [...allLearning, ...allPlaying]
+      .flatMap(t => (t.labels || []).filter(l => l.type === 'tag').map(l => l.value))
+  )].sort();
+
+  // Filter by selected tags
+  const filterByTags = (tunes) => {
+    if (selectedTags.length === 0) return tunes;
+    return tunes.filter(t =>
+      (t.labels || []).some(l => l.type === 'tag' && selectedTags.includes(l.value))
+    );
+  };
+  const learning = filterByTags(allLearning);
+  const playing = filterByTags(allPlaying);
+
   const allPracticeable = [...learning, ...playing];
   const unpracticedCount = allPracticeable.filter(t => !practicedToday(t, instrument)).length;
   const practicedCount = allPracticeable.length - unpracticedCount;
   const allDoneForToday = unpracticedCount === 0 && practicedCount > 0;
+
+  const toggleTag = (tag) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
 
   const handleStart = () => { setIsReview(false); setPracticing(true); setLastResult(null); };
   const handleReviewAgain = () => { setIsReview(true); setPracticing(true); setLastResult(null); };
@@ -153,6 +177,9 @@ export function PracticePage({ tune: tuneIdParam }) {
             onStartLearning={handleStartLearning}
             allDoneForToday={allDoneForToday}
             onReviewAgain={handleReviewAgain}
+            allTags={allTags}
+            selectedTags={selectedTags}
+            onToggleTag={toggleTag}
           />
         )}
       </Shell>

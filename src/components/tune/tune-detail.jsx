@@ -11,6 +11,7 @@ import { InstrumentProgress } from '../instruments/progress-tracker';
 import { useAttachments } from '../../hooks/use-attachments';
 import { saveDefaultInstrument } from '../../hooks/use-practice';
 import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
+import { addKnownSet } from '../../lib/tag-store';
 
 export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const [editing, setEditing] = useState(false);
@@ -39,9 +40,11 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
     setConfirmRemoveSet(false);
   };
 
-  const handleAddSet = async () => {
-    if (!newSetName.trim()) return;
-    const updated = [...(tune.labels || []).filter(l => l.type !== 'set'), { type: 'set', value: newSetName.trim(), order: 1 }];
+  const handleAddSet = async (val) => {
+    const v = (typeof val === 'string' ? val : newSetName).trim();
+    if (!v) return;
+    addKnownSet(v);
+    const updated = [...(tune.labels || []).filter(l => l.type !== 'set'), { type: 'set', value: v, order: 1 }];
     await onUpdate({ labels: updated });
     setNewSetName('');
     setAddingSet(false);

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'preact/hooks';
 import { pb } from '../lib/pb';
+import { syncKnownLabels } from '../lib/tag-store';
 
 export function useTunes(filters = {}) {
   const [tunes, setTunes] = useState([]);
@@ -15,6 +16,7 @@ export function useTunes(filters = {}) {
         sort: '-created',
       });
       const records = result.items;
+      syncKnownLabels(records);
 
       // Client-side label filtering if needed
       let filtered = records;

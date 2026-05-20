@@ -1,4 +1,6 @@
 import { useState } from 'preact/hooks';
+import { TagInput } from './tag-input';
+import { getKnownTags, addKnownTag, getKnownSets, addKnownSet } from '../../lib/tag-store';
 
 export function LabelEditor({ labels = [], onUpdate, setLabel, addingSet, onStartAddSet, onCancelAddSet, newSetName, onSetNameInput, onAddSet }) {
   const [adding, setAdding] = useState(false);
@@ -6,9 +8,11 @@ export function LabelEditor({ labels = [], onUpdate, setLabel, addingSet, onStar
 
   const tags = labels.filter(l => l.type === 'tag');
 
-  const handleAdd = async () => {
-    if (!newValue.trim()) return;
-    const updated = [...labels, { type: 'tag', value: newValue.trim() }];
+  const handleAdd = async (val) => {
+    const v = (typeof val === 'string' ? val : newValue).trim();
+    if (!v) return;
+    addKnownTag(v);
+    const updated = [...labels, { type: 'tag', value: v }];
     await onUpdate(updated);
     setNewValue('');
     setAdding(false);
@@ -39,17 +43,15 @@ export function LabelEditor({ labels = [], onUpdate, setLabel, addingSet, onStar
 
       {adding ? (
         <div class="flex items-center gap-1.5">
-          <input
-            type="text"
+          <TagInput
             value={newValue}
-            onInput={e => setNewValue(e.target.value)}
-            placeholder="Tag..."
-            class="text-xs border border-gray-300 rounded px-2 py-1 w-28"
-            onKeyDown={e => e.key === 'Enter' && handleAdd()}
-            autofocus
+            onInput={setNewValue}
+            onSubmit={handleAdd}
+            onCancel={() => { setAdding(false); setNewValue(''); }}
+            suggestions={getKnownTags().filter(t => !tags.some(x => x.value === t))}
           />
           <button
-            onClick={handleAdd}
+            onClick={() => handleAdd()}
             disabled={!newValue.trim()}
             class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
           >
@@ -74,14 +76,12 @@ export function LabelEditor({ labels = [], onUpdate, setLabel, addingSet, onStar
       {!setLabel && onStartAddSet && (
         addingSet ? (
           <div class="flex items-center gap-1.5">
-            <input
-              type="text"
+            <TagInput
               value={newSetName}
-              onInput={e => onSetNameInput(e.target.value)}
-              placeholder="Set name..."
-              class="text-xs border border-gray-300 rounded px-2 py-1 w-28"
-              onKeyDown={e => e.key === 'Enter' && onAddSet()}
-              autofocus
+              onInput={onSetNameInput}
+              onSubmit={onAddSet}
+              onCancel={onCancelAddSet}
+              suggestions={getKnownSets()}
             />
             <button onClick={onAddSet} disabled={!newSetName?.trim()} class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer">Add</button>
             <button onClick={onCancelAddSet} class="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">Cancel</button>

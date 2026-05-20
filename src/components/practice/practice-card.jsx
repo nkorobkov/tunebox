@@ -91,7 +91,7 @@ function SheetMusic({ mainSource, fullAbc, transpose, onTransposeChange }) {
   }
   if (fullAbc) {
     return (
-      <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4 practice-abc">
+      <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4 abc-full-bleed">
         <AbcViewer abc={fullAbc} transpose={transpose} onTransposeChange={onTransposeChange} />
       </div>
     );

@@ -180,7 +180,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
 
       {/* Sheet Music */}
       {mainSource ? (
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4">
           <SheetMusicViewer attachment={mainSource} />
           {fullAbc && (
             <div class="mt-3">
@@ -189,7 +189,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
           )}
         </div>
       ) : fullAbc ? (
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4 abc-full-bleed">
           <AbcViewer
             abc={fullAbc}
             transpose={transpose}

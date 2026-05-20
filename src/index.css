@@ -15,11 +15,11 @@ button, a, input, select, textarea, [role="button"] {
 }
 
 @media (max-width: 1023px) {
-  .practice-abc {
+  .abc-full-bleed {
     margin-left: -16px;
     margin-right: -16px;
   }
-  .practice-abc .abc-viewer svg {
+  .abc-full-bleed .abc-viewer svg {
     width: 100% !important;
     max-width: none;
   }

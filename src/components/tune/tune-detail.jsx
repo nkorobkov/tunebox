@@ -13,6 +13,35 @@ import { saveDefaultInstrument } from '../../hooks/use-practice';
 import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
 import { addKnownSet } from '../../lib/tag-store';
 
+const SOURCE_HOSTS = [
+  { match: ['thesession.org'], label: 'The Session' },
+  { match: ['youtube.com', 'm.youtube.com', 'youtu.be'], label: 'YouTube' },
+  { match: ['soundcloud.com', 'on.soundcloud.com'], label: 'SoundCloud' },
+  { match: ['abcnotation.com'], label: 'abcnotation.com' },
+];
+
+function sourceLabel(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    return SOURCE_HOSTS.find(s => s.match.includes(host))?.label || 'Source';
+  } catch {
+    return 'Source';
+  }
+}
+
+function getExternalLink(tune) {
+  if (tune.session_id > 0 || tune.session_url || (tune.source_url && tune.source_url.includes('thesession.org'))) {
+    return {
+      href: tune.session_url || tune.source_url || `https://thesession.org/tunes/${tune.session_id}`,
+      label: `View on The Session${tune.session_id > 0 ? ` (#${tune.session_id})` : ''}`,
+    };
+  }
+  if (tune.source_url) {
+    return { href: tune.source_url, label: sourceLabel(tune.source_url) };
+  }
+  return null;
+}
+
 export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const [editing, setEditing] = useState(false);
   const [confirmRemoveSet, setConfirmRemoveSet] = useState(false);
@@ -217,6 +246,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
         <InstrumentProgress
           instruments={tune.instruments || {}}
           userInstruments={userInstruments || []}
+          defaultTargetTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)}
           onUpdate={(instruments) => onUpdate({ instruments })}
           onPractice={practiceWithInstrument}
         />
@@ -282,26 +312,19 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
       )}
 
       {/* External links */}
-      {(tune.session_id > 0 || tune.session_url || (tune.source_url && tune.source_url.includes('thesession.org'))) && (
-        <a
-          href={tune.session_url || tune.source_url || `https://thesession.org/tunes/${tune.session_id}`}
-          target="_blank"
-          rel="noopener"
-          class="text-sm text-blue-500 hover:underline inline-block"
-        >
-          View on The Session{tune.session_id > 0 ? ` (#${tune.session_id})` : ''}
-        </a>
-      )}
-      {tune.source_url && !tune.source_url.includes('thesession.org') && (
-        <a
-          href={tune.source_url}
-          target="_blank"
-          rel="noopener"
-          class="text-sm text-blue-500 hover:underline inline-block"
-        >
-          Source
-        </a>
-      )}
+      {(() => {
+        const link = getExternalLink(tune);
+        return link && (
+          <a
+            href={link.href}
+            target="_blank"
+            rel="noopener"
+            class="text-sm text-blue-500 hover:underline inline-block"
+          >
+            {link.label}
+          </a>
+        );
+      })()}
 
       {confirmDelete && (
         <>

@@ -1,13 +1,13 @@
 import { useState } from 'preact/hooks';
 
-export function InstrumentProgress({ instruments, userInstruments, onUpdate, onPractice }) {
+export function InstrumentProgress({ instruments, userInstruments, defaultTargetTempo = 0, onUpdate, onPractice }) {
   const [adding, setAdding] = useState(false);
   const [newInstrument, setNewInstrument] = useState('');
 
   const handleAdd = async () => {
     const name = newInstrument.trim();
     if (!name || instruments[name]) return;
-    const updated = { ...instruments, [name]: { keys: [], current_tempo: 0, target_tempo: 0 } };
+    const updated = { ...instruments, [name]: { keys: [], current_tempo: 0, target_tempo: defaultTargetTempo || 0 } };
     await onUpdate(updated);
     setNewInstrument('');
     setAdding(false);

@@ -226,7 +226,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
       {tune.notes && (
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <h3 class="text-sm font-medium text-gray-700 mb-2">Notes</h3>
-          <div class="text-sm text-gray-600 prose" dangerouslySetInnerHTML={{ __html: tune.notes }} />
+          <div class="text-sm text-gray-600 whitespace-pre-wrap">{tune.notes}</div>
         </div>
       )}
 

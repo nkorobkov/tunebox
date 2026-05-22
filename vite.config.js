@@ -9,7 +9,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      // We register the SW ourselves in src/lib/sw-update.js so the plugin
+      // doesn't inject an inline <script> that violates our CSP.
+      injectRegister: false,
       manifest: false, // public/manifest.json is already linked from index.html
       devOptions: { enabled: false },
       workbox: {

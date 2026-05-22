@@ -36,7 +36,13 @@ pb.beforeSend = function (url, options) {
       if (remaining < HALF_TTL_SECONDS) {
         refreshInFlight = true;
         pb.collection('users').authRefresh()
-          .catch(() => { pb.authStore.clear(); })
+          .catch((err) => {
+            // Only treat real auth rejections as logout; network errors must
+            // not clear the locally-valid token (the user may be offline).
+            if (err?.status === 401 || err?.status === 403) {
+              pb.authStore.clear();
+            }
+          })
           .finally(() => { refreshInFlight = false; });
       }
     } catch {

@@ -41,12 +41,18 @@ export function AuthProvider({ children }) {
         setLoading(false);
       }
     } else if (pb.authStore.isValid) {
-      // Try to refresh the auth on mount
+      // Token is locally valid (JWT exp not reached). Try to refresh it, but
+      // only clear the session on a real auth rejection — network failures
+      // (offline, PB down) must keep the existing session so the user isn't
+      // bounced to login when they refresh the page offline.
       pb.collection('users').authRefresh()
         .then(({ record }) => setUser(record))
-        .catch(() => {
-          pb.authStore.clear();
-          setUser(null);
+        .catch((err) => {
+          if (err?.status === 401 || err?.status === 403) {
+            pb.authStore.clear();
+            setUser(null);
+          }
+          // Otherwise: keep pb.authStore.record (still locally valid).
         })
         .finally(() => setLoading(false));
     } else {

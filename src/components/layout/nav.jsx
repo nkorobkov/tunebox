@@ -1,9 +1,11 @@
 import { useState } from 'preact/hooks';
 import { useAuth } from '../../lib/auth';
+import { useConnectivity } from '../../lib/connectivity';
 import { OfflineIndicator } from './offline-indicator';
 
 export function Nav() {
   const { user, logout } = useAuth();
+  const { isOffline } = useConnectivity();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -19,13 +21,13 @@ export function Nav() {
               {/* Desktop nav */}
               <div class="hidden lg:flex gap-4">
                 <a href="/" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Library</a>
-                <a href="/add" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Add Tune</a>
+                {!isOffline && <a href="/add" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Add Tune</a>}
                 <a href="/practice" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Practice</a>
                 <a href="/settings" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Settings</a>
               </div>
               {/* Mobile nav — always visible */}
               <div class="flex lg:hidden gap-4">
-                <a href="/add" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Add Tune</a>
+                {!isOffline && <a href="/add" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Add Tune</a>}
                 <a href="/practice" class="text-sm text-gray-600 hover:text-gray-900 no-underline">Practice</a>
               </div>
             </>

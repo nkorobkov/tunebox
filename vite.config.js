@@ -15,7 +15,8 @@ export default defineConfig({
       manifest: false, // public/manifest.json is already linked from index.html
       devOptions: { enabled: false },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,mp3}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: '/index.html',
         // Don't precache .map files or other dev artifacts.
         globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],

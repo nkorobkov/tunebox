@@ -5,12 +5,14 @@ import { useConnectivity } from '../../lib/connectivity';
 export function PracticeEntry({ userInstruments, selectedInstrument, onSelectInstrument, learning, playing, notStarted, onStart, onStartLearning, allDoneForToday, onReviewAgain, allTags = [], selectedTags = [], onToggleTag }) {
   const { isOffline } = useConnectivity();
   const [expandNotStarted, setExpandNotStarted] = useState(false);
+  const [expandReview, setExpandReview] = useState(false);
   const [expandingTuneId, setExpandingTuneId] = useState(null);
   const [targetBpm, setTargetBpm] = useState('');
   const [learnInstrument, setLearnInstrument] = useState(selectedInstrument);
   const [saving, setSaving] = useState(false);
 
   const totalPracticeable = learning.length + playing.length;
+  const scheduledTunes = [...learning, ...playing].sort((a, b) => a.title.localeCompare(b.title));
 
   const handleExpandLearning = (tune) => {
     if (expandingTuneId === tune.id) {
@@ -76,7 +78,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
               </div>
               <button
                 onClick={onReviewAgain}
-                class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 cursor-pointer"
+                class="px-5 py-2.5 max-[420px]:px-3 max-[420px]:py-1.5 max-[420px]:text-sm bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 cursor-pointer"
               >
                 Review again
               </button>
@@ -94,7 +96,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
               <button
                 onClick={onStart}
                 disabled={totalPracticeable === 0}
-                class="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                class="px-5 py-2.5 max-[420px]:px-3 max-[420px]:py-1.5 max-[420px]:text-sm bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
               >
                 Start Practice
               </button>
@@ -120,6 +122,41 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
           )}
         </div>
       )}
+
+      {/* Review — quick links to any scheduled tune */}
+      {selectedInstrument && scheduledTunes.length > 0 && (() => {
+        const collapsible = scheduledTunes.length > 5;
+        const showList = !collapsible || expandReview;
+        return (
+          <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <button
+              onClick={() => collapsible && setExpandReview(!expandReview)}
+              class={`flex items-center justify-between w-full ${collapsible ? 'cursor-pointer' : 'cursor-default'}`}
+            >
+              <h3 class="text-sm font-medium text-gray-700">
+                Review{collapsible ? ` (${scheduledTunes.length})` : ''}
+              </h3>
+              {collapsible && (
+                <span class="text-gray-400 text-xs">{expandReview ? 'hide' : 'show'}</span>
+              )}
+            </button>
+            {showList && (
+              <ul class="leading-tight mt-2">
+                {scheduledTunes.map(tune => (
+                  <li key={tune.id}>
+                    <a
+                      href={`/practice?tune=${tune.id}`}
+                      class="text-sm text-blue-600 hover:text-blue-700 no-underline hover:underline"
+                    >
+                      {tune.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Start learning */}
       {selectedInstrument && notStarted.length > 0 && !isOffline && (

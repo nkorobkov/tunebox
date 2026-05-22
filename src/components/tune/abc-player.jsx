@@ -32,7 +32,11 @@ export function AbcPlayer({ abc, defaultTempo = 120, transpose = 0 }) {
       displayWarp: true,
     });
 
-    controller.setTune(visualObj, false, { qpm: defaultTempo, midiTranspose: transpose });
+    controller.setTune(visualObj, false, {
+      qpm: defaultTempo,
+      midiTranspose: transpose,
+      soundFontUrl: '/soundfonts/FluidR3_GM/',
+    });
     controllerRef.current = controller;
 
     return () => {

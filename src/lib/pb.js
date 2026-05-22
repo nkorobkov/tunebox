@@ -1,8 +1,19 @@
 import PocketBase from 'pocketbase';
+import { recordPbSuccess, recordPbFailure } from './connectivity';
 
 const PB_URL = import.meta.env.VITE_PB_URL || 'https://pb.home.nkorobkov.com';
 
 export const pb = new PocketBase(PB_URL);
+
+// Feed every PB request outcome into the connectivity tracker so network-level
+// failures flip us to offline and any success flips us back.
+const _originalSend = pb.send.bind(pb);
+pb.send = function (path, options) {
+  return _originalSend(path, options).then(
+    (res) => { recordPbSuccess(); return res; },
+    (err) => { recordPbFailure(err); throw err; }
+  );
+};
 
 // Sliding-window auth: token TTL on the server is 30 days. Whenever the user
 // performs any action (= an API call), if the token is more than half-spent

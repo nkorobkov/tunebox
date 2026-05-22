@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import abcjs from 'abcjs';
+import { useConnectivity } from '../../lib/connectivity';
 
 const KEYS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const KEY_MAP = { 'C#': 1, 'Db': 1, 'D#': 3, 'Eb': 3, 'F#': 6, 'Gb': 6, 'G#': 8, 'Ab': 8, 'A#': 10, 'Bb': 10 };
@@ -34,6 +35,7 @@ export function AbcViewer({ abc, transpose = 0, onTransposeChange, savedTranspos
     return <p class="text-gray-400 italic">No ABC notation available</p>;
   }
 
+  const { isOffline } = useConnectivity();
   const dirty = onSave && t !== (savedTranspose ?? 0);
   const keyName = transposedKeyName(abc, t);
 
@@ -43,7 +45,9 @@ export function AbcViewer({ abc, transpose = 0, onTransposeChange, savedTranspos
         {dirty && (
           <button
             onClick={() => onSave(t)}
-            class="text-[11px] text-blue-600 hover:text-blue-700 cursor-pointer"
+            disabled={isOffline}
+            title={isOffline ? 'Unavailable offline' : undefined}
+            class="text-[11px] text-blue-600 hover:text-blue-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >save</button>
         )}
         <span class="text-[11px] text-gray-400">{keyName || 'transpose'}</span>

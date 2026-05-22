@@ -1,7 +1,9 @@
 import { useState } from 'preact/hooks';
 import { getDefaultTempo } from '../../lib/abc-utils';
+import { useConnectivity } from '../../lib/connectivity';
 
 export function PracticeEntry({ userInstruments, selectedInstrument, onSelectInstrument, learning, playing, notStarted, onStart, onStartLearning, allDoneForToday, onReviewAgain, allTags = [], selectedTags = [], onToggleTag }) {
+  const { isOffline } = useConnectivity();
   const [expandNotStarted, setExpandNotStarted] = useState(false);
   const [expandingTuneId, setExpandingTuneId] = useState(null);
   const [targetBpm, setTargetBpm] = useState('');
@@ -120,7 +122,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
       )}
 
       {/* Start learning */}
-      {selectedInstrument && notStarted.length > 0 && (
+      {selectedInstrument && notStarted.length > 0 && !isOffline && (
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <button
             onClick={() => setExpandNotStarted(!expandNotStarted)}

@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { useAuth } from '../../lib/auth';
+import { OfflineIndicator } from './offline-indicator';
 
 export function Nav() {
   const { user, logout } = useAuth();
@@ -32,6 +33,7 @@ export function Nav() {
         </div>
         {user && (
           <div class="flex items-center gap-3">
+            <OfflineIndicator />
             {/* Desktop user info */}
             <span class="hidden lg:inline text-sm text-gray-500">{user.email}</span>
             <button

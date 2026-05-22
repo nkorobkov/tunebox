@@ -4,9 +4,12 @@ import { InstrumentManager } from '../components/instruments/instrument-manager'
 import { useAuth } from '../lib/auth';
 import { pb } from '../lib/pb';
 import { getDefaultInstrument, saveDefaultInstrument } from '../hooks/use-practice';
+import { OfflineBanner } from '../components/common/offline-banner';
+import { useConnectivity } from '../lib/connectivity';
 
 export function SettingsPage() {
   const { user } = useAuth();
+  const { isOffline } = useConnectivity();
   const [instruments, setInstruments] = useState(user?.instruments || []);
   const [saving, setSaving] = useState(false);
   const [defaultInst, setDefaultInst] = useState(() => {
@@ -77,11 +80,13 @@ export function SettingsPage() {
           <p class="text-xs text-gray-400 mb-3">
             Add instruments you play. These will appear as options when tracking progress on tunes.
           </p>
+          <OfflineBanner message="Instrument changes are unavailable offline." />
           <InstrumentManager
             instruments={instruments}
             onUpdate={handleUpdateInstruments}
             defaultInstrument={defaultInst}
             onSetDefault={handleSetDefault}
+            disabled={isOffline}
           />
           {saving && <p class="text-xs text-gray-400 mt-2">Saving...</p>}
         </div>

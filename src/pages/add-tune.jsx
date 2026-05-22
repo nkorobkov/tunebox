@@ -8,9 +8,12 @@ import { BulkImport } from '../components/bulk/bulk-import';
 import { LoadingIndicator } from '../components/loading-indicator';
 import { searchTunes } from '../lib/session-api';
 import { useTunes } from '../hooks/use-tunes';
+import { OfflineBanner } from '../components/common/offline-banner';
+import { useConnectivity } from '../lib/connectivity';
 
 export function AddTunePage() {
   const { createTune } = useTunes();
+  const { isOffline } = useConnectivity();
   const [view, setView] = useState('search'); // 'search' | 'manual' | 'bulk'
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -50,6 +53,8 @@ export function AddTunePage() {
   return (
     <Shell>
       <h1 class="text-2xl font-bold text-gray-900 mb-6">Add Tune</h1>
+
+      <OfflineBanner message="Adding tunes is unavailable offline. Reconnect to add or import tunes." />
 
       {/* View switcher */}
       <div class="flex gap-2 mb-6">

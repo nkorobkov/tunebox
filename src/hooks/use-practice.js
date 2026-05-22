@@ -10,6 +10,8 @@ import {
   practicedToday,
   INITIAL_STABILITY,
 } from '../lib/practice-algorithm';
+import { updateTuneInCache, loadTunesFromCache } from '../lib/tune-cache';
+import { enqueuePractice } from '../lib/practice-queue';
 
 const LOCALSTORAGE_KEY = 'tunebox_default_instrument';
 
@@ -44,22 +46,44 @@ async function savePractice(tune, instrument, { current_tempo, stability, tempo_
     },
   };
 
+  const userId = pb.authStore.record?.id;
+  if (!userId) throw new Error('Not signed in');
+  const practicedAt = new Date().toISOString();
+  const practiceLog = {
+    user: userId,
+    user_tune: tune.id,
+    instrument,
+    practiced_at: practicedAt,
+    tempo_used,
+    fluency_rating,
+  };
+
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    // Offline: write through the cache and enqueue the dual write.
+    const cachedUpdate = updateTuneInCache(userId, tune.id, { instruments: updatedInstruments });
+    const updated = cachedUpdate || { ...tune, instruments: updatedInstruments };
+    enqueuePractice({
+      tuneId: tune.id,
+      userId,
+      instrument,
+      tuneUpdate: { instruments: updatedInstruments },
+      practiceLog,
+    });
+    return { updated, instData };
+  }
+
   const previousInstruments = tune.instruments;
   const updated = await pb.collection('user_tunes').update(tune.id, { instruments: updatedInstruments });
   try {
-    await pb.collection('practice_log').create({
-      user: pb.authStore.record.id,
-      user_tune: tune.id,
-      instrument,
-      practiced_at: new Date().toISOString(),
-      tempo_used,
-      fluency_rating,
-    });
+    await pb.collection('practice_log').create(practiceLog);
   } catch (err) {
     // Roll back the tune update so data stays consistent
     await pb.collection('user_tunes').update(tune.id, { instruments: previousInstruments });
     throw err;
   }
+
+  // Keep cache in sync so the next offline session sees the latest state.
+  updateTuneInCache(userId, tune.id, { instruments: updatedInstruments });
 
   return { updated, instData };
 }
@@ -126,13 +150,20 @@ export function useTunesByInstrument() {
   const fetch = useCallback(async (silent) => {
     if (!silent) setLoading(true);
     try {
-      const userId = pb.authStore.record.id;
+      const userId = pb.authStore.record?.id;
+      if (!userId) return;
       const result = await pb.collection('user_tunes').getList(1, 500, {
         filter: `user = "${userId}"`,
       });
       setAllTunes(result.items);
     } catch (err) {
-      console.error('Failed to fetch tunes:', err);
+      const userId = pb.authStore.record?.id;
+      const cached = userId ? loadTunesFromCache(userId) : null;
+      if (cached) {
+        setAllTunes(cached.tunes);
+      } else {
+        console.error('Failed to fetch tunes:', err);
+      }
     } finally {
       setLoading(false);
     }
@@ -193,7 +224,8 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
   const fetchAndBuild = useCallback(async () => {
     setLoading(true);
     try {
-      const userId = pb.authStore.record.id;
+      const userId = pb.authStore.record?.id;
+      if (!userId) return;
       const result = await pb.collection('user_tunes').getList(1, 500, {
         filter: `user = "${userId}"`,
       });
@@ -202,7 +234,16 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
       setCurrentIndex(0);
       setSkippedIds(new Set());
     } catch (err) {
-      console.error('Failed to fetch practice queue:', err);
+      const userId = pb.authStore.record?.id;
+      const cached = userId ? loadTunesFromCache(userId) : null;
+      if (cached) {
+        setAllTunes(cached.tunes);
+        setQueue(buildQueue(cached.tunes, { includePracticedToday, tags }));
+        setCurrentIndex(0);
+        setSkippedIds(new Set());
+      } else {
+        console.error('Failed to fetch practice queue:', err);
+      }
     } finally {
       setLoading(false);
     }

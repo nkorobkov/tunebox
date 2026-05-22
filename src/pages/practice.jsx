@@ -12,6 +12,7 @@ import {
   getDefaultInstrument, saveDefaultInstrument,
   saveLearningPractice, saveLearningStruggle, savePlayingPractice,
 } from '../hooks/use-practice';
+import { getTuneFromCache } from '../lib/tune-cache';
 
 function learningResultMsg(tempo, movedToPlaying) {
   return movedToPlaying
@@ -49,7 +50,15 @@ export function PracticePage({ tune: tuneIdParam }) {
     setSingleTuneLoading(true);
     pb.collection('user_tunes').getOne(tuneIdParam)
       .then(t => { setSingleTune(t); setPracticing(true); })
-      .catch(err => console.error('Failed to load tune:', err))
+      .catch(err => {
+        const cached = getTuneFromCache(pb.authStore.record?.id, tuneIdParam);
+        if (cached) {
+          setSingleTune(cached);
+          setPracticing(true);
+        } else {
+          console.error('Failed to load tune:', err);
+        }
+      })
       .finally(() => setSingleTuneLoading(false));
   }, [tuneIdParam]);
 

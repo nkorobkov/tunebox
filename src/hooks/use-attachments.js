@@ -7,6 +7,12 @@ export function useAttachments(tuneId) {
 
   const fetch = useCallback(async () => {
     if (!tuneId) return;
+    // Attachments are not cached for offline use — skip the request entirely
+    // so each tune view doesn't trip the connectivity failure threshold.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const result = await pb.collection('attachments').getList(1, 100, {

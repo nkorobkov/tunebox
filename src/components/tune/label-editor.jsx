@@ -1,10 +1,13 @@
 import { useState } from 'preact/hooks';
 import { TagInput } from './tag-input';
 import { getKnownTags, addKnownTag, getKnownSets, addKnownSet } from '../../lib/tag-store';
+import { useConnectivity } from '../../lib/connectivity';
 
 export function LabelEditor({ labels = [], onUpdate, setLabel, addingSet, onStartAddSet, onCancelAddSet, newSetName, onSetNameInput, onAddSet }) {
   const [adding, setAdding] = useState(false);
   const [newValue, setNewValue] = useState('');
+  const { isOffline } = useConnectivity();
+  const offlineTitle = isOffline ? 'Unavailable offline' : undefined;
 
   const tags = labels.filter(l => l.type === 'tag');
 
@@ -34,7 +37,9 @@ export function LabelEditor({ labels = [], onUpdate, setLabel, addingSet, onStar
           {tag.value}
           <button
             onClick={() => handleRemove(tag)}
-            class="ml-0.5 text-gray-400 hover:text-red-500 cursor-pointer"
+            disabled={isOffline}
+            title={offlineTitle}
+            class="ml-0.5 text-gray-400 hover:text-red-500 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             &times;
           </button>
@@ -67,7 +72,9 @@ export function LabelEditor({ labels = [], onUpdate, setLabel, addingSet, onStar
       ) : (
         <button
           onClick={() => setAdding(true)}
-          class="text-xs px-2 py-1 rounded-full border border-dashed border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 cursor-pointer"
+          disabled={isOffline}
+          title={offlineTitle}
+          class="text-xs px-2 py-1 rounded-full border border-dashed border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           + Add tag
         </button>
@@ -89,7 +96,9 @@ export function LabelEditor({ labels = [], onUpdate, setLabel, addingSet, onStar
         ) : (
           <button
             onClick={onStartAddSet}
-            class="text-xs px-2 py-1 rounded-full border border-dashed border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 cursor-pointer"
+            disabled={isOffline}
+            title={offlineTitle}
+            class="text-xs px-2 py-1 rounded-full border border-dashed border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             + Add to set
           </button>

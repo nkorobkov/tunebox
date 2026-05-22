@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 
-export function InstrumentManager({ instruments = [], onUpdate, defaultInstrument, onSetDefault }) {
+export function InstrumentManager({ instruments = [], onUpdate, defaultInstrument, onSetDefault, disabled = false }) {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -48,7 +48,9 @@ export function InstrumentManager({ instruments = [], onUpdate, defaultInstrumen
               )}
               <button
                 onClick={() => setConfirmRemove(name)}
-                class="text-xs text-gray-400 hover:text-red-500 cursor-pointer"
+                disabled={disabled}
+                title={disabled ? 'Unavailable offline' : undefined}
+                class="text-xs text-gray-400 hover:text-red-500 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Remove
               </button>
@@ -102,7 +104,9 @@ export function InstrumentManager({ instruments = [], onUpdate, defaultInstrumen
       ) : (
         <button
           onClick={() => setAdding(true)}
-          class="text-sm px-3 py-2 border border-dashed border-gray-300 rounded text-gray-400 hover:text-gray-600 hover:border-gray-400 w-full cursor-pointer"
+          disabled={disabled}
+          title={disabled ? 'Unavailable offline' : undefined}
+          class="text-sm px-3 py-2 border border-dashed border-gray-300 rounded text-gray-400 hover:text-gray-600 hover:border-gray-400 w-full cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           + Add instrument
         </button>

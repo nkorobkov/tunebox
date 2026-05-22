@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { getFileUrl, isAudio, isImage } from '../../hooks/use-attachments';
+import { useConnectivity } from '../../lib/connectivity';
 
 const TYPE_LABELS = {
   sheet_music: 'Sheet Music',
@@ -10,6 +11,7 @@ const TYPE_LABELS = {
 
 function AttachmentItem({ attachment, onDelete, onSetMainSource }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { isOffline } = useConnectivity();
   const url = getFileUrl(attachment);
   const filename = attachment.file;
   const audio = isAudio(filename);
@@ -36,20 +38,23 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource }) {
           {isSheetMusic && onSetMainSource && (
             <button
               onClick={() => onSetMainSource(attachment.id, !attachment.main_source)}
-              class={`text-xs cursor-pointer ${attachment.main_source ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 hover:text-blue-500'}`}
-              title={attachment.main_source ? 'Remove as main source' : 'Use as main sheet music'}
+              disabled={isOffline}
+              class={`text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${attachment.main_source ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 hover:text-blue-500'}`}
+              title={isOffline ? 'Unavailable offline' : (attachment.main_source ? 'Remove as main source' : 'Use as main sheet music')}
             >
               {attachment.main_source ? 'unset main' : 'set as main'}
             </button>
           )}
-          <a
-            href={url}
-            download={filename}
-            class="text-xs text-gray-400 hover:text-gray-600"
-            title="Download"
-          >
-            download
-          </a>
+          {!isOffline && (
+            <a
+              href={url}
+              download={filename}
+              class="text-xs text-gray-400 hover:text-gray-600"
+              title="Download"
+            >
+              download
+            </a>
+          )}
           {confirmDelete ? (
             <span class="flex items-center gap-1 text-xs">
               <button onClick={() => onDelete(attachment.id)} class="text-red-500 hover:underline cursor-pointer">delete</button>
@@ -58,7 +63,9 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource }) {
           ) : (
             <button
               onClick={() => setConfirmDelete(true)}
-              class="text-xs text-gray-300 hover:text-red-400 cursor-pointer"
+              disabled={isOffline}
+              title={isOffline ? 'Unavailable offline' : undefined}
+              class="text-xs text-gray-300 hover:text-red-400 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               &times;
             </button>
@@ -66,16 +73,22 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource }) {
         </div>
       </div>
 
-      {audio && (
-        <audio controls preload="none" class="w-full h-8 mt-1">
-          <source src={url} />
-        </audio>
-      )}
+      {isOffline ? (
+        <p class="text-xs text-gray-400 italic mt-1">Unavailable offline</p>
+      ) : (
+        <>
+          {audio && (
+            <audio controls preload="none" class="w-full h-8 mt-1">
+              <source src={url} />
+            </audio>
+          )}
 
-      {image && (
-        <a href={url} target="_blank" rel="noopener">
-          <img src={url} alt={displayName} class="max-h-48 rounded mt-1" loading="lazy" />
-        </a>
+          {image && (
+            <a href={url} target="_blank" rel="noopener">
+              <img src={url} alt={displayName} class="max-h-48 rounded mt-1" loading="lazy" />
+            </a>
+          )}
+        </>
       )}
     </div>
   );

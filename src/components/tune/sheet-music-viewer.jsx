@@ -1,9 +1,19 @@
 import { getFileUrl, isImage } from '../../hooks/use-attachments';
+import { useConnectivity } from '../../lib/connectivity';
 
 export function SheetMusicViewer({ attachment }) {
+  const { isOffline } = useConnectivity();
   const url = getFileUrl(attachment);
   const filename = attachment.file;
   const isPdf = /\.pdf$/i.test(filename);
+
+  if (isOffline) {
+    return (
+      <div class="text-sm text-gray-400 italic p-4 border border-dashed border-gray-200 rounded text-center">
+        Sheet music unavailable offline
+      </div>
+    );
+  }
 
   if (isImage(filename)) {
     return <img src={url} alt={attachment.label || filename} class="w-full rounded" loading="lazy" />;

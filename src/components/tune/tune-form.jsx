@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { parseAbcMeta, getDefaultTempo } from '../../lib/abc-utils';
+import { useConnectivity } from '../../lib/connectivity';
 
 const TUNE_TYPES = ['reel', 'jig', 'slip jig', 'hornpipe', 'polka', 'slide', 'waltz', 'mazurka', 'march', 'barndance', 'other'];
 
@@ -13,6 +14,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
   const [notes, setNotes] = useState(initial.notes || '');
   const [sourceUrl, setSourceUrl] = useState(initial.source_url || '');
   const [submitting, setSubmitting] = useState(false);
+  const { isOffline } = useConnectivity();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -143,7 +145,8 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
 
       <button
         type="submit"
-        disabled={submitting || !title}
+        disabled={submitting || !title || isOffline}
+        title={isOffline ? 'Unavailable offline' : undefined}
         class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {submitting ? 'Saving...' : submitLabel}

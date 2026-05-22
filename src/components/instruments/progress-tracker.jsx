@@ -1,8 +1,11 @@
 import { useState } from 'preact/hooks';
+import { useConnectivity } from '../../lib/connectivity';
 
 export function InstrumentProgress({ instruments, userInstruments, defaultTargetTempo = 0, onUpdate, onPractice }) {
   const [adding, setAdding] = useState(false);
   const [newInstrument, setNewInstrument] = useState('');
+  const { isOffline } = useConnectivity();
+  const offlineTitle = isOffline ? 'Unavailable offline' : undefined;
 
   const handleAdd = async () => {
     const name = newInstrument.trim();
@@ -48,16 +51,20 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
                 type="number"
                 value={data.current_tempo || ''}
                 onChange={e => handleFieldChange(name, 'current_tempo', Number(e.target.value))}
+                disabled={isOffline}
+                title={offlineTitle}
                 placeholder="BPM"
-                class="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                class="w-16 px-2 py-1 border border-gray-300 rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <span class="text-gray-400 text-xs">/</span>
               <input
                 type="number"
                 value={data.target_tempo || ''}
                 onChange={e => handleFieldChange(name, 'target_tempo', Number(e.target.value))}
+                disabled={isOffline}
+                title={offlineTitle}
                 placeholder="Target"
-                class="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                class="w-16 px-2 py-1 border border-gray-300 rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
             {isPlaying && (
@@ -66,7 +73,9 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
             {isLearning && (
               <button
                 onClick={() => handleFieldChange(name, 'current_tempo', data.target_tempo)}
-                class="text-xs text-green-600 hover:text-green-700 cursor-pointer"
+                disabled={isOffline}
+                title={offlineTitle}
+                class="text-xs text-green-600 hover:text-green-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 mark as playing
               </button>
@@ -81,7 +90,9 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
             )}
             <button
               onClick={() => handleRemove(name)}
-              class="text-gray-400 hover:text-red-500 text-xs cursor-pointer"
+              disabled={isOffline}
+              title={offlineTitle}
+              class="text-gray-400 hover:text-red-500 text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               remove
             </button>
@@ -92,7 +103,9 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
       {!adding ? (
         <button
           onClick={() => setAdding(true)}
-          class="text-xs px-2 py-1 rounded border border-dashed border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 cursor-pointer"
+          disabled={isOffline}
+          title={offlineTitle}
+          class="text-xs px-2 py-1 rounded border border-dashed border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           + Add instrument
         </button>

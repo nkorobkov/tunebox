@@ -1,6 +1,7 @@
 import { createContext } from 'preact';
 import { useState, useEffect, useCallback, useContext } from 'preact/hooks';
 import { pb } from './pb';
+import { clearTuneCache } from './tune-cache';
 
 const AuthContext = createContext(null);
 
@@ -76,6 +77,9 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     pb.authStore.clear();
+    clearTuneCache();
+    // Practice queue is intentionally NOT cleared — entries are scoped by
+    // userId, so the same user can sign back in and finish flushing them.
   }, []);
 
   return (

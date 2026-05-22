@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { getTune } from '../../lib/session-api';
+import { useConnectivity } from '../../lib/connectivity';
 import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
 import { AbcViewer } from '../tune/abc-viewer';
 import { AbcPlayer } from '../tune/abc-player';
@@ -10,6 +11,7 @@ export function SearchResults({ results, onImport }) {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [selectedSetting, setSelectedSetting] = useState(0);
   const [importing, setImporting] = useState(null);
+  const { isOffline } = useConnectivity();
 
   const handleExpand = async (tuneId) => {
     if (expandedId === tuneId) {
@@ -115,7 +117,8 @@ export function SearchResults({ results, onImport }) {
                   {/* Import button */}
                   <button
                     onClick={() => handleImport(tuneDetail, tuneDetail.settings[selectedSetting])}
-                    disabled={importing === tune.id}
+                    disabled={importing === tune.id || isOffline}
+                    title={isOffline ? 'Unavailable offline' : undefined}
                     class="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 cursor-pointer"
                   >
                     {importing === tune.id ? 'Adding...' : 'Add to My Collection'}

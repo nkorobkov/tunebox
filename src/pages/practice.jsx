@@ -171,7 +171,6 @@ export function PracticePage({ tune: tuneIdParam }) {
   if (!practicing) {
     return (
       <Shell>
-        <h1 class="text-2xl font-bold text-gray-900 mb-6">Practice</h1>
         {tunesLoading ? (
           <LoadingIndicator />
         ) : (
@@ -201,8 +200,7 @@ export function PracticePage({ tune: tuneIdParam }) {
 
   return (
     <Shell>
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Practice</h1>
+      <div class="flex items-center justify-end mb-6">
         <div class="flex items-center gap-4">
           {!singleTune && session.remaining > 0 && (
             <span class="text-sm text-gray-500">{session.remaining} remaining</span>

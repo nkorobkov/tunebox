@@ -152,13 +152,7 @@ export function LibraryPage() {
 
   return (
     <Shell>
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900">My Tunes</h1>
-          <p class="text-sm text-gray-500 mt-1">
-            {tunes.length} tune{tunes.length !== 1 ? 's' : ''}
-          </p>
-        </div>
+      <div class="flex items-center justify-end mb-6">
         <div class="hidden lg:flex items-center gap-3">
           <a
             href="/practice"
@@ -182,7 +176,7 @@ export function LibraryPage() {
             type="text"
             value={search}
             onInput={e => setSearch(e.target.value)}
-            placeholder="Search tunes..."
+            placeholder={`Search ${tunes.length} tune${tunes.length !== 1 ? 's' : ''}...`}
             class="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <select

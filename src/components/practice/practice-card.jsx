@@ -66,7 +66,7 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
   );
 }
 
-function TuneHeader({ tune, instrument }) {
+function TuneHeader({ tune, instrument, targetTempo }) {
   return (
     <div>
       <h2 class="text-xl font-bold text-gray-900">
@@ -76,6 +76,7 @@ function TuneHeader({ tune, instrument }) {
         {tune.type && <span class="capitalize">{tune.type}</span>}
         {tune.setting_key && <span>Key: {tune.setting_key}</span>}
         <span class="text-gray-400">{instrument}</span>
+        {targetTempo > 0 && <span class="text-gray-400">Target: {targetTempo} BPM</span>}
       </div>
     </div>
   );
@@ -111,7 +112,7 @@ function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving,
 
   return (
     <div class="space-y-4">
-      <TuneHeader tune={tune} instrument={instrument} />
+      <TuneHeader tune={tune} instrument={instrument} targetTempo={instData.target_tempo} />
 
       {/* Prompt */}
       <div class="bg-blue-50 rounded-lg border border-blue-200 p-4">
@@ -175,7 +176,7 @@ function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, saving, 
 
   return (
     <div class="space-y-4">
-      <TuneHeader tune={tune} instrument={instrument} />
+      <TuneHeader tune={tune} instrument={instrument} targetTempo={instData.target_tempo} />
 
       {/* Prompt */}
       <div class="bg-green-50 rounded-lg border border-green-200 p-4">

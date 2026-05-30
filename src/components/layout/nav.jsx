@@ -37,7 +37,7 @@ export function Nav() {
           <div class="flex items-center gap-3">
             <OfflineIndicator />
             {/* Desktop user info */}
-            <span class="hidden lg:inline text-sm text-gray-500">{user.email}</span>
+            <a href="/user" class="hidden lg:inline text-sm text-gray-500 hover:text-gray-700 no-underline">{user.email}</a>
             <button
               onClick={logout}
               class="hidden lg:inline text-sm text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -65,7 +65,7 @@ export function Nav() {
                     <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline" onClick={() => setMenuOpen(false)}>Library</a>
                     <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline" onClick={() => setMenuOpen(false)}>Settings</a>
                     <hr class="my-1 border-gray-100" />
-                    <span class="block px-4 pt-1.5 text-xs text-gray-400 truncate">{user.email?.split('@')[0]}</span>
+                    <a href="/user" class="block px-4 pt-1.5 text-xs text-gray-400 hover:text-gray-600 truncate no-underline" onClick={() => setMenuOpen(false)}>{user.email?.split('@')[0]}</a>
                     <button
                       onClick={() => { setMenuOpen(false); logout(); }}
                       class="w-full text-left px-4 py-1.5 pb-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"

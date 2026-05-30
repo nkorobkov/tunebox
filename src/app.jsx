@@ -10,6 +10,7 @@ import { TunePage } from './pages/tune';
 import { AddTunePage } from './pages/add-tune';
 import { PracticePage } from './pages/practice';
 import { SettingsPage } from './pages/settings';
+import { UserPage } from './pages/user';
 import { LoadingIndicator } from './components/loading-indicator';
 
 function FlushOnReconnect() {
@@ -54,6 +55,7 @@ function AppRouter() {
         <AddTunePage path="/add" />
         <PracticePage path="/practice" />
         <SettingsPage path="/settings" />
+        <UserPage path="/user" />
       </Router>
     </>
   );

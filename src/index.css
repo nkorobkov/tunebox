@@ -24,3 +24,14 @@ button, a, input, select, textarea, [role="button"] {
     max-width: none;
   }
 }
+
+/* react-activity-calendar has its own internal scroll container. Flip its
+   direction so it initially scrolls to the right (showing the most recent
+   weeks first), then restore LTR on the calendar inside so layout is normal.
+   Scoped to the user page so other ActivityCalendar instances aren't affected. */
+.user-page-heatmap .react-activity-calendar__scroll-container {
+  direction: rtl;
+}
+.user-page-heatmap .react-activity-calendar__scroll-container > * {
+  direction: ltr;
+}

@@ -1,10 +1,11 @@
-import { useState } from 'preact/hooks';
+import { useState, useMemo } from 'preact/hooks';
 import { route } from 'preact-router';
 import { Shell } from '../components/layout/shell';
 import { SessionSearch } from '../components/search/session-search';
 import { SearchResults } from '../components/search/search-results';
 import { TuneForm } from '../components/tune/tune-form';
 import { BulkImport } from '../components/bulk/bulk-import';
+import { TunebookImport } from '../components/bulk/tunebook-import';
 import { LoadingIndicator } from '../components/loading-indicator';
 import { searchTunes } from '../lib/session-api';
 import { useTunes } from '../hooks/use-tunes';
@@ -12,9 +13,17 @@ import { OfflineBanner } from '../components/common/offline-banner';
 import { useConnectivity } from '../lib/connectivity';
 
 export function AddTunePage() {
-  const { createTune } = useTunes();
+  const { tunes, createTune } = useTunes();
   const { isOffline } = useConnectivity();
-  const [view, setView] = useState('search'); // 'search' | 'manual' | 'bulk'
+  const [view, setView] = useState('search'); // 'search' | 'manual' | 'bulk' | 'tunebook'
+
+  const existingSessionIds = useMemo(() => {
+    const set = new Set();
+    for (const t of tunes) {
+      if (t.session_id) set.add(t.session_id);
+    }
+    return set;
+  }, [tunes]);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -76,6 +85,12 @@ export function AddTunePage() {
         >
           Bulk Import
         </button>
+        <button
+          onClick={() => setView('tunebook')}
+          class={`px-3 py-1.5 text-sm rounded-md cursor-pointer ${view === 'tunebook' ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+        >
+          Session Tunebook
+        </button>
       </div>
 
       {/* Search The Session */}
@@ -133,7 +148,12 @@ export function AddTunePage() {
 
       {/* Bulk Import */}
       {view === 'bulk' && (
-        <BulkImport createTune={createTune} />
+        <BulkImport createTune={createTune} existingSessionIds={existingSessionIds} />
+      )}
+
+      {/* Session Tunebook Import */}
+      {view === 'tunebook' && (
+        <TunebookImport createTune={createTune} existingSessionIds={existingSessionIds} />
       )}
     </Shell>
   );

@@ -4,13 +4,14 @@ import { AbcPlayer } from '../tune/abc-player';
 import { SheetMusicViewer } from '../tune/sheet-music-viewer';
 import { Metronome } from './metronome';
 import { FluencyRater } from './fluency-rater';
+import { BackingTrackPlayer } from './backing-track-player';
 import { useAttachments } from '../../hooks/use-attachments';
 import { buildAbcString, getDefaultTempo, getMeter } from '../../lib/abc-utils';
 import { getInstrumentData, instrumentProficiency, suggestLearningTempo } from '../../lib/practice-algorithm';
 
 export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleLearning, onCompletePlaying, onSkip }) {
   const [saving, setSaving] = useState(false);
-  const { mainSource } = useAttachments(tune.id);
+  const { mainSource, backingTrack } = useAttachments(tune.id);
 
   const isLearning = instrumentProficiency(tune, instrument) === 'learning';
 
@@ -44,6 +45,7 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
         instData={instData}
         fullAbc={fullAbc}
         mainSource={mainSource}
+        backingTrack={backingTrack}
         saving={saving}
         onComplete={handleLearningComplete}
         onStruggle={handleLearningStruggle}
@@ -59,6 +61,7 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
       instData={instData}
       fullAbc={fullAbc}
       mainSource={mainSource}
+      backingTrack={backingTrack}
       saving={saving}
       onRate={handlePlayingRate}
       onSkip={onSkip}
@@ -104,8 +107,23 @@ function SheetMusic({ mainSource, fullAbc, transpose, onTransposeChange }) {
   );
 }
 
-function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving, onComplete, onStruggle, onSkip }) {
-  const { suggestion, isFirstTime } = suggestLearningTempo(instData.current_tempo);
+function NotesSpoiler({ mainSource, fullAbc, transpose, onTransposeChange }) {
+  return (
+    <details class="group">
+      <summary class="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-900 list-none flex items-center gap-2 py-2 select-none">
+        <span class="inline-block transition-transform group-open:rotate-90">▸</span>
+        <span class="group-open:hidden">Show notes</span>
+        <span class="hidden group-open:inline">Hide notes</span>
+      </summary>
+      <div class="mt-2">
+        <SheetMusic mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={onTransposeChange} />
+      </div>
+    </details>
+  );
+}
+
+function LearningCard({ tune, instrument, instData, fullAbc, mainSource, backingTrack, saving, onComplete, onStruggle, onSkip }) {
+  const { suggestion, isFirstTime } = suggestLearningTempo(instData.current_tempo, instData.target_tempo);
   const [tempo, setTempo] = useState(suggestion);
   const [transpose, setTranspose] = useState(tune.transpose || 0);
   const meetsTarget = tempo >= instData.target_tempo;
@@ -131,12 +149,11 @@ function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving,
         )}
       </div>
 
-      <SheetMusic mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={setTranspose} />
-
       {/* Playback + Metronome */}
       <div class="space-y-2">
         {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={tempo} transpose={transpose} />}
         <Metronome defaultBpm={tempo} defaultTimeSignature={getMeter(tune.type)} onTempoChange={setTempo} />
+        {backingTrack && <BackingTrackPlayer attachment={backingTrack} targetTempo={tempo} />}
       </div>
 
       {/* Complete button */}
@@ -166,11 +183,13 @@ function LearningCard({ tune, instrument, instData, fullAbc, mainSource, saving,
           Skip for today
         </button>
       </div>
+
+      <NotesSpoiler mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={setTranspose} />
     </div>
   );
 }
 
-function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, saving, onRate, onSkip }) {
+function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, backingTrack, saving, onRate, onSkip }) {
   const playTempo = instData.target_tempo;
   const [transpose, setTranspose] = useState(tune.transpose || 0);
 
@@ -185,12 +204,11 @@ function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, saving, 
         </p>
       </div>
 
-      <SheetMusic mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={setTranspose} />
-
       {/* Playback + Metronome */}
       <div class="space-y-2">
         {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={playTempo} transpose={transpose} />}
         <Metronome defaultBpm={playTempo} defaultTimeSignature={getMeter(tune.type)} />
+        {backingTrack && <BackingTrackPlayer attachment={backingTrack} targetTempo={playTempo} />}
       </div>
 
       {/* Rating */}
@@ -204,6 +222,8 @@ function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, saving, 
       >
         Skip for today
       </button>
+
+      <NotesSpoiler mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={setTranspose} />
     </div>
   );
 }

@@ -31,7 +31,9 @@ export function AttachmentUpload({ onUpload, onClose }) {
   const handleFileChange = (e) => {
     const f = e.target.files[0];
     setFile(f);
-    if (f) {
+    // Only auto-detect when the user hasn't already chosen a type — don't
+    // clobber an explicit selection (e.g. "Backing Track") on file pick.
+    if (f && !type) {
       const detected = autoDetectType(f.name);
       if (detected) setType(detected);
     }

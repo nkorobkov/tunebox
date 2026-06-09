@@ -66,8 +66,9 @@ export function useAttachments(tuneId) {
   }, [attachments]);
 
   const mainSource = attachments.find(a => a.main_source && a.type === 'sheet_music');
+  const backingTrack = attachments.find(a => a.type === 'backing_track');
 
-  return { attachments, loading, upload, remove, setMainSource, mainSource, refresh: fetch };
+  return { attachments, loading, upload, remove, setMainSource, mainSource, backingTrack, refresh: fetch };
 }
 
 export function getFileUrl(attachment) {

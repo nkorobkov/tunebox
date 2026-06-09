@@ -14,15 +14,13 @@ No test runner or linter is configured.
 
 ## Deployment
 
-The app runs on a Raspberry Pi at `192.168.0.2` via Docker Compose at `/home/nikita/hacking/master-compose/`:
+### Frontend — GitHub Pages
 
-- **Frontend**: nginx container serving `dist/` at `tunes.home.nkorobkov.com` behind Traefik
-- **Backend**: PocketBase 0.36 container at `pb.home.nkorobkov.com` with data in `pocketbase_data` Docker volume
-- **PB Hooks**: Mounted from `pocketbase/pb_hooks/` — contains `session_proxy.pb.js` for CORS-proxying thesession.org API
+Pushes to `main` trigger `.github/workflows/deploy.yml`, which runs `npm ci && npm run build`, copies `dist/index.html` → `dist/404.html` (SPA fallback), and publishes `dist/` via `actions/deploy-pages`. The site is served at `https://tunes.nkorobkov.com` (custom domain from `public/CNAME`). No manual deploy step — just merge to `main`.
 
-To deploy frontend updates: build locally, scp `dist/` to the Pi's `master-compose/tunebox/dist/`, restart the `tunebox` container.
+### Backend — PocketBase
 
-The Docker network is named `traefic` (note the typo — maintain consistency). Cert resolver uses `${PROVIDER}` (Route53 DNS challenge).
+The frontend talks to a self-hosted PocketBase instance at `https://pb.home.nkorobkov.com`. The hosting, SSH access, Docker ops, admin-UI gating, and networking details live in `LOCAL_SETUP.md` (gitignored — personal infra notes).
 
 ## Architecture
 

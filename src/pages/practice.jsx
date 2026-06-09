@@ -5,7 +5,7 @@ import { PracticeEntry } from '../components/practice/practice-entry';
 import { useAuth } from '../lib/auth';
 import { pb } from '../lib/pb';
 import { getDefaultTempo } from '../lib/abc-utils';
-import { INITIAL_STABILITY, practicedToday } from '../lib/practice-algorithm';
+import { INITIAL_STABILITY, practicedToday, nextLearningTempo, getInstrumentData } from '../lib/practice-algorithm';
 import { LoadingIndicator } from '../components/loading-indicator';
 import {
   useTunesByInstrument, usePracticeSession,
@@ -14,10 +14,10 @@ import {
 } from '../hooks/use-practice';
 import { getTuneFromCache } from '../lib/tune-cache';
 
-function learningResultMsg(tempo, movedToPlaying) {
-  return movedToPlaying
-    ? `Moved to Playing! You've reached target tempo.`
-    : `Good! We'll try ${Math.round(tempo * 1.1)} BPM next time.`;
+function learningResultMsg(tempo, movedToPlaying, targetTempo) {
+  if (movedToPlaying) return `Moved to Playing! You've reached target tempo.`;
+  const next = Math.round(nextLearningTempo(tempo, targetTempo));
+  return `Good! We'll try ${next} BPM next time.`;
 }
 
 const PLAYING_MESSAGES = {
@@ -136,11 +136,13 @@ export function PracticePage({ tune: tuneIdParam }) {
   }, [singleTune, session]);
 
   const onCompleteLearning = useCallback(async (tune, tempo) => {
+    const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
+    const { target_tempo } = getInstrumentData(tune, instrument, fallback);
     return completePractice(
       () => singleTune
         ? saveLearningPractice(tune, instrument, tempo)
         : session.completeLearning(tune, tempo),
-      (res) => learningResultMsg(tempo, res.movedToPlaying),
+      (res) => learningResultMsg(tempo, res.movedToPlaying, target_tempo),
     );
   }, [singleTune, instrument, session, completePractice]);
 

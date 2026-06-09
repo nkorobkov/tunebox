@@ -19,7 +19,6 @@ const W1 = 0.01;
 const W2 = 10;
 const BOOST = 5;
 const INITIAL_STABILITY = 1.0;
-const TEMPO_INCREMENT = 1.1;
 const RELEARN_TEMPO_FACTOR = 0.8;
 
 const STABILITY_MULTIPLIERS = {
@@ -85,17 +84,27 @@ export function updateStability(currentStability, rating) {
 }
 
 /**
- * Suggest a learning tempo based on last practiced tempo.
+ * Suggest a learning tempo based on last practiced tempo and target.
+ * Progression:
+ *   < 75% of target → +10%
+ *   < 90% of target → +5 BPM
+ *   otherwise       → +2%
  * Returns { suggestion, isFirstTime }.
  */
-export function suggestLearningTempo(currentTempo) {
+export function suggestLearningTempo(currentTempo, targetTempo) {
   if (!currentTempo || currentTempo <= 0) {
     return { suggestion: 60, isFirstTime: true };
   }
-  return {
-    suggestion: Math.round(currentTempo * TEMPO_INCREMENT),
-    isFirstTime: false,
-  };
+  const suggestion = Math.round(nextLearningTempo(currentTempo, targetTempo));
+  return { suggestion, isFirstTime: false };
+}
+
+export function nextLearningTempo(currentTempo, targetTempo) {
+  if (!targetTempo || targetTempo <= 0) return currentTempo * 1.10;
+  const ratio = currentTempo / targetTempo;
+  if (ratio < 0.75) return currentTempo * 1.10;
+  if (ratio < 0.90) return currentTempo + 5;
+  return currentTempo * 1.02;
 }
 
 /**
@@ -127,4 +136,4 @@ export function instrumentProficiency(tune, instrument) {
   return 'learning';
 }
 
-export { INITIAL_STABILITY, TEMPO_INCREMENT };
+export { INITIAL_STABILITY };

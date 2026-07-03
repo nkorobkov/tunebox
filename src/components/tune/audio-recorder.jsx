@@ -5,6 +5,7 @@ export function AudioRecorder({ onUpload, onClose }) {
   const [error, setError] = useState('');
   const [duration, setDuration] = useState(0);
   const [label, setLabel] = useState('');
+  const [type, setType] = useState('recording'); // recording | backing_track
   const [bpm, setBpm] = useState('');
   const [uploading, setUploading] = useState(false);
   const [blob, setBlob] = useState(null);
@@ -74,7 +75,7 @@ export function AudioRecorder({ onUpload, onClose }) {
       const file = new File([blob], `recording.${ext}`, { type: blob.type });
       await onUpload({
         file,
-        type: 'recording',
+        type,
         bpm: bpm ? Number(bpm) : undefined,
         label: label || undefined,
       });
@@ -145,6 +146,18 @@ export function AudioRecorder({ onUpload, onClose }) {
               <div class="flex flex-col items-center gap-2">
                 <span class="text-sm text-gray-500">Recorded {formatTime(duration)}</span>
                 {blobUrl && <audio src={blobUrl} controls class="w-full" />}
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select
+                  value={type}
+                  onChange={e => setType(e.target.value)}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="recording">Recording</option>
+                  <option value="backing_track">Backing Track</option>
+                </select>
               </div>
 
               <div>

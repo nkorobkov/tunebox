@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './lib/auth';
 import { ConnectivityProvider, useConnectivity } from './lib/connectivity';
 import { flushQueue } from './lib/practice-queue';
 import { initServiceWorkerUpdates } from './lib/sw-update';
-import { LoginPage } from './pages/login';
+import { LandingPage } from './pages/landing';
 import { LibraryPage } from './pages/library';
 import { TunePage } from './pages/tune';
 import { AddTunePage } from './pages/add-tune';
@@ -42,7 +42,7 @@ function AppRouter() {
   }
 
   if (!user) {
-    return <LoginPage />;
+    return <LandingPage />;
   }
 
   return (

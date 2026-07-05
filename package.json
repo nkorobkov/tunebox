@@ -10,10 +10,13 @@
   },
   "dependencies": {
     "abcjs": "^6.6.2",
+    "fflate": "^0.8.3",
+    "jspdf": "^4.2.1",
     "pocketbase": "^0.26.8",
     "preact": "^10.29.1",
     "preact-router": "^4.1.2",
-    "react-activity-calendar": "^3.2.0"
+    "react-activity-calendar": "^3.2.0",
+    "svg2pdf.js": "^2.7.0"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",

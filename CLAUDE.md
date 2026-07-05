@@ -43,6 +43,8 @@ Labels are stored as JSON arrays on user_tunes: `[{type: "category", value: "lea
 - **`src/lib/spaced-repetition.js`** — SM-2 algorithm. `calculateNextReview(state, rating)` returns new SR fields. `isDue(tune)` and `isNew(tune)` determine practice queue membership.
 - **`src/lib/session-api.js`** — calls PocketBase proxy endpoints (`/api/session/search`, `/api/session/tune/:id`) which forward to thesession.org JSON API.
 - **`src/lib/abc-utils.js`** — builds full ABC strings with headers from raw ABC + tune metadata. Maps tune types to meters and default tempos.
+- **`src/lib/export-utils.js`** — bulk export builders: title list, concatenated ABC tunebook (placeholder ABC for tunes without notation), and full ZIP archive (folder per tune with ABC, record JSON, practice-history CSV, attachments) via lazy-loaded `fflate`.
+- **`src/lib/tunebook-pdf.js`** — tunebook PDF via lazy-loaded `jspdf` + `svg2pdf.js`: renders each tune's ABC to SVG offscreen, measures, paginates up front (so the optional index has exact page numbers), then draws. Tunes without ABC embed their main-source sheet-music attachment when it's an image (fetched → canvas → JPEG); optionally tunes with no notation at all are skipped. Note: don't use abcjs's `scale` option here — it scales via CSS transform which svg2pdf ignores. Print = same PDF opened in a hidden iframe (`frame-src blob:` is allowed in the CSP for this).
 - **`src/hooks/use-tunes.js`** — `useTunes()` for list with client-side label filtering, `useTune(id)` for single record.
 - **`src/hooks/use-practice.js`** — builds practice queue (due tunes + new tunes), provides `advance()` to move through queue.
 - **`src/hooks/use-metronome.js`** — Web Audio API click generator with BPM control.

@@ -2,17 +2,21 @@ import { useState, useMemo } from 'preact/hooks';
 import { Shell } from '../components/layout/shell';
 import { TuneCard, SetGroup } from '../components/tune/tune-card';
 import { LabelFilter } from '../components/library/label-filter';
+import { BulkToolbar } from '../components/library/bulk-toolbar';
+import { ExportDialog } from '../components/library/export-dialog';
 import { LoadingIndicator } from '../components/loading-indicator';
 import { useTunes } from '../hooks/use-tunes';
 import { useAuth } from '../lib/auth';
 import { instrumentProficiency } from '../lib/practice-algorithm';
+import { getDefaultTempo } from '../lib/abc-utils';
+import { addKnownTag } from '../lib/tag-store';
 
 // Normalize set name for grouping: lowercase, collapse whitespace, strip punctuation
 function normalizeSetName(name) {
   return name.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
 }
 
-function TuneList({ tunes }) {
+function TuneList({ tunes, selectable = false, selectedIds, onToggleSelect }) {
   const items = [];
   const setMap = new Map(); // normalized key -> { displayName, entries }
   const inSet = new Set();
@@ -51,9 +55,22 @@ function TuneList({ tunes }) {
     <div class="grid gap-3">
       {items.map(item =>
         item.type === 'set' ? (
-          <SetGroup key={`set:${item.name}`} name={item.name} tunes={item.tunes} />
+          <SetGroup
+            key={`set:${item.name}`}
+            name={item.name}
+            tunes={item.tunes}
+            selectable={selectable}
+            selectedIds={selectedIds}
+            onToggleSelect={onToggleSelect}
+          />
         ) : (
-          <TuneCard key={item.tune.id} tune={item.tune} />
+          <TuneCard
+            key={item.tune.id}
+            tune={item.tune}
+            selectable={selectable}
+            selected={selectable && selectedIds?.has(item.tune.id)}
+            onToggleSelect={onToggleSelect}
+          />
         )
       )}
     </div>
@@ -88,7 +105,7 @@ function sortTunes(tunes, sort) {
 }
 
 export function LibraryPage() {
-  const { tunes, loading } = useTunes();
+  const { tunes, loading, updateTune, deleteTune } = useTunes();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -96,6 +113,10 @@ export function LibraryPage() {
   const [labelFilter, setLabelFilter] = useState(null);
   const [proficiencyFilter, setProficiencyFilter] = useState('');
   const [instrumentFilter, setInstrumentFilter] = useState('');
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkProgress, setBulkProgress] = useState('');
+  const [dialog, setDialog] = useState(null); // null | 'export' | 'print'
 
   // Collect all instruments across all tunes
   const allInstruments = useMemo(() => {
@@ -150,24 +171,119 @@ export function LibraryPage() {
     [tunes]
   );
 
+  // --- Bulk selection ---
+  // Selected tunes in the current sort order (also the export/print order).
+  const selectedTunes = useMemo(
+    () => sortTunes(tunes.filter(t => selectedIds.has(t.id)), sort),
+    [tunes, selectedIds, sort]
+  );
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    setDialog(null);
+  };
+
+  // Run an async operation over the selected tunes one by one, with progress.
+  const runBulk = async (verb, fn) => {
+    const targets = selectedTunes;
+    let failed = 0;
+    for (const [i, tune] of targets.entries()) {
+      setBulkProgress(`${verb} ${i + 1}/${targets.length}...`);
+      try {
+        await fn(tune);
+      } catch (err) {
+        failed++;
+        console.error(`Bulk ${verb.toLowerCase()} failed for "${tune.title}":`, err);
+      }
+    }
+    setBulkProgress('');
+    if (failed > 0) alert(`${verb} failed for ${failed} tune${failed !== 1 ? 's' : ''}.`);
+  };
+
+  const bulkAddTag = async (value) => {
+    addKnownTag(value);
+    await runBulk('Tagging', async (tune) => {
+      const labels = tune.labels || [];
+      if (labels.some(l => l.type === 'tag' && l.value === value)) return;
+      await updateTune(tune.id, { labels: [...labels, { type: 'tag', value }] });
+    });
+  };
+
+  const bulkStartLearning = async (instrument) => {
+    await runBulk('Updating', async (tune) => {
+      if (tune.instruments?.[instrument]) return;
+      const target = tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type);
+      await updateTune(tune.id, {
+        instruments: {
+          ...(tune.instruments || {}),
+          [instrument]: { keys: [], current_tempo: 0, target_tempo: target },
+        },
+      });
+    });
+  };
+
+  const bulkDelete = async () => {
+    await runBulk('Deleting', async (tune) => {
+      await deleteTune(tune.id);
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        next.delete(tune.id);
+        return next;
+      });
+    });
+  };
+
   return (
     <Shell>
-      <div class="flex items-center justify-end mb-6">
-        <div class="hidden lg:flex items-center gap-3">
-          <a
-            href="/practice"
-            class="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 no-underline"
-          >
-            Practice
-          </a>
-          <a
-            href="/add"
-            class="text-sm px-3 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 no-underline"
-          >
-            + Add Tune
-          </a>
+      {selectMode ? (
+        <BulkToolbar
+          selectedCount={selectedIds.size}
+          totalCount={filtered.length}
+          progress={bulkProgress}
+          onSelectAll={() => setSelectedIds(new Set(filtered.map(t => t.id)))}
+          onClear={() => setSelectedIds(new Set())}
+          onExit={exitSelectMode}
+          onAddTag={bulkAddTag}
+          onStartLearning={bulkStartLearning}
+          onDelete={bulkDelete}
+          onExport={() => setDialog('export')}
+          onPrint={() => setDialog('print')}
+          instruments={allInstruments}
+        />
+      ) : (
+        <div class="flex items-center justify-end mb-6">
+          <div class="hidden lg:flex items-center gap-3">
+            <button
+              onClick={() => setSelectMode(true)}
+              class="text-sm px-3 py-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 cursor-pointer"
+            >
+              Select
+            </button>
+            <a
+              href="/practice"
+              class="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 no-underline"
+            >
+              Practice
+            </a>
+            <a
+              href="/add"
+              class="text-sm px-3 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 no-underline"
+            >
+              + Add Tune
+            </a>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Filters */}
       <div class="space-y-3 mb-4">
@@ -237,7 +353,20 @@ export function LibraryPage() {
           )}
         </div>
       ) : (
-        <TuneList tunes={filtered} />
+        <TuneList
+          tunes={filtered}
+          selectable={selectMode}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+        />
+      )}
+
+      {dialog && selectedTunes.length > 0 && (
+        <ExportDialog
+          tunes={selectedTunes}
+          mode={dialog}
+          onClose={() => setDialog(null)}
+        />
       )}
     </Shell>
   );

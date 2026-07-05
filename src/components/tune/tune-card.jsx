@@ -1,16 +1,37 @@
 import { instrumentProficiency } from '../../lib/practice-algorithm';
 
-export function TuneCard({ tune, inSet = false }) {
+export function TuneCard({ tune, inSet = false, selectable = false, selected = false, onToggleSelect }) {
   const tags = (tune.labels || []).filter(l => l.type === 'tag');
   const instruments = Object.entries(tune.instruments || {});
 
+  const Wrapper = selectable ? 'div' : 'a';
+  const selectedClass = selected
+    ? (inSet ? 'bg-blue-50' : 'border-blue-400 ring-1 ring-blue-400')
+    : '';
+
   return (
-    <a
-      href={`/tune/${tune.id}`}
+    <Wrapper
+      href={selectable ? undefined : `/tune/${tune.id}`}
+      onClick={selectable ? () => onToggleSelect(tune.id) : undefined}
       class={`block bg-white p-3 lg:p-4 hover:bg-gray-50 transition-all no-underline overflow-hidden ${
         inSet ? '' : 'rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm'
-      }`}
+      } ${selectable ? 'cursor-pointer select-none' : ''} ${selectedClass}`}
     >
+      <div class="flex items-center gap-3">
+        {selectable && (
+          <span
+            class={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+              selected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
+            }`}
+          >
+            {selected && (
+              <svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </span>
+        )}
+        <div class="flex-1 min-w-0">
       {/* Desktop: single row */}
       <div class="hidden lg:flex items-center justify-between gap-3">
         <div class="min-w-0">
@@ -78,13 +99,21 @@ export function TuneCard({ tune, inSet = false }) {
           </div>
         )}
       </div>
-    </a>
+        </div>
+      </div>
+    </Wrapper>
   );
 }
 
-export function SetGroup({ tunes }) {
+export function SetGroup({ tunes, selectable = false, selectedIds, onToggleSelect }) {
+  const selectionProps = (tune) => ({
+    selectable,
+    selected: selectable && selectedIds?.has(tune.id),
+    onToggleSelect,
+  });
+
   if (tunes.length === 1) {
-    return <TuneCard tune={tunes[0]} />;
+    return <TuneCard tune={tunes[0]} {...selectionProps(tunes[0])} />;
   }
 
   return (
@@ -92,7 +121,7 @@ export function SetGroup({ tunes }) {
       <div class="w-1 bg-blue-400 shrink-0" />
       <div class="flex-1 divide-y divide-gray-100">
         {tunes.map(tune => (
-          <TuneCard key={tune.id} tune={tune} inSet />
+          <TuneCard key={tune.id} tune={tune} inSet {...selectionProps(tune)} />
         ))}
       </div>
     </div>

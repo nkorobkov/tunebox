@@ -119,7 +119,7 @@ export function SearchResults({ results, onImport }) {
                     onClick={() => handleImport(tuneDetail, tuneDetail.settings[selectedSetting])}
                     disabled={importing === tune.id || isOffline}
                     title={isOffline ? 'Unavailable offline' : undefined}
-                    class="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 cursor-pointer"
+                    class="px-4 py-2 bg-brand-600 text-white rounded-md text-sm font-medium hover:bg-brand-700 disabled:opacity-50 cursor-pointer"
                   >
                     {importing === tune.id ? 'Adding...' : 'Add to My Collection'}
                   </button>

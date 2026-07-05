@@ -1,6 +1,6 @@
 const RATINGS = [
-  { value: 'easy', label: 'Easy', description: 'Nailed it', color: 'bg-green-600 hover:bg-green-700' },
-  { value: 'good', label: 'Good', description: 'Minor issues', color: 'bg-blue-500 hover:bg-blue-600' },
+  { value: 'easy', label: 'Easy', description: 'Nailed it', color: 'bg-brand-600 hover:bg-brand-700' },
+  { value: 'good', label: 'Good', description: 'Minor issues', color: 'bg-brand-500 hover:bg-brand-600' },
   { value: 'hard', label: 'Hard', description: 'Struggled', color: 'bg-orange-500 hover:bg-orange-600' },
   { value: 'relearn', label: 'Need to relearn', description: 'Back to learning', color: 'bg-red-600 hover:bg-red-700' },
 ];

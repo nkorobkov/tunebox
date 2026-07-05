@@ -7,6 +7,8 @@ import {
   datedFilename,
 } from '../../lib/export-utils';
 import { generateTunebookPdf, printPdfBlob } from '../../lib/tunebook-pdf';
+import { Button } from '../common/button';
+import { Dialog } from '../common/dialog';
 
 const FORMATS = [
   { value: 'titles', label: 'List of titles', desc: 'Plain text, one tune title per line.' },
@@ -66,21 +68,18 @@ export function ExportDialog({ tunes, mode, onClose }) {
   };
 
   return (
-    <>
-      <div class="fixed inset-0 bg-black/40 z-30" onClick={() => !busy && onClose()} />
-      <div class="fixed inset-0 z-40 flex items-center justify-center p-4 pointer-events-none">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-5 space-y-4 pointer-events-auto">
-          <h3 class="text-base font-semibold text-gray-900">
-            {isPrint ? 'Print' : 'Export'} {tunes.length} tune{tunes.length !== 1 ? 's' : ''}
-          </h3>
-
+    <Dialog
+      title={`${isPrint ? 'Print' : 'Export'} ${tunes.length} tune${tunes.length !== 1 ? 's' : ''}`}
+      onClose={onClose}
+      closeDisabled={busy}
+    >
           {!isPrint && (
             <div class="space-y-2">
               {FORMATS.map(f => (
                 <label
                   key={f.value}
                   class={`flex items-start gap-2.5 p-2.5 rounded-md border cursor-pointer ${
-                    format === f.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                    format === f.value ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <input
@@ -138,24 +137,12 @@ export function ExportDialog({ tunes, mode, onClose }) {
           <div class="flex items-center justify-between gap-3">
             <span class="text-xs text-gray-400 truncate">{busy ? progress : ''}</span>
             <div class="flex gap-3 shrink-0">
-              <button
-                onClick={onClose}
-                disabled={busy}
-                class="text-sm px-3 py-2 border border-gray-300 rounded text-gray-600 hover:bg-gray-50 cursor-pointer disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={run}
-                disabled={busy}
-                class="text-sm px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer disabled:opacity-50"
-              >
+              <Button variant="secondary" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
+              <Button size="md" onClick={run} disabled={busy}>
                 {busy ? 'Working...' : isPrint ? 'Print' : 'Export'}
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
-    </>
+    </Dialog>
   );
 }

@@ -73,7 +73,7 @@ function TuneHeader({ tune, instrument, targetTempo }) {
   return (
     <div>
       <h2 class="text-xl font-bold text-gray-900">
-        <a href={`/tune/${tune.id}`} class="hover:text-blue-600 no-underline text-gray-900">{tune.title}</a>
+        <a href={`/tune/${tune.id}`} class="hover:text-brand-600 no-underline text-gray-900">{tune.title}</a>
       </h2>
       <div class="flex items-center gap-3 mt-1 text-sm text-gray-500">
         {tune.type && <span class="capitalize">{tune.type}</span>}
@@ -161,9 +161,7 @@ function LearningCard({ tune, instrument, instData, fullAbc, mainSource, backing
         <button
           onClick={() => onComplete(tempo)}
           disabled={saving || !tempo}
-          class={`w-full py-3 rounded-lg text-white font-medium cursor-pointer disabled:opacity-50 ${
-            meetsTarget ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
-          }`}
+          class="w-full py-3 rounded-lg text-white font-medium cursor-pointer disabled:opacity-50 bg-brand-600 hover:bg-brand-700"
         >
           {meetsTarget
             ? `Practiced at ${tempo} BPM — move to Playing!`
@@ -198,8 +196,8 @@ function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, backingT
       <TuneHeader tune={tune} instrument={instrument} targetTempo={instData.target_tempo} />
 
       {/* Prompt */}
-      <div class="bg-green-50 rounded-lg border border-green-200 p-4">
-        <p class="text-sm text-green-800 font-medium">
+      <div class="bg-brand-50 rounded-lg border border-brand-200 p-4">
+        <p class="text-sm text-brand-800 font-medium">
           Play at {playTempo} BPM
         </p>
       </div>

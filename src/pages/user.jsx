@@ -7,7 +7,7 @@ import { useAuth } from '../lib/auth';
 import { useTunes } from '../hooks/use-tunes';
 import { usePracticeStats } from '../hooks/use-practice-stats';
 import { instrumentProficiency } from '../lib/practice-algorithm';
-import { pb } from '../lib/pb';
+import { avatarUrl, initials } from '../lib/avatar';
 
 class CalendarBoundary extends Component {
   state = { err: null };
@@ -19,26 +19,6 @@ class CalendarBoundary extends Component {
     }
     return this.props.children;
   }
-}
-
-function avatarUrl(user) {
-  if (!user) return null;
-  // PocketBase file field — user.avatar is a filename when stored as a file.
-  if (user.avatar && typeof user.avatar === 'string') {
-    if (user.avatar.startsWith('http')) return user.avatar;
-    try {
-      return pb.files.getURL(user, user.avatar, { thumb: '128x128' });
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
-function initials(user) {
-  const source = user?.name || user?.email || '?';
-  const parts = source.split(/[\s@.]+/).filter(Boolean);
-  return parts.slice(0, 2).map(p => p[0]?.toUpperCase()).join('') || '?';
 }
 
 function aggregateLibrary(tunes, instruments) {
@@ -68,8 +48,9 @@ function Stat({ label, value }) {
   );
 }
 
+// Grays to brand green (--color-brand-600), matching the app palette.
 const CALENDAR_THEME = {
-  light: ['#f3f4f6', '#bbf7d0', '#86efac', '#4ade80', '#16a34a'],
+  light: ['#f3f4f6', '#c4e8c0', '#9ad594', '#6fbf69', '#389833'],
 };
 
 export function UserPage() {
@@ -128,6 +109,8 @@ export function UserPage() {
             <LoadingIndicator />
           ) : statsError || calendar.length === 0 ? (
             <p class="text-sm text-gray-500">Couldn't load practice history.</p>
+          ) : totalSessions === 0 ? (
+            <p class="text-sm text-gray-500">No practice sessions yet — they'll show up here.</p>
           ) : (
             <CalendarBoundary>
               <ActivityCalendar

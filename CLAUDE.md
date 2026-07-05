@@ -49,6 +49,9 @@ Labels are stored as JSON arrays on user_tunes: `[{type: "category", value: "lea
 - **`src/hooks/use-practice.js`** — builds practice queue (due tunes + new tunes), provides `advance()` to move through queue.
 - **`src/hooks/use-metronome.js`** — Web Audio API click generator with BPM control.
 
+### UI Conventions
+Brand color tokens (`brand-50`…`brand-900`, anchored on the logo green #389833) are defined in `src/index.css` via Tailwind's `@theme`. Primary actions, links, and selected states use `brand-*`; blue is reserved for informational callouts (e.g. the learning-mode prompt). Use `src/components/common/button.jsx` (`Button` — primary/secondary/danger/dangerOutline/ghost) and `src/components/common/dialog.jsx` (`Dialog`, `ConfirmDialog`) instead of hand-rolling buttons/modals. Copy uses sentence case for buttons and headings.
+
 ### ABC Rendering & Playback
 Uses `abcjs` library. `AbcViewer` renders SVG via `abcjs.renderAbc()` with a ref. `AbcPlayer` creates a `CreateSynth` instance for audio playback with tempo control. Both accept an ABC string prop.
 

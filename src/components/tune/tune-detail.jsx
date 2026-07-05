@@ -14,6 +14,7 @@ import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
 import { addKnownSet } from '../../lib/tag-store';
 import { useConnectivity } from '../../lib/connectivity';
 import { OfflineBanner } from '../common/offline-banner';
+import { ConfirmDialog } from '../common/dialog';
 
 const SOURCE_HOSTS = [
   { match: ['thesession.org'], label: 'The Session' },
@@ -107,7 +108,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
     return (
       <div>
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-bold text-gray-900">Edit Tune</h2>
+          <h2 class="text-xl font-bold text-gray-900">Edit tune</h2>
           <button
             onClick={() => setEditing(false)}
             class="text-sm text-gray-500 hover:text-gray-700"
@@ -163,7 +164,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
                 <button
                   key={inst}
                   onClick={() => practiceWithInstrument(inst)}
-                  class={`text-xs px-2 py-1.5 cursor-pointer capitalize border border-blue-300 bg-white text-blue-600 hover:bg-blue-600 hover:text-white ${
+                  class={`text-xs px-2 py-1.5 cursor-pointer capitalize border border-brand-300 bg-white text-brand-600 hover:bg-brand-600 hover:text-white ${
                     i === 0 ? 'rounded-l' : ''}${i === allInstruments.length - 1 ? 'rounded-r' : ''}${i > 0 ? ' -ml-px' : ''}`}
                 >
                   {inst}
@@ -186,7 +187,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
                     setPickingInstrument(true);
                   }
                 }}
-                class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer"
+                class="px-3 py-1.5 text-sm bg-brand-600 text-white rounded-md hover:bg-brand-700 cursor-pointer"
               >
                 Practice
               </button>
@@ -247,9 +248,9 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
         <LabelEditor {...labelEditorProps} />
       </div>
 
-      {/* Instrument Progress */}
+      {/* Instrument progress */}
       <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <h3 class="text-sm font-medium text-gray-700 mb-3">Instrument Progress</h3>
+        <h3 class="text-sm font-medium text-gray-700 mb-3">Instrument progress</h3>
         <InstrumentProgress
           instruments={tune.instruments || {}}
           userInstruments={userInstruments || []}
@@ -278,7 +279,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
               onClick={() => setShowRecorder(true)}
               disabled={isOffline}
               title={isOffline ? 'Unavailable offline' : undefined}
-              class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              class="text-sm text-brand-600 hover:text-brand-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Record
             </button>
@@ -287,7 +288,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
               onClick={() => setShowUpload(true)}
               disabled={isOffline}
               title={isOffline ? 'Unavailable offline' : undefined}
-              class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              class="text-sm text-brand-600 hover:text-brand-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Add
             </button>
@@ -310,18 +311,6 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
         <AudioRecorder onUpload={upload} onClose={() => setShowRecorder(false)} />
       )}
 
-      {/* Practice info */}
-      {tune.next_review && (
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 class="text-sm font-medium text-gray-700 mb-2">Practice Schedule</h3>
-          <div class="text-sm text-gray-500 space-y-1">
-            <p>Next review: {new Date(tune.next_review).toLocaleDateString()}</p>
-            <p>Interval: {tune.interval_days} day{tune.interval_days !== 1 ? 's' : ''}</p>
-            <p>Streak: {tune.consecutive_correct}</p>
-          </div>
-        </div>
-      )}
-
       {/* External links */}
       {(() => {
         const link = getExternalLink(tune);
@@ -330,7 +319,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
             href={link.href}
             target="_blank"
             rel="noopener"
-            class="text-sm text-blue-500 hover:underline inline-block"
+            class="text-sm text-brand-600 hover:underline inline-block"
           >
             {link.label}
           </a>
@@ -338,31 +327,12 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
       })()}
 
       {confirmDelete && (
-        <>
-          <div class="fixed inset-0 bg-black/40 z-30" onClick={() => setConfirmDelete(false)} />
-          <div class="fixed inset-0 z-40 flex items-center justify-center p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-5 space-y-4">
-              <h3 class="text-base font-semibold text-gray-900">Delete {tune.title}?</h3>
-              <p class="text-sm text-gray-600">
-                This tune and all its practice history will be permanently removed from your collection.
-              </p>
-              <div class="flex gap-3 justify-end">
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  class="text-sm px-3 py-2 border border-gray-300 rounded text-gray-600 hover:bg-gray-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={onDelete}
-                  class="text-sm px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
+        <ConfirmDialog
+          title={`Delete ${tune.title}?`}
+          message="This tune and all its practice history will be permanently removed from your collection."
+          onConfirm={onDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
       )}
     </div>
   );

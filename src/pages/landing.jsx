@@ -64,7 +64,7 @@ function PracticeCardMock() {
         <div class="flex flex-wrap items-center gap-1.5 mb-4">
           <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Jig</span>
           <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Whistle</span>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-[#389833]/10 text-[#2d7a29]">session favourites</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">session favourites</span>
         </div>
         <AbcSnippet />
         <div class="flex items-center justify-between mt-4 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
@@ -74,7 +74,7 @@ function PracticeCardMock() {
         <div class="grid grid-cols-3 gap-2 mt-4">
           <span class="text-center text-sm font-medium py-2 rounded-lg border border-gray-300 text-gray-600">Hard</span>
           <span class="text-center text-sm font-medium py-2 rounded-lg border border-gray-300 text-gray-600">Good</span>
-          <span class="text-center text-sm font-medium py-2 rounded-lg bg-[#389833] text-white">Easy</span>
+          <span class="text-center text-sm font-medium py-2 rounded-lg bg-brand-600 text-white">Easy</span>
         </div>
       </div>
       <p class="text-center text-xs text-gray-400 mt-3">Practice mode — TuneBox picks the tune and the tempo.</p>
@@ -173,7 +173,7 @@ export function LandingPage() {
         <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div>
             <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-balance">
-              Every tune you know, <span class="text-[#389833]">ready when you are.</span>
+              Every tune you know, <span class="text-brand-600">ready when you are.</span>
             </h1>
             <p class="mt-5 text-lg text-gray-600 max-w-xl">
               TuneBox keeps your repertoire organized across all your instruments and tells you
@@ -202,7 +202,7 @@ export function LandingPage() {
           <div class="mt-12 grid sm:grid-cols-3 gap-8">
             {STEPS.map((step, i) => (
               <div key={step.title}>
-                <div class="w-9 h-9 rounded-full bg-[#389833] text-white flex items-center justify-center font-semibold mb-4">{i + 1}</div>
+                <div class="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center font-semibold mb-4">{i + 1}</div>
                 <h3 class="font-semibold text-lg">{step.title}</h3>
                 <p class="mt-2 text-gray-600">{step.body}</p>
               </div>
@@ -220,7 +220,7 @@ export function LandingPage() {
         <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {FEATURES.map((f) => (
             <div key={f.title} class="bg-white rounded-xl border border-gray-200 p-6">
-              <div class="text-[#389833] mb-3">{f.icon}</div>
+              <div class="text-brand-600 mb-3">{f.icon}</div>
               <h3 class="font-semibold">{f.title}</h3>
               <p class="mt-2 text-sm text-gray-600 leading-relaxed">{f.body}</p>
             </div>
@@ -240,7 +240,7 @@ export function LandingPage() {
       </section>
 
       {/* Final CTA */}
-      <section class="bg-[#101828]">
+      <section class="bg-gray-900">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20 text-center">
           <h2 class="text-3xl font-bold tracking-tight text-white">Your tunes are waiting.</h2>
           <p class="mt-3 text-gray-400 max-w-xl mx-auto">
@@ -255,7 +255,7 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer class="bg-[#101828] border-t border-gray-800">
+      <footer class="bg-gray-900 border-t border-gray-800">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
           <span>TuneBox — a practice companion for traditional musicians</span>
           <span>

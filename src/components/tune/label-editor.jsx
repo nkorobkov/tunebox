@@ -58,7 +58,7 @@ export function LabelEditor({ labels = [], onUpdate, setLabel, addingSet, onStar
           <button
             onClick={() => handleAdd()}
             disabled={!newValue.trim()}
-            class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+            class="text-xs px-2 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 disabled:opacity-50 cursor-pointer"
           >
             Add
           </button>
@@ -90,7 +90,7 @@ export function LabelEditor({ labels = [], onUpdate, setLabel, addingSet, onStar
               onCancel={onCancelAddSet}
               suggestions={getKnownSets()}
             />
-            <button onClick={onAddSet} disabled={!newSetName?.trim()} class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer">Add</button>
+            <button onClick={onAddSet} disabled={!newSetName?.trim()} class="text-xs px-2 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 disabled:opacity-50 cursor-pointer">Add</button>
             <button onClick={onCancelAddSet} class="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">Cancel</button>
           </div>
         ) : (

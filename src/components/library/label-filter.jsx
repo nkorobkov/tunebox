@@ -31,7 +31,7 @@ export function LabelFilter({
 
   const pill = (active) => `text-xs px-2.5 py-1 rounded-full border cursor-pointer ${
     active
-      ? 'bg-blue-600 text-white border-blue-600'
+      ? 'bg-brand-600 text-white border-brand-600'
       : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
   }`;
 
@@ -40,7 +40,7 @@ export function LabelFilter({
       {labels.length > 0 && (
         <>
           <button onClick={() => onSelect(null)} class={`text-xs px-2.5 py-1 rounded-full border cursor-pointer ${
-            !selectedLabel ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+            !selectedLabel ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
           }`}>All</button>
           {labels.map(label => {
             const key = `${label.type}:${label.value}`;

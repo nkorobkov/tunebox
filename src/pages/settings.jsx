@@ -76,7 +76,7 @@ export function SettingsPage() {
 
         {/* Instruments */}
         <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <h2 class="text-base font-semibold text-gray-900 mb-1">My Instruments</h2>
+          <h2 class="text-base font-semibold text-gray-900 mb-1">My instruments</h2>
           <p class="text-xs text-gray-400 mb-3">
             Add instruments you play. These will appear as options when tracking progress on tunes.
           </p>

@@ -12,6 +12,13 @@ import { useTunes } from '../hooks/use-tunes';
 import { OfflineBanner } from '../components/common/offline-banner';
 import { useConnectivity } from '../lib/connectivity';
 
+const VIEWS = [
+  { value: 'search', label: 'Search The Session' },
+  { value: 'manual', label: 'Add manually' },
+  { value: 'bulk', label: 'Bulk import' },
+  { value: 'tunebook', label: 'Import session tunebook' },
+];
+
 export function AddTunePage() {
   const { tunes, createTune } = useTunes();
   const { isOffline } = useConnectivity();
@@ -61,36 +68,21 @@ export function AddTunePage() {
 
   return (
     <Shell>
-      <h1 class="text-2xl font-bold text-gray-900 mb-6">Add Tune</h1>
+      <h1 class="text-2xl font-bold text-gray-900 mb-6">Add tune</h1>
 
       <OfflineBanner message="Adding tunes is unavailable offline. Reconnect to add or import tunes." />
 
       {/* View switcher */}
-      <div class="flex gap-2 mb-6">
-        <button
-          onClick={() => setView('search')}
-          class={`px-3 py-1.5 text-sm rounded-md cursor-pointer ${view === 'search' ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
-        >
-          Search The Session
-        </button>
-        <button
-          onClick={() => setView('manual')}
-          class={`px-3 py-1.5 text-sm rounded-md cursor-pointer ${view === 'manual' ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
-        >
-          Manually Add
-        </button>
-        <button
-          onClick={() => setView('bulk')}
-          class={`px-3 py-1.5 text-sm rounded-md cursor-pointer ${view === 'bulk' ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
-        >
-          Bulk Import
-        </button>
-        <button
-          onClick={() => setView('tunebook')}
-          class={`px-3 py-1.5 text-sm rounded-md cursor-pointer ${view === 'tunebook' ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
-        >
-          Session Tunebook
-        </button>
+      <div class="flex flex-wrap gap-2 mb-6">
+        {VIEWS.map(v => (
+          <button
+            key={v.value}
+            onClick={() => setView(v.value)}
+            class={`px-3 py-1.5 text-sm rounded-md cursor-pointer ${view === v.value ? 'bg-brand-600 text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+          >
+            {v.label}
+          </button>
+        ))}
       </div>
 
       {/* Search The Session */}
@@ -142,7 +134,7 @@ export function AddTunePage() {
       {/* Manual Add */}
       {view === 'manual' && (
         <div class="max-w-2xl">
-          <TuneForm onSubmit={handleManualSubmit} submitLabel="Add to Collection" />
+          <TuneForm onSubmit={handleManualSubmit} submitLabel="Add to collection" />
         </div>
       )}
 

@@ -3,9 +3,9 @@ import { getFileUrl, isAudio, isImage } from '../../hooks/use-attachments';
 import { useConnectivity } from '../../lib/connectivity';
 
 const TYPE_LABELS = {
-  sheet_music: 'Sheet Music',
+  sheet_music: 'Sheet music',
   recording: 'Recording',
-  backing_track: 'Backing Track',
+  backing_track: 'Backing track',
   other: 'Other',
 };
 
@@ -20,7 +20,7 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource }) {
   const isSheetMusic = attachment.type === 'sheet_music';
 
   return (
-    <div class={`border rounded-md p-3 ${attachment.main_source ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'}`}>
+    <div class={`border rounded-md p-3 ${attachment.main_source ? 'border-brand-300 bg-brand-50' : 'border-gray-200'}`}>
       <div class="flex items-start justify-between gap-2 mb-2">
         <div class="min-w-0">
           <div class="text-sm font-medium text-gray-800 truncate">
@@ -30,7 +30,7 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource }) {
           </div>
           <div class="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
             {attachment.type === 'recording' && attachment.bpm > 0 && <span>{attachment.bpm} BPM</span>}
-            {attachment.main_source && <span class="text-blue-500 font-medium">Main source</span>}
+            {attachment.main_source && <span class="text-brand-600 font-medium">Main source</span>}
             <span class="truncate">{filename}</span>
           </div>
         </div>
@@ -39,7 +39,7 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource }) {
             <button
               onClick={() => onSetMainSource(attachment.id, !attachment.main_source)}
               disabled={isOffline}
-              class={`text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${attachment.main_source ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 hover:text-blue-500'}`}
+              class={`text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${attachment.main_source ? 'text-brand-600 hover:text-brand-600' : 'text-gray-400 hover:text-brand-600'}`}
               title={isOffline ? 'Unavailable offline' : (attachment.main_source ? 'Remove as main source' : 'Use as main sheet music')}
             >
               {attachment.main_source ? 'unset main' : 'set as main'}

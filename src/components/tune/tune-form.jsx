@@ -44,7 +44,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
           value={title}
           onInput={e => setTitle(e.target.value)}
           required
-          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
         />
       </div>
 
@@ -57,7 +57,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
             onInput={e => setType(e.target.value)}
             list="tune-types"
             placeholder="e.g. reel, jig, march"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
           <datalist id="tune-types">
             {TUNE_TYPES.map(t => <option key={t} value={t} />)}
@@ -70,7 +70,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
             value={settingKey}
             onInput={e => setSettingKey(e.target.value)}
             placeholder="e.g. Dmajor"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
       </div>
@@ -83,7 +83,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
             value={canonicalTempo}
             onInput={e => setCanonicalTempo(e.target.value)}
             placeholder="e.g. 120"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
         <div>
@@ -92,7 +92,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
             type="text"
             value={author}
             onInput={e => setAuthor(e.target.value)}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
       </div>
@@ -104,7 +104,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
           value={sourceUrl}
           onInput={e => setSourceUrl(e.target.value)}
           placeholder="https://..."
-          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
@@ -128,7 +128,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
           }}
           rows={8}
           placeholder="X:1&#10;T:Tune Name&#10;M:4/4&#10;K:D&#10;..."
-          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
@@ -139,7 +139,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
           onInput={e => setNotes(e.target.value)}
           rows={3}
           placeholder="Any notes about this tune..."
-          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
@@ -147,7 +147,7 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
         type="submit"
         disabled={submitting || !title || isOffline}
         title={isOffline ? 'Unavailable offline' : undefined}
-        class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-4 py-2 bg-brand-600 text-white rounded-md text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {submitting ? 'Saving...' : submitLabel}
       </button>

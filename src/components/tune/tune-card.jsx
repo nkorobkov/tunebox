@@ -6,7 +6,7 @@ export function TuneCard({ tune, inSet = false, selectable = false, selected = f
 
   const Wrapper = selectable ? 'div' : 'a';
   const selectedClass = selected
-    ? (inSet ? 'bg-blue-50' : 'border-blue-400 ring-1 ring-blue-400')
+    ? (inSet ? 'bg-brand-50' : 'border-brand-500 ring-1 ring-brand-500')
     : '';
 
   return (
@@ -21,7 +21,7 @@ export function TuneCard({ tune, inSet = false, selectable = false, selected = f
         {selectable && (
           <span
             class={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-              selected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
+              selected ? 'bg-brand-600 border-brand-600' : 'bg-white border-gray-300'
             }`}
           >
             {selected && (
@@ -52,7 +52,7 @@ export function TuneCard({ tune, inSet = false, selectable = false, selected = f
               <span
                 key={name}
                 class={`text-xs px-1.5 py-0.5 rounded ${
-                  isPlaying ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
+                  isPlaying ? 'bg-brand-50 text-brand-700' : 'bg-yellow-50 text-yellow-600'
                 }`}
               >
                 {isPlaying ? 'Playing' : 'Learning'} on {name}
@@ -80,7 +80,7 @@ export function TuneCard({ tune, inSet = false, selectable = false, selected = f
               <span
                 key={name}
                 class={`text-[11px] px-1 py-0.5 rounded ${
-                  isPlaying ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
+                  isPlaying ? 'bg-brand-50 text-brand-700' : 'bg-yellow-50 text-yellow-600'
                 }`}
               >
                 {isPlaying ? 'Playing' : 'Learning'} on {name}
@@ -118,7 +118,7 @@ export function SetGroup({ tunes, selectable = false, selectedIds, onToggleSelec
 
   return (
     <div class="flex rounded-lg border border-gray-200 overflow-hidden">
-      <div class="w-1 bg-blue-400 shrink-0" />
+      <div class="w-1 bg-brand-400 shrink-0" />
       <div class="flex-1 divide-y divide-gray-100">
         {tunes.map(tune => (
           <TuneCard key={tune.id} tune={tune} inSet {...selectionProps(tune)} />

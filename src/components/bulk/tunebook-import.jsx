@@ -63,17 +63,17 @@ export function TunebookImport({ createTune, existingSessionIds }) {
           value={input}
           onInput={e => setInput(e.target.value)}
           placeholder="https://thesession.org/members/1/tunebook"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         {error && <p class="text-sm text-red-600">{error}</p>}
         <button
           onClick={handleFetch}
           disabled={loading || !input.trim()}
-          class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+          class="px-4 py-2 bg-brand-600 text-white rounded-md text-sm font-medium hover:bg-brand-700 disabled:opacity-50 cursor-pointer"
         >
           {loading
             ? (progress ? `Fetching page ${progress.page}/${progress.totalPages}…` : 'Fetching…')
-            : 'Fetch Tunebook'}
+            : 'Fetch tunebook'}
         </button>
       </div>
     );
@@ -97,7 +97,7 @@ export function TunebookImport({ createTune, existingSessionIds }) {
         </div>
         <button
           onClick={handleReset}
-          class="text-sm text-blue-600 hover:underline cursor-pointer"
+          class="text-sm text-brand-600 hover:underline cursor-pointer"
         >
           Use a different member
         </button>

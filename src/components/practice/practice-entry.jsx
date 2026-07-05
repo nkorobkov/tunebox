@@ -33,7 +33,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
                 onClick={() => onSelectInstrument(inst)}
                 class={`px-3 py-1.5 text-sm rounded-md border cursor-pointer ${
                   selectedInstrument === inst
-                    ? 'bg-blue-600 text-white border-blue-600'
+                    ? 'bg-brand-600 text-white border-brand-600'
                     : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                 }`}
               >
@@ -43,7 +43,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
           </div>
         ) : (
           <p class="text-sm text-gray-400">
-            No instruments configured. <a href="/settings" class="text-blue-500 hover:underline">Add instruments in Settings</a>.
+            No instruments configured. <a href="/settings" class="text-brand-600 hover:underline">Add instruments in Settings</a>.
           </p>
         )}
       </div>
@@ -79,9 +79,9 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
               <button
                 onClick={onStart}
                 disabled={totalPracticeable === 0}
-                class="px-5 py-2.5 max-[420px]:px-3 max-[420px]:py-1.5 max-[420px]:text-sm bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                class="px-5 py-2.5 max-[420px]:px-3 max-[420px]:py-1.5 max-[420px]:text-sm bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 cursor-pointer"
               >
-                Start Practice
+                Start practice
               </button>
             </div>
           )}
@@ -94,7 +94,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
                   onClick={() => onToggleTag(tag)}
                   class={`px-2.5 py-1 text-xs rounded-full border cursor-pointer ${
                     selectedTags.includes(tag)
-                      ? 'bg-gray-800 text-white border-gray-800'
+                      ? 'bg-brand-600 text-white border-brand-600'
                       : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                   }`}
                 >
@@ -129,7 +129,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
                   <li key={tune.id}>
                     <a
                       href={`/practice?tune=${tune.id}`}
-                      class="text-sm text-blue-600 hover:text-blue-700 no-underline hover:underline"
+                      class="text-sm text-brand-600 hover:text-brand-700 no-underline hover:underline"
                     >
                       {tune.title}
                     </a>
@@ -168,7 +168,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
                   <button
                     onClick={() => handleStartLearning(tune)}
                     disabled={savingTuneId === tune.id}
-                    class="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50 cursor-pointer shrink-0 ml-2"
+                    class="text-xs text-brand-600 hover:text-brand-700 disabled:opacity-50 cursor-pointer shrink-0 ml-2"
                   >
                     {savingTuneId === tune.id ? 'Adding...' : 'Start learning'}
                   </button>

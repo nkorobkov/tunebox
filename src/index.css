@@ -1,6 +1,21 @@
 @import "tailwindcss";
 @import "abcjs/abcjs-audio.css";
 
+/* Brand palette — anchored on the logo green (#389833). Use `brand-*`
+   utilities for primary actions, links, and selected states. */
+@theme {
+  --color-brand-50: #f2faf1;
+  --color-brand-100: #e2f3e0;
+  --color-brand-200: #c4e8c0;
+  --color-brand-300: #9ad594;
+  --color-brand-400: #6fbf69;
+  --color-brand-500: #4aab44;
+  --color-brand-600: #389833;
+  --color-brand-700: #2c7a28;
+  --color-brand-800: #25631f;
+  --color-brand-900: #1e4f1b;
+}
+
 button, a, input, select, textarea, [role="button"] {
   touch-action: manipulation;
 }

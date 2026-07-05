@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'preact/hooks';
+import { Button } from '../common/button';
+import { Dialog } from '../common/dialog';
 
 export function AudioRecorder({ onUpload, onClose }) {
   const [state, setState] = useState('idle'); // idle | recording | stopped
@@ -101,10 +103,7 @@ export function AudioRecorder({ onUpload, onClose }) {
   const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   return (
-    <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={handleClose}>
-      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Record Audio</h3>
-
+    <Dialog title="Record audio" onClose={handleClose} closeDisabled={uploading}>
         <div class="space-y-4">
           {state === 'idle' && (
             <div class="flex flex-col items-center gap-3 py-4">
@@ -156,7 +155,7 @@ export function AudioRecorder({ onUpload, onClose }) {
                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 >
                   <option value="recording">Recording</option>
-                  <option value="backing_track">Backing Track</option>
+                  <option value="backing_track">Backing track</option>
                 </select>
               </div>
 
@@ -189,35 +188,17 @@ export function AudioRecorder({ onUpload, onClose }) {
           {error && <p class="text-sm text-red-500">{error}</p>}
 
           <div class="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={handleClose}
-              class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
-            >
-              Cancel
-            </button>
+            <Button type="button" variant="secondary" onClick={handleClose}>Cancel</Button>
             {state === 'stopped' && (
               <>
-                <button
-                  type="button"
-                  onClick={handleDiscard}
-                  class="px-3 py-1.5 text-sm border border-gray-300 text-red-600 rounded-md hover:bg-red-50 cursor-pointer"
-                >
-                  Discard
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={uploading}
-                  class="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 disabled:opacity-50 cursor-pointer"
-                >
+                <Button type="button" variant="dangerOutline" onClick={handleDiscard}>Discard</Button>
+                <Button type="button" onClick={handleSave} disabled={uploading}>
                   {uploading ? 'Saving...' : 'Save'}
-                </button>
+                </Button>
               </>
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }

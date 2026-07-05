@@ -1,11 +1,13 @@
 import { useState, useRef } from 'preact/hooks';
 import { isAudio, isImage } from '../../hooks/use-attachments';
+import { Button } from '../common/button';
+import { Dialog } from '../common/dialog';
 
 const TYPES = [
   { value: '', label: 'No type' },
-  { value: 'sheet_music', label: 'Sheet Music' },
+  { value: 'sheet_music', label: 'Sheet music' },
   { value: 'recording', label: 'Recording' },
-  { value: 'backing_track', label: 'Backing Track' },
+  { value: 'backing_track', label: 'Backing track' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -62,9 +64,7 @@ export function AttachmentUpload({ onUpload, onClose }) {
   };
 
   return (
-    <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Add Attachment</h3>
+    <Dialog title="Add attachment" onClose={onClose} closeDisabled={uploading}>
         <form onSubmit={handleSubmit} class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">File</label>
@@ -116,23 +116,12 @@ export function AttachmentUpload({ onUpload, onClose }) {
           {error && <p class="text-sm text-red-500">{error}</p>}
 
           <div class="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!file || uploading}
-              class="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 disabled:opacity-50 cursor-pointer"
-            >
+            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={!file || uploading}>
               {uploading ? 'Uploading...' : 'Upload'}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Dialog>
   );
 }

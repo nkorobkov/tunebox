@@ -5,6 +5,7 @@ import { LabelFilter } from '../components/library/label-filter';
 import { BulkToolbar } from '../components/library/bulk-toolbar';
 import { ExportDialog } from '../components/library/export-dialog';
 import { LoadingIndicator } from '../components/loading-indicator';
+import { Button } from '../components/common/button';
 import { useTunes } from '../hooks/use-tunes';
 import { useAuth } from '../lib/auth';
 import { instrumentProficiency } from '../lib/practice-algorithm';
@@ -116,6 +117,7 @@ export function LibraryPage() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkProgress, setBulkProgress] = useState('');
+  const [bulkError, setBulkError] = useState('');
   const [dialog, setDialog] = useState(null); // null | 'export' | 'print'
 
   // Collect all instruments across all tunes
@@ -197,6 +199,7 @@ export function LibraryPage() {
   const runBulk = async (verb, fn) => {
     const targets = selectedTunes;
     let failed = 0;
+    setBulkError('');
     for (const [i, tune] of targets.entries()) {
       setBulkProgress(`${verb} ${i + 1}/${targets.length}...`);
       try {
@@ -207,7 +210,7 @@ export function LibraryPage() {
       }
     }
     setBulkProgress('');
-    if (failed > 0) alert(`${verb} failed for ${failed} tune${failed !== 1 ? 's' : ''}.`);
+    if (failed > 0) setBulkError(`${verb} failed for ${failed} tune${failed !== 1 ? 's' : ''}.`);
   };
 
   const bulkAddTag = async (value) => {
@@ -263,29 +266,22 @@ export function LibraryPage() {
       ) : (
         <div class="flex items-center justify-end mb-6">
           <div class="hidden lg:flex items-center gap-3">
-            <button
-              onClick={() => setSelectMode(true)}
-              class="text-sm px-3 py-1.5 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 cursor-pointer"
-            >
-              Select
-            </button>
-            <a
-              href="/practice"
-              class="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 no-underline"
-            >
-              Practice
-            </a>
-            <a
-              href="/add"
-              class="text-sm px-3 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 no-underline"
-            >
-              + Add Tune
-            </a>
+            <Button variant="secondary" onClick={() => setSelectMode(true)}>Select</Button>
+            <Button variant="secondary" href="/add">+ Add tune</Button>
+            <Button href="/practice">Practice</Button>
           </div>
         </div>
       )}
 
-      {/* Filters */}
+      {bulkError && (
+        <div class="mb-4 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+          <p class="text-sm text-red-700">{bulkError}</p>
+          <button onClick={() => setBulkError('')} class="text-sm text-red-400 hover:text-red-600 cursor-pointer" aria-label="Dismiss">&times;</button>
+        </div>
+      )}
+
+      {/* Filters — pointless while the library is empty */}
+      {tunes.length > 0 && (
       <div class="space-y-3 mb-4">
         <div class="flex gap-3">
           <input
@@ -293,12 +289,12 @@ export function LibraryPage() {
             value={search}
             onInput={e => setSearch(e.target.value)}
             placeholder={`Search ${tunes.length} tune${tunes.length !== 1 ? 's' : ''}...`}
-            class="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
           <select
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
-            class="hidden lg:block min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="hidden lg:block min-w-0 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">All types</option>
             {types.map(t => <option key={t} value={t}>{t}</option>)}
@@ -309,7 +305,8 @@ export function LibraryPage() {
               setSort(SORT_OPTIONS[(i + 1) % SORT_OPTIONS.length].value);
             }}
             title={`Sort: ${SORT_OPTIONS.find(o => o.value === sort)?.label}`}
-            class="flex items-center justify-center gap-0.5 w-10 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label={`Sort: ${SORT_OPTIONS.find(o => o.value === sort)?.label}`}
+            class="flex items-center justify-center gap-0.5 w-10 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             {sort === 'newest' || sort === 'oldest' ? (
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -339,19 +336,25 @@ export function LibraryPage() {
           instruments={allInstruments}
         />
       </div>
+      )}
 
       {/* Tune List */}
       {loading ? (
         <LoadingIndicator />
       ) : filtered.length === 0 ? (
-        <div class="text-center py-12">
-          <p class="text-gray-400 mb-4">
-            {tunes.length === 0 ? 'No tunes yet.' : 'No tunes match your filters.'}
-          </p>
-          {tunes.length === 0 && (
-            <a href="/add" class="text-sm text-blue-600 hover:underline">Add a tune</a>
-          )}
-        </div>
+        tunes.length === 0 ? (
+          <div class="bg-white rounded-lg border border-gray-200 p-8 text-center max-w-md mx-auto mt-8">
+            <h2 class="text-lg font-semibold text-gray-900">Start your tunebook</h2>
+            <p class="text-sm text-gray-500 mt-2 mb-5">
+              Search The Session for a tune you're working on, or add one of your own with ABC notation.
+            </p>
+            <Button size="md" href="/add">Add your first tune</Button>
+          </div>
+        ) : (
+          <div class="text-center py-12">
+            <p class="text-gray-400">No tunes match your filters.</p>
+          </div>
+        )
       ) : (
         <TuneList
           tunes={filtered}

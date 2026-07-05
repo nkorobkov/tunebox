@@ -48,13 +48,13 @@ export function BackingTrackPlayer({ attachment, targetTempo }) {
           <div class="flex items-center gap-1 text-xs shrink-0">
             <button
               onClick={() => setAtTarget(true)}
-              class={`px-2 py-1 rounded cursor-pointer ${atTarget ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              class={`px-2 py-1 rounded cursor-pointer ${atTarget ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               {target} BPM
             </button>
             <button
               onClick={() => setAtTarget(false)}
-              class={`px-2 py-1 rounded cursor-pointer ${!atTarget ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              class={`px-2 py-1 rounded cursor-pointer ${!atTarget ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               Original{originalBpm ? ` (${originalBpm})` : ''}
             </button>

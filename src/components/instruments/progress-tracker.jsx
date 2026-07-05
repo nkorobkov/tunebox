@@ -68,14 +68,14 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
               />
             </div>
             {isPlaying && (
-              <span class="text-xs text-green-600">playing</span>
+              <span class="text-xs text-brand-700">playing</span>
             )}
             {isLearning && (
               <button
                 onClick={() => handleFieldChange(name, 'current_tempo', data.target_tempo)}
                 disabled={isOffline}
                 title={offlineTitle}
-                class="text-xs text-green-600 hover:text-green-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                class="text-xs text-brand-600 hover:text-brand-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 mark as playing
               </button>
@@ -83,7 +83,7 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
             {onPractice && (
               <button
                 onClick={() => onPractice(name)}
-                class="text-blue-600 hover:text-blue-700 text-xs cursor-pointer"
+                class="text-brand-600 hover:text-brand-700 text-xs cursor-pointer"
               >
                 practice
               </button>
@@ -132,7 +132,7 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
             />
           )}
-          <button onClick={handleAdd} disabled={!newInstrument.trim() || newInstrument === '__custom'} class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer">Add</button>
+          <button onClick={handleAdd} disabled={!newInstrument.trim() || newInstrument === '__custom'} class="text-sm px-3 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 disabled:opacity-50 cursor-pointer">Add</button>
           <button onClick={() => { setAdding(false); setNewInstrument(''); }} class="text-sm text-gray-400 hover:text-gray-600 cursor-pointer">Cancel</button>
         </div>
       )}

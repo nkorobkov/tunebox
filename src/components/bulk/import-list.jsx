@@ -312,7 +312,7 @@ export function ImportList({ items, setItems, createTune, existingSessionIds, on
         {onDone && (
           <button
             onClick={onDone}
-            class="mt-3 text-sm text-blue-600 hover:underline cursor-pointer"
+            class="mt-3 text-sm text-brand-600 hover:underline cursor-pointer"
           >
             Start over
           </button>
@@ -330,27 +330,27 @@ export function ImportList({ items, setItems, createTune, existingSessionIds, on
           </span>
           <button
             onClick={() => setSelected(new Set(items.map(it => it.id)))}
-            class="text-xs text-blue-600 hover:underline cursor-pointer"
+            class="text-xs text-brand-600 hover:underline cursor-pointer"
           >Select all</button>
           <button
             onClick={() => setSelected(new Set(items.filter(it => !it.alreadyInLibrary).map(it => it.id)))}
-            class="text-xs text-blue-600 hover:underline cursor-pointer"
+            class="text-xs text-brand-600 hover:underline cursor-pointer"
           >Select new only</button>
           <button
             onClick={() => setSelected(new Set())}
-            class="text-xs text-blue-600 hover:underline cursor-pointer"
+            class="text-xs text-brand-600 hover:underline cursor-pointer"
           >Deselect all</button>
         </div>
         <div class="flex items-center gap-3">
           {importedCount > 0 && (
-            <span class="text-xs text-green-600">{importedCount} added</span>
+            <span class="text-xs text-brand-700">{importedCount} added</span>
           )}
           <button
             onClick={handleAddSelected}
             disabled={selected.size === 0 || importing}
-            class="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 cursor-pointer"
+            class="px-4 py-2 bg-brand-600 text-white rounded-md text-sm font-medium hover:bg-brand-700 disabled:opacity-50 cursor-pointer"
           >
-            {importing ? 'Adding...' : `Add Selected (${selected.size})`}
+            {importing ? 'Adding...' : `Add selected (${selected.size})`}
           </button>
         </div>
       </div>
@@ -374,9 +374,9 @@ export function ImportList({ items, setItems, createTune, existingSessionIds, on
           <button
             onClick={handleAddSelected}
             disabled={selected.size === 0 || importing}
-            class="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 cursor-pointer"
+            class="px-4 py-2 bg-brand-600 text-white rounded-md text-sm font-medium hover:bg-brand-700 disabled:opacity-50 cursor-pointer"
           >
-            {importing ? 'Adding...' : `Add Selected (${selected.size})`}
+            {importing ? 'Adding...' : `Add selected (${selected.size})`}
           </button>
         </div>
       )}

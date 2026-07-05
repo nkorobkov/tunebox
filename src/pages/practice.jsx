@@ -21,10 +21,10 @@ function learningResultMsg(tempo, movedToPlaying, targetTempo) {
 }
 
 const PLAYING_MESSAGES = {
-  easy: 'Easy! Stability increased.',
-  good: 'Good work! Stability increased.',
-  hard: 'Keep at it — we\'ll show this sooner.',
-  relearn: 'Moved back to Learning mode.',
+  easy: 'Easy! We\'ll wait longer before showing this one again.',
+  good: 'Good work! This one can rest a little longer.',
+  hard: 'Keep at it — we\'ll bring this one back sooner.',
+  relearn: 'Back to learning mode — we\'ll rebuild it from a slower tempo.',
 };
 
 export function PracticePage({ tune: tuneIdParam }) {
@@ -218,7 +218,7 @@ export function PracticePage({ tune: tuneIdParam }) {
           <p class="text-lg font-medium text-gray-900">{lastResult}</p>
           {singleTune && (
             <div class="flex items-center justify-center gap-4 mt-4">
-              <button onClick={handleStop} class="text-sm text-blue-600 hover:underline cursor-pointer">Practice more tunes</button>
+              <button onClick={handleStop} class="text-sm text-brand-600 hover:underline cursor-pointer">Practice more tunes</button>
               <a href="/" class="text-sm text-gray-500 hover:text-gray-700 no-underline">Back to library</a>
             </div>
           )}
@@ -229,7 +229,7 @@ export function PracticePage({ tune: tuneIdParam }) {
           <p class="text-gray-500">
             {session.totalCount === 0 ? 'No tunes to practice on this instrument.' : 'You\'ve gone through all your tunes. Great work!'}
           </p>
-          <button onClick={handleStop} class="text-sm text-blue-600 hover:underline mt-4 inline-block cursor-pointer">Back to practice home</button>
+          <button onClick={handleStop} class="text-sm text-brand-600 hover:underline mt-4 inline-block cursor-pointer">Back to practice home</button>
         </div>
       ) : (
         <PracticeCard

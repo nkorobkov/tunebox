@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { ConfirmDialog } from '../common/dialog';
 import { TagInput } from '../tune/tag-input';
 import { getKnownTags } from '../../lib/tag-store';
 import { useConnectivity } from '../../lib/connectivity';
@@ -61,7 +62,7 @@ export function BulkToolbar({
         <button
           onClick={onSelectAll}
           disabled={busy}
-          class="text-sm text-blue-600 hover:underline cursor-pointer disabled:opacity-40"
+          class="text-sm text-brand-600 hover:underline cursor-pointer disabled:opacity-40"
         >
           Select all {totalCount}
         </button>
@@ -136,7 +137,7 @@ export function BulkToolbar({
           <button
             onClick={() => submitTag(tagValue)}
             disabled={!tagValue.trim()}
-            class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer disabled:opacity-50"
+            class="text-xs px-2 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 cursor-pointer disabled:opacity-50"
           >
             Add
           </button>
@@ -153,7 +154,7 @@ export function BulkToolbar({
             <button
               key={inst}
               onClick={() => submitInstrument(inst)}
-              class="text-xs px-2 py-1 rounded border border-blue-300 bg-white text-blue-600 hover:bg-blue-600 hover:text-white cursor-pointer capitalize"
+              class="text-xs px-2 py-1 rounded border border-brand-300 bg-white text-brand-600 hover:bg-brand-600 hover:text-white cursor-pointer capitalize"
             >
               {inst}
             </button>
@@ -169,7 +170,7 @@ export function BulkToolbar({
           {customInstrument.trim() && (
             <button
               onClick={() => submitInstrument(customInstrument)}
-              class="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+              class="text-xs px-2 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 cursor-pointer"
             >
               Add
             </button>
@@ -181,33 +182,12 @@ export function BulkToolbar({
       )}
 
       {panel === 'delete' && (
-        <>
-          <div class="fixed inset-0 bg-black/40 z-30" onClick={closePanel} />
-          <div class="fixed inset-0 z-40 flex items-center justify-center p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-5 space-y-4">
-              <h3 class="text-base font-semibold text-gray-900">
-                Delete {selectedCount} tune{selectedCount !== 1 ? 's' : ''}?
-              </h3>
-              <p class="text-sm text-gray-600">
-                These tunes and all their practice history will be permanently removed from your collection.
-              </p>
-              <div class="flex gap-3 justify-end">
-                <button
-                  onClick={closePanel}
-                  class="text-sm px-3 py-2 border border-gray-300 rounded text-gray-600 hover:bg-gray-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => { closePanel(); onDelete(); }}
-                  class="text-sm px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
+        <ConfirmDialog
+          title={`Delete ${selectedCount} tune${selectedCount !== 1 ? 's' : ''}?`}
+          message="These tunes and all their practice history will be permanently removed from your collection."
+          onConfirm={() => { closePanel(); onDelete(); }}
+          onCancel={closePanel}
+        />
       )}
     </div>
   );

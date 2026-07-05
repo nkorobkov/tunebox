@@ -19,7 +19,7 @@ export function ProficiencyPicker({ labels = [], onUpdate }) {
           }${i === LEVELS.length - 1 ? 'rounded-r' : ''
           }${i > 0 ? ' -ml-px' : ''} ${
             current === level
-              ? 'bg-blue-600 text-white border-blue-600 z-10 relative'
+              ? 'bg-brand-600 text-white border-brand-600 z-10 relative'
               : 'bg-white text-gray-500 hover:bg-gray-50'
           }`}
         >

@@ -47,7 +47,7 @@ export function AbcViewer({ abc, transpose = 0, onTransposeChange, savedTranspos
             onClick={() => onSave(t)}
             disabled={isOffline}
             title={isOffline ? 'Unavailable offline' : undefined}
-            class="text-[11px] text-brand-600 hover:text-brand-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            class="text-[11px] text-blue-600 hover:text-blue-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >save</button>
         )}
         <span class="text-[11px] text-gray-400">{keyName || 'transpose'}</span>

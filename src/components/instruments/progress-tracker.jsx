@@ -75,7 +75,7 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
                 onClick={() => handleFieldChange(name, 'current_tempo', data.target_tempo)}
                 disabled={isOffline}
                 title={offlineTitle}
-                class="text-xs text-brand-600 hover:text-brand-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                class="text-xs text-blue-600 hover:text-blue-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 mark as playing
               </button>
@@ -83,7 +83,7 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
             {onPractice && (
               <button
                 onClick={() => onPractice(name)}
-                class="text-brand-600 hover:text-brand-700 text-xs cursor-pointer"
+                class="text-blue-600 hover:text-blue-700 text-xs cursor-pointer"
               >
                 practice
               </button>

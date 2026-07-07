@@ -73,7 +73,7 @@ function TuneHeader({ tune, instrument, targetTempo }) {
   return (
     <div>
       <h2 class="text-xl font-bold text-gray-900">
-        <a href={`/tune/${tune.id}`} class="hover:text-brand-600 no-underline text-gray-900">{tune.title}</a>
+        <a href={`/tune/${tune.id}`} class="hover:text-blue-600 no-underline text-gray-900">{tune.title}</a>
       </h2>
       <div class="flex items-center gap-3 mt-1 text-sm text-gray-500">
         {tune.type && <span class="capitalize">{tune.type}</span>}

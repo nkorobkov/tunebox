@@ -79,7 +79,7 @@ export function ExportDialog({ tunes, mode, onClose }) {
                 <label
                   key={f.value}
                   class={`flex items-start gap-2.5 p-2.5 rounded-md border cursor-pointer ${
-                    format === f.value ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300'
+                    format === f.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <input

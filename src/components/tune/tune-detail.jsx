@@ -279,7 +279,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
               onClick={() => setShowRecorder(true)}
               disabled={isOffline}
               title={isOffline ? 'Unavailable offline' : undefined}
-              class="text-sm text-brand-600 hover:text-brand-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Record
             </button>
@@ -288,7 +288,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
               onClick={() => setShowUpload(true)}
               disabled={isOffline}
               title={isOffline ? 'Unavailable offline' : undefined}
-              class="text-sm text-brand-600 hover:text-brand-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Add
             </button>
@@ -319,7 +319,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
             href={link.href}
             target="_blank"
             rel="noopener"
-            class="text-sm text-brand-600 hover:underline inline-block"
+            class="text-sm text-blue-600 hover:underline inline-block"
           >
             {link.label}
           </a>

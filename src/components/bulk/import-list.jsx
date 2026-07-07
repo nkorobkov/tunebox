@@ -312,7 +312,7 @@ export function ImportList({ items, setItems, createTune, existingSessionIds, on
         {onDone && (
           <button
             onClick={onDone}
-            class="mt-3 text-sm text-brand-600 hover:underline cursor-pointer"
+            class="mt-3 text-sm text-blue-600 hover:underline cursor-pointer"
           >
             Start over
           </button>
@@ -330,15 +330,15 @@ export function ImportList({ items, setItems, createTune, existingSessionIds, on
           </span>
           <button
             onClick={() => setSelected(new Set(items.map(it => it.id)))}
-            class="text-xs text-brand-600 hover:underline cursor-pointer"
+            class="text-xs text-blue-600 hover:underline cursor-pointer"
           >Select all</button>
           <button
             onClick={() => setSelected(new Set(items.filter(it => !it.alreadyInLibrary).map(it => it.id)))}
-            class="text-xs text-brand-600 hover:underline cursor-pointer"
+            class="text-xs text-blue-600 hover:underline cursor-pointer"
           >Select new only</button>
           <button
             onClick={() => setSelected(new Set())}
-            class="text-xs text-brand-600 hover:underline cursor-pointer"
+            class="text-xs text-blue-600 hover:underline cursor-pointer"
           >Deselect all</button>
         </div>
         <div class="flex items-center gap-3">

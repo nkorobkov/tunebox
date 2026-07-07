@@ -62,7 +62,7 @@ export function BulkToolbar({
         <button
           onClick={onSelectAll}
           disabled={busy}
-          class="text-sm text-brand-600 hover:underline cursor-pointer disabled:opacity-40"
+          class="text-sm text-blue-600 hover:underline cursor-pointer disabled:opacity-40"
         >
           Select all {totalCount}
         </button>

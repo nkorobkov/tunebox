@@ -6,7 +6,7 @@ export function TuneCard({ tune, inSet = false, selectable = false, selected = f
 
   const Wrapper = selectable ? 'div' : 'a';
   const selectedClass = selected
-    ? (inSet ? 'bg-brand-50' : 'border-brand-500 ring-1 ring-brand-500')
+    ? (inSet ? 'bg-blue-50' : 'border-blue-400 ring-1 ring-blue-400')
     : '';
 
   return (
@@ -21,7 +21,7 @@ export function TuneCard({ tune, inSet = false, selectable = false, selected = f
         {selectable && (
           <span
             class={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-              selected ? 'bg-brand-600 border-brand-600' : 'bg-white border-gray-300'
+              selected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
             }`}
           >
             {selected && (

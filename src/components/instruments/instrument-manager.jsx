@@ -43,7 +43,7 @@ export function InstrumentManager({ instruments = [], onUpdate, defaultInstrumen
               {onSetDefault && !isDefault && (
                 <button
                   onClick={() => onSetDefault(name)}
-                  class="text-xs cursor-pointer text-gray-400 hover:text-brand-600"
+                  class="text-xs cursor-pointer text-gray-400 hover:text-blue-600"
                 >
                   set as default
                 </button>

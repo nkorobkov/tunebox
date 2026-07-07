@@ -43,7 +43,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
           </div>
         ) : (
           <p class="text-sm text-gray-400">
-            No instruments configured. <a href="/settings" class="text-brand-600 hover:underline">Add instruments in Settings</a>.
+            No instruments configured. <a href="/settings" class="text-blue-600 hover:underline">Add instruments in Settings</a>.
           </p>
         )}
       </div>
@@ -129,7 +129,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
                   <li key={tune.id}>
                     <a
                       href={`/practice?tune=${tune.id}`}
-                      class="text-sm text-brand-600 hover:text-brand-700 no-underline hover:underline"
+                      class="text-sm text-blue-600 hover:text-blue-700 no-underline hover:underline"
                     >
                       {tune.title}
                     </a>
@@ -168,7 +168,7 @@ export function PracticeEntry({ userInstruments, selectedInstrument, onSelectIns
                   <button
                     onClick={() => handleStartLearning(tune)}
                     disabled={savingTuneId === tune.id}
-                    class="text-xs text-brand-600 hover:text-brand-700 disabled:opacity-50 cursor-pointer shrink-0 ml-2"
+                    class="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50 cursor-pointer shrink-0 ml-2"
                   >
                     {savingTuneId === tune.id ? 'Adding...' : 'Start learning'}
                   </button>

@@ -39,7 +39,7 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource }) {
             <button
               onClick={() => onSetMainSource(attachment.id, !attachment.main_source)}
               disabled={isOffline}
-              class={`text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${attachment.main_source ? 'text-brand-600 hover:text-brand-600' : 'text-gray-400 hover:text-brand-600'}`}
+              class={`text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${attachment.main_source ? 'text-blue-600 hover:text-blue-700' : 'text-gray-400 hover:text-blue-600'}`}
               title={isOffline ? 'Unavailable offline' : (attachment.main_source ? 'Remove as main source' : 'Use as main sheet music')}
             >
               {attachment.main_source ? 'unset main' : 'set as main'}

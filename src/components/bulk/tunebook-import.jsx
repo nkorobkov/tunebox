@@ -97,7 +97,7 @@ export function TunebookImport({ createTune, existingSessionIds }) {
         </div>
         <button
           onClick={handleReset}
-          class="text-sm text-brand-600 hover:underline cursor-pointer"
+          class="text-sm text-blue-600 hover:underline cursor-pointer"
         >
           Use a different member
         </button>

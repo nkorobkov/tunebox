@@ -218,7 +218,7 @@ export function PracticePage({ tune: tuneIdParam }) {
           <p class="text-lg font-medium text-gray-900">{lastResult}</p>
           {singleTune && (
             <div class="flex items-center justify-center gap-4 mt-4">
-              <button onClick={handleStop} class="text-sm text-brand-600 hover:underline cursor-pointer">Practice more tunes</button>
+              <button onClick={handleStop} class="text-sm text-blue-600 hover:underline cursor-pointer">Practice more tunes</button>
               <a href="/" class="text-sm text-gray-500 hover:text-gray-700 no-underline">Back to library</a>
             </div>
           )}
@@ -229,7 +229,7 @@ export function PracticePage({ tune: tuneIdParam }) {
           <p class="text-gray-500">
             {session.totalCount === 0 ? 'No tunes to practice on this instrument.' : 'You\'ve gone through all your tunes. Great work!'}
           </p>
-          <button onClick={handleStop} class="text-sm text-brand-600 hover:underline mt-4 inline-block cursor-pointer">Back to practice home</button>
+          <button onClick={handleStop} class="text-sm text-blue-600 hover:underline mt-4 inline-block cursor-pointer">Back to practice home</button>
         </div>
       ) : (
         <PracticeCard

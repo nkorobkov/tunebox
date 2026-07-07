@@ -16,7 +16,9 @@ No test runner or linter is configured.
 
 ### Frontend — GitHub Pages
 
-Pushes to `main` trigger `.github/workflows/deploy.yml`, which runs `npm ci && npm run build`, copies `dist/index.html` → `dist/404.html` (SPA fallback), and publishes `dist/` via `actions/deploy-pages`. The site is served at `https://tunes.nkorobkov.com` (custom domain from `public/CNAME`). No manual deploy step — just merge to `main`.
+Pushes to `main` trigger `.github/workflows/deploy.yml`, which runs `npm ci && npm run build`, copies `dist/index.html` → `dist/404.html` (SPA fallback), and publishes `dist/` via `actions/deploy-pages`.
+
+`npm run build` runs `scripts/prerender.mjs` after `vite build`: it renders `LandingPage` (via `src/prerender-entry.jsx` + `preact-render-to-string`) and injects the static HTML into `dist/index.html`'s `#app` div for SEO. Consequence: the landing page and everything it imports must stay SSR-safe — no `window`/`document`/`navigator` access at module scope or during render (effects are fine). SEO surface lives in `index.html` (meta/OG/JSON-LD) and `public/{robots.txt,sitemap.xml,og-image.png}`. The site is served at `https://tunes.nkorobkov.com` (custom domain from `public/CNAME`). No manual deploy step — just merge to `main`.
 
 ### Backend — PocketBase
 

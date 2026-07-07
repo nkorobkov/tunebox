@@ -127,6 +127,25 @@ const FEATURES = [
   },
 ];
 
+const FAQ = [
+  {
+    q: 'What is TuneBox?',
+    a: 'TuneBox is a free online tunebook and practice organizer for traditional music — Irish, Scottish, old-time, and other session traditions. It stores your tunes with sheet music, recordings, and notes, and schedules your practice so the whole repertoire stays playable.',
+  },
+  {
+    q: 'How is it different from a paper tunebook or a spreadsheet?',
+    a: 'A list tells you what you know; TuneBox also tells you what to play tonight. Every tune is searchable, grouped into sets, tagged for sessions and gigs, and rendered as sheet music from ABC notation — and the built-in spaced repetition keeps old tunes from quietly disappearing.',
+  },
+  {
+    q: 'How does the practice scheduling work?',
+    a: 'New tunes climb a tempo ladder: TuneBox remembers the speed you can actually play and nudges the metronome up each session. Learned tunes go into a review rotation that brings each one back just before it starts to fade — the same spaced-repetition idea behind flashcard apps, adapted to muscle memory and tempo.',
+  },
+  {
+    q: 'Where do the tunes come from?',
+    a: 'Paste ABC notation directly, or search thesession.org — the largest archive of traditional tunes — and import a tune with notation in seconds. You can also bulk-import an existing tunebook, and everything exports back out as PDF, ABC, or a full ZIP archive.',
+  },
+];
+
 const STEPS = [
   {
     title: 'Learning mode: climb the tempo ladder',
@@ -176,8 +195,9 @@ export function LandingPage() {
               Every tune you know, <span class="text-brand-600">ready when you are.</span>
             </h1>
             <p class="mt-5 text-lg text-gray-600 max-w-xl">
-              TuneBox keeps your repertoire organized across all your instruments and tells you
-              exactly what to practice today — spaced repetition built for tunes, not flashcards.
+              TuneBox is a digital tunebook for traditional musicians. It keeps your session
+              repertoire organized across all your instruments and tells you exactly what to
+              practice today — spaced repetition built for tunes, not flashcards.
             </p>
             <div class="mt-8 flex flex-col items-start gap-3">
               <GoogleButton onClick={handleLogin} class="px-6 py-3 text-base bg-white border border-gray-300 shadow-sm text-gray-800 hover:bg-gray-100">
@@ -236,6 +256,19 @@ export function LandingPage() {
             Export a printable PDF tunebook with a full index, a plain ABC file that opens anywhere,
             or a complete ZIP archive with every recording and practice log. No lock-in, ever.
           </p>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section class="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+        <h2 class="text-3xl font-bold tracking-tight text-center">Common questions</h2>
+        <div class="mt-10 space-y-8">
+          {FAQ.map((item) => (
+            <div key={item.q}>
+              <h3 class="font-semibold text-lg">{item.q}</h3>
+              <p class="mt-2 text-gray-600 leading-relaxed">{item.a}</p>
+            </div>
+          ))}
         </div>
       </section>
 

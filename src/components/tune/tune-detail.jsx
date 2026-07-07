@@ -168,7 +168,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
                 <button
                   key={inst}
                   onClick={() => practiceWithInstrument(inst)}
-                  class={`text-xs px-2 py-1.5 cursor-pointer capitalize border border-brand-300 bg-white text-brand-600 hover:bg-brand-600 hover:text-white ${
+                  class={`text-xs px-2 py-1.5 cursor-pointer capitalize border border-brand-300 bg-white text-brand-600 dark:text-brand-400 hover:bg-brand-600 hover:text-white ${
                     i === 0 ? 'rounded-l' : ''}${i === allInstruments.length - 1 ? 'rounded-r' : ''}${i > 0 ? ' -ml-px' : ''}`}
                 >
                   {inst}

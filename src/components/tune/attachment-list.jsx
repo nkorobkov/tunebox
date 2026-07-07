@@ -76,7 +76,7 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource, onUpdate }) {
           </div>
           <div class="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
             {attachment.type === 'recording' && attachment.bpm > 0 && <span>{attachment.bpm} BPM</span>}
-            {attachment.main_source && <span class="text-brand-600 font-medium">Main source</span>}
+            {attachment.main_source && <span class="text-brand-600 dark:text-brand-400 font-medium">Main source</span>}
             <span class="truncate">{isLink ? displayUrl : filename}</span>
           </div>
         </div>

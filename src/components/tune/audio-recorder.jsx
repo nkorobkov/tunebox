@@ -129,7 +129,7 @@ export function AudioRecorder({ onUpload, onClose }) {
               </div>
               <button
                 onClick={stopRecording}
-                class="w-16 h-16 rounded-full bg-gray-800 hover:bg-gray-900 text-white flex items-center justify-center cursor-pointer"
+                class="theme-light w-16 h-16 rounded-full bg-gray-800 hover:bg-gray-900 text-white flex items-center justify-center cursor-pointer"
                 title="Stop recording"
               >
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">

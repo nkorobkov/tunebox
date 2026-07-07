@@ -176,7 +176,7 @@ export function LandingPage() {
   };
 
   return (
-    <div class="min-h-screen bg-gray-50 text-gray-900">
+    <div class="theme-light min-h-screen bg-gray-50 text-gray-900">
       {/* Header — quick sign-in for returning users */}
       <header class="sticky top-0 z-20 bg-gray-50/80 backdrop-blur border-b border-gray-200">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">

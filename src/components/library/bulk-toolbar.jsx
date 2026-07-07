@@ -154,7 +154,7 @@ export function BulkToolbar({
             <button
               key={inst}
               onClick={() => submitInstrument(inst)}
-              class="text-xs px-2 py-1 rounded border border-brand-300 bg-white text-brand-600 hover:bg-brand-600 hover:text-white cursor-pointer capitalize"
+              class="text-xs px-2 py-1 rounded border border-brand-300 bg-white text-brand-600 dark:text-brand-400 hover:bg-brand-600 hover:text-white cursor-pointer capitalize"
             >
               {inst}
             </button>

@@ -52,7 +52,7 @@ export function TuneCard({ tune, inSet = false, selectable = false, selected = f
               <span
                 key={name}
                 class={`text-xs px-1.5 py-0.5 rounded ${
-                  isPlaying ? 'bg-brand-50 text-brand-700' : 'bg-yellow-50 text-yellow-600'
+                  isPlaying ? 'bg-brand-50 text-brand-700 dark:text-brand-400' : 'bg-yellow-50 text-yellow-600'
                 }`}
               >
                 {isPlaying ? 'Playing' : 'Learning'} on {name}
@@ -80,7 +80,7 @@ export function TuneCard({ tune, inSet = false, selectable = false, selected = f
               <span
                 key={name}
                 class={`text-[11px] px-1 py-0.5 rounded ${
-                  isPlaying ? 'bg-brand-50 text-brand-700' : 'bg-yellow-50 text-yellow-600'
+                  isPlaying ? 'bg-brand-50 text-brand-700 dark:text-brand-400' : 'bg-yellow-50 text-yellow-600'
                 }`}
               >
                 {isPlaying ? 'Playing' : 'Learning'} on {name}

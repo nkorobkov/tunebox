@@ -4,6 +4,7 @@ import { InstrumentManager } from '../components/instruments/instrument-manager'
 import { useAuth } from '../lib/auth';
 import { pb } from '../lib/pb';
 import { getDefaultInstrument, saveDefaultInstrument } from '../hooks/use-practice';
+import { getTheme, setTheme } from '../lib/theme';
 import { OfflineBanner } from '../components/common/offline-banner';
 import { useConnectivity } from '../lib/connectivity';
 
@@ -12,6 +13,7 @@ export function SettingsPage() {
   const { isOffline } = useConnectivity();
   const [instruments, setInstruments] = useState(user?.instruments || []);
   const [saving, setSaving] = useState(false);
+  const [theme, setThemeState] = useState(getTheme);
   const [defaultInst, setDefaultInst] = useState(() => {
     const saved = getDefaultInstrument();
     const list = user?.instruments || [];
@@ -54,6 +56,11 @@ export function SettingsPage() {
     }
   }, [user, defaultInst]);
 
+  const handleSetTheme = (value) => {
+    setThemeState(value);
+    setTheme(value);
+  };
+
   const handleSetDefault = (inst) => {
     const val = inst || instruments[0] || '';
     setDefaultInst(val);
@@ -71,6 +78,29 @@ export function SettingsPage() {
           <div class="text-sm text-gray-500 space-y-1">
             <p>Email: {user?.email}</p>
             <p>Name: {user?.name || '—'}</p>
+          </div>
+        </div>
+
+        {/* Appearance */}
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <h2 class="text-base font-semibold text-gray-900 mb-1">Appearance</h2>
+          <p class="text-xs text-gray-400 mb-3">
+            Sheet music always renders on a light background.
+          </p>
+          <div class="flex gap-2">
+            {['light', 'dark'].map((value) => (
+              <button
+                key={value}
+                onClick={() => handleSetTheme(value)}
+                class={`px-3 py-1.5 rounded-full text-sm border cursor-pointer capitalize ${
+                  theme === value
+                    ? 'bg-brand-600 text-white border-brand-600'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                {value}
+              </button>
+            ))}
           </div>
         </div>
 

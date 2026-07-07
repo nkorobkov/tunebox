@@ -16,6 +16,134 @@
   --color-brand-900: #1e4f1b;
 }
 
+/* Class-based dark variant (default is light, toggled from the settings
+   page — never the system preference). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Dark theme. Rather than adding dark: variants to ~700 color utilities,
+   remap the palette variables under `.dark` — Tailwind v4 utilities resolve
+   colors through var(), so `bg-gray-50`, `text-gray-600` etc. flip
+   automatically. Shades whose role is ambiguous (brand-600/700 button
+   backgrounds, red-400, black overlays) are left alone; the few text usages
+   that need it carry explicit dark: overrides in the components. */
+.dark {
+  color-scheme: dark;
+
+  /* Grays: inverted lightness ladder. gray-50 = page bg, matching the
+     PWA theme-color #101828. */
+  --color-gray-50: #101828;
+  --color-gray-100: #232e42;
+  --color-gray-200: #364153;
+  --color-gray-300: #4a5565;
+  --color-gray-400: #6f7a8c;
+  --color-gray-500: #99a1af;
+  --color-gray-600: #c3cad4;
+  --color-gray-700: #d9dde3;
+  --color-gray-800: #e9ebef;
+  --color-gray-900: #f6f7f9;
+
+  /* Blues: links/info lighten, soft fills darken. (bg-blue-600 is unused
+     as a large surface except the selection checkbox, where light blue
+     still reads fine.) */
+  --color-blue-50: #1b2a47;
+  --color-blue-200: #2c4879;
+  --color-blue-600: #51a2ff;
+  --color-blue-700: #7cb8ff;
+  --color-blue-800: #a6ceff;
+
+  /* Reds: soft fills/borders darken, text lightens. red-600/700 shift one
+     step lighter so danger text stays legible while danger buttons keep
+     enough contrast under white labels. */
+  --color-red-50: #341a1c;
+  --color-red-200: #5c2224;
+  --color-red-300: #7a2e30;
+  --color-red-500: #ff6467;
+  --color-red-600: #fb2c36;
+  --color-red-700: #e7000b;
+
+  /* Ambers/yellows (warning chips and callouts). */
+  --color-amber-50: #35270f;
+  --color-amber-100: #4a3512;
+  --color-amber-200: #6d4c14;
+  --color-amber-600: #f5b74f;
+  --color-amber-700: #fdc966;
+  --color-amber-800: #ffd98a;
+  --color-yellow-50: #322b10;
+  --color-yellow-600: #e3bb4a;
+
+  /* Brand: only the soft-fill/border shades — 600/700 stay as-is for
+     primary buttons. brand-50 sits at card-surface lightness so green
+     callouts read as highlights, not holes. */
+  --color-brand-50: #1e3a1a;
+  --color-brand-100: #275022;
+  --color-brand-200: #2a5f26;
+  --color-brand-300: #2f6b2b;
+}
+
+.dark body {
+  background-color: #101828;
+}
+
+/* bg-white is the card surface; text-white must stay white (button labels),
+   so remap the utility rather than --color-white. Hex on purpose: gray vars
+   are inverted here. */
+.dark .bg-white {
+  background-color: #1e2939;
+}
+
+/* Sheet music must stay black-on-white — abcjs SVGs use currentColor. */
+.dark .abc-viewer {
+  background: #fff;
+  color: #000;
+  border-radius: 0.375rem;
+}
+
+/* Escape hatch: restores the light palette for a subtree (or a single
+   element) that is designed dark-on-light in both themes — the landing
+   page and the dark metronome/record buttons. Values are Tailwind v4
+   defaults (+ brand from @theme above). */
+.theme-light {
+  color-scheme: light;
+  --color-gray-50: oklch(98.5% 0.002 247.839);
+  --color-gray-100: oklch(96.7% 0.003 264.542);
+  --color-gray-200: oklch(92.8% 0.006 264.531);
+  --color-gray-300: oklch(87.2% 0.01 258.338);
+  --color-gray-400: oklch(70.7% 0.022 261.325);
+  --color-gray-500: oklch(55.1% 0.027 264.364);
+  --color-gray-600: oklch(44.6% 0.03 256.802);
+  --color-gray-700: oklch(37.3% 0.034 259.733);
+  --color-gray-800: oklch(27.8% 0.033 256.848);
+  --color-gray-900: oklch(21% 0.034 264.665);
+  --color-blue-50: oklch(97% 0.014 254.604);
+  --color-blue-200: oklch(88.2% 0.059 254.128);
+  --color-blue-600: oklch(54.6% 0.245 262.881);
+  --color-blue-700: oklch(48.8% 0.243 264.376);
+  --color-blue-800: oklch(42.4% 0.199 265.638);
+  --color-red-50: oklch(97.1% 0.013 17.38);
+  --color-red-200: oklch(88.5% 0.062 18.334);
+  --color-red-300: oklch(80.8% 0.114 19.571);
+  --color-red-500: oklch(63.7% 0.237 25.331);
+  --color-red-600: oklch(57.7% 0.245 27.325);
+  --color-red-700: oklch(50.5% 0.213 27.518);
+  --color-amber-50: oklch(98.7% 0.022 95.277);
+  --color-amber-100: oklch(96.2% 0.059 95.617);
+  --color-amber-200: oklch(92.4% 0.12 95.746);
+  --color-amber-600: oklch(66.6% 0.179 58.318);
+  --color-amber-700: oklch(55.5% 0.163 48.998);
+  --color-amber-800: oklch(47.3% 0.137 46.201);
+  --color-yellow-50: oklch(98.7% 0.026 102.212);
+  --color-yellow-600: oklch(68.1% 0.162 75.834);
+  --color-brand-50: #f2faf1;
+  --color-brand-100: #e2f3e0;
+  --color-brand-200: #c4e8c0;
+  --color-brand-300: #9ad594;
+}
+
+.dark .theme-light .bg-white,
+.dark .theme-light.bg-white {
+  background-color: #fff;
+}
+
 button, a, input, select, textarea, [role="button"] {
   touch-action: manipulation;
 }

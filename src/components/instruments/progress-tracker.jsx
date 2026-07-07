@@ -68,7 +68,7 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
               />
             </div>
             {isPlaying && (
-              <span class="text-xs text-brand-700">playing</span>
+              <span class="text-xs text-brand-700 dark:text-brand-400">playing</span>
             )}
             {isLearning && (
               <button

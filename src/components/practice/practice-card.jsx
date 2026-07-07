@@ -215,7 +215,7 @@ function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, backingT
 
       {/* Prompt */}
       <div class="bg-brand-50 rounded-lg border border-brand-200 p-4">
-        <p class="text-sm text-brand-800 font-medium">
+        <p class="text-sm text-brand-800 dark:text-brand-400 font-medium">
           Play at {playTempo} BPM
         </p>
       </div>

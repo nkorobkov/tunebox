@@ -72,7 +72,9 @@ export async function generateTunebookPdf(tunes, { includeIndex = true, includeN
 
   // Offscreen container for abcjs rendering — must be in the DOM to measure.
   const container = document.createElement('div');
-  container.style.cssText = `position:fixed;left:-99999px;top:0;width:${RENDER_W + 20}px;`;
+  // color:#000 — abcjs SVGs use currentColor; without it dark mode's light
+  // text color would leak into the exported PDF.
+  container.style.cssText = `position:fixed;left:-99999px;top:0;width:${RENDER_W + 20}px;color:#000;`;
   document.body.appendChild(container);
 
   try {

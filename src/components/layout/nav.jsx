@@ -50,7 +50,8 @@ export function Nav() {
         <div class="flex items-center gap-6">
           <a href="/" class="flex items-center gap-2 no-underline">
             <img src="/tunebook-logo.svg" alt="TuneBox" class="h-7 lg:hidden" />
-            <img src="/tunebook.svg" alt="TuneBox" class="hidden lg:block h-7" />
+            <img src="/tunebook.svg" alt="TuneBox" class="hidden lg:block dark:lg:hidden h-7" />
+            <img src="/tunebook-dark.svg" alt="TuneBox" class="hidden dark:lg:block h-7" />
           </a>
           {user && (
             <>

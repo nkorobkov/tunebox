@@ -35,7 +35,7 @@ export function Metronome({ defaultBpm = 120, defaultTimeSignature = '4/4', onTe
         <div class="flex items-center gap-2">
           <button
             onClick={playing ? stop : start}
-            class={`px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${
+            class={`theme-light px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${
               playing
                 ? 'bg-red-600 text-white hover:bg-red-700'
                 : 'bg-gray-800 text-white hover:bg-gray-900'

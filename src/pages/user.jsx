@@ -8,6 +8,7 @@ import { useTunes } from '../hooks/use-tunes';
 import { usePracticeStats } from '../hooks/use-practice-stats';
 import { instrumentProficiency } from '../lib/practice-algorithm';
 import { avatarUrl, initials } from '../lib/avatar';
+import { getTheme } from '../lib/theme';
 
 class CalendarBoundary extends Component {
   state = { err: null };
@@ -51,6 +52,7 @@ function Stat({ label, value }) {
 // Grays to brand green (--color-brand-600), matching the app palette.
 const CALENDAR_THEME = {
   light: ['#f3f4f6', '#c4e8c0', '#9ad594', '#6fbf69', '#389833'],
+  dark: ['#232e42', '#1d3f1a', '#2c7a28', '#4aab44', '#9ad594'],
 };
 
 export function UserPage() {
@@ -116,7 +118,7 @@ export function UserPage() {
               <ActivityCalendar
                 data={calendar}
                 theme={CALENDAR_THEME}
-                colorScheme="light"
+                colorScheme={getTheme()}
                 blockSize={12}
                 blockMargin={3}
                 fontSize={12}

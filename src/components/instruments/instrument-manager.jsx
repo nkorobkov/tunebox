@@ -37,7 +37,7 @@ export function InstrumentManager({ instruments = [], onUpdate, defaultInstrumen
           >
             <div class="flex items-center gap-2">
               <span class="text-sm font-medium text-gray-800">{name}</span>
-              {isDefault && <span class="text-xs text-brand-600 font-medium">Default</span>}
+              {isDefault && <span class="text-xs text-brand-600 dark:text-brand-400 font-medium">Default</span>}
             </div>
             <div class="flex items-center gap-3">
               {onSetDefault && !isDefault && (

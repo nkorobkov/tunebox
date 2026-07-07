@@ -18,6 +18,10 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,mp3}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: '/index.html',
+        // Never serve the app shell for real static files (robots.txt and
+        // sitemap.xml aren't precached, so without this the SW hijacks
+        // browser navigations to them).
+        navigateFallbackDenylist: [/^\/robots\.txt$/, /^\/sitemap\.xml$/],
         // Don't precache .map files or other dev artifacts.
         globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],
       },

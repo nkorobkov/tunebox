@@ -343,7 +343,7 @@ export function ImportList({ items, setItems, createTune, existingSessionIds, on
         </div>
         <div class="flex items-center gap-3">
           {importedCount > 0 && (
-            <span class="text-xs text-brand-700">{importedCount} added</span>
+            <span class="text-xs text-brand-700 dark:text-brand-400">{importedCount} added</span>
           )}
           <button
             onClick={handleAddSelected}

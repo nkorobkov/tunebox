@@ -6,6 +6,9 @@ import { LabelEditor } from './label-editor';
 import { AttachmentList } from './attachment-list';
 import { AttachmentUpload } from './attachment-upload';
 import { AudioRecorder } from './audio-recorder';
+import { TuneNotes } from './tune-notes';
+import { parseYouTube } from '../../lib/youtube';
+import { YouTubeEmbed } from '../common/youtube-embed';
 import { SheetMusicViewer } from './sheet-music-viewer';
 import { InstrumentProgress } from '../instruments/progress-tracker';
 import { useAttachments } from '../../hooks/use-attachments';
@@ -51,11 +54,12 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const [addingSet, setAddingSet] = useState(false);
   const [newSetName, setNewSetName] = useState('');
   const [showUpload, setShowUpload] = useState(false);
+  const [uploadUrl, setUploadUrl] = useState('');
   const [showRecorder, setShowRecorder] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickingInstrument, setPickingInstrument] = useState(false);
   const [transpose, setTranspose] = useState(tune.transpose || 0);
-  const { attachments, loading: attachmentsLoading, upload, remove, setMainSource, mainSource } = useAttachments(tune.id);
+  const { attachments, loading: attachmentsLoading, upload, update: updateAttachment, remove, setMainSource, mainSource } = useAttachments(tune.id);
   const { isOffline } = useConnectivity();
 
   const allInstruments = [...new Set([...Object.keys(tune.instruments || {}), ...(userInstruments || [])])];
@@ -261,12 +265,12 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
       </div>
 
       {/* Notes */}
-      {tune.notes && (
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 class="text-sm font-medium text-gray-700 mb-2">Notes</h3>
-          <div class="text-sm text-gray-600 whitespace-pre-wrap">{tune.notes}</div>
-        </div>
-      )}
+      <TuneNotes
+        notes={tune.notes}
+        attachments={attachments}
+        onAddAsAttachment={isOffline ? undefined : (url) => { setUploadUrl(url); setShowUpload(true); }}
+        onSave={(notes) => onUpdate({ notes })}
+      />
 
       {/* Attachments */}
       <div class="bg-white rounded-lg border border-gray-200 p-4">
@@ -299,12 +303,16 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
         ) : attachments.length === 0 ? (
           <p class="text-sm text-gray-400">No attachments yet.</p>
         ) : (
-          <AttachmentList attachments={attachments} onDelete={remove} onSetMainSource={setMainSource} />
+          <AttachmentList attachments={attachments} onDelete={remove} onSetMainSource={setMainSource} onUpdate={updateAttachment} />
         )}
       </div>
 
       {showUpload && (
-        <AttachmentUpload onUpload={upload} onClose={() => setShowUpload(false)} />
+        <AttachmentUpload
+          onUpload={upload}
+          initialUrl={uploadUrl}
+          onClose={() => { setShowUpload(false); setUploadUrl(''); }}
+        />
       )}
 
       {showRecorder && (
@@ -314,15 +322,24 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
       {/* External links */}
       {(() => {
         const link = getExternalLink(tune);
-        return link && (
-          <a
-            href={link.href}
-            target="_blank"
-            rel="noopener"
-            class="text-sm text-blue-600 hover:underline inline-block"
-          >
-            {link.label}
-          </a>
+        if (!link) return null;
+        const youtube = parseYouTube(link.href);
+        return (
+          <div class="space-y-2">
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener"
+              class="text-sm text-blue-600 hover:underline inline-block"
+            >
+              {link.label}
+            </a>
+            {youtube && !isOffline && (
+              <div class="max-w-md">
+                <YouTubeEmbed videoId={youtube.id} start={youtube.start} title={link.label} />
+              </div>
+            )}
+          </div>
         );
       })()}
 

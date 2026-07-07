@@ -123,7 +123,12 @@ export async function buildArchive(tunes, onProgress) {
     const atts = await pb.collection('attachments').getList(1, 100, {
       filter: `user_tune = "${tune.id}"`,
     });
+    const links = [];
     for (const att of atts.items) {
+      if (att.url) {
+        links.push([att.type, att.label, att.bpm > 0 ? `${att.bpm} BPM` : '', att.url].filter(Boolean).join(' — '));
+        continue;
+      }
       try {
         const res = await fetch(getFileUrl(att));
         if (!res.ok) continue;
@@ -133,6 +138,9 @@ export async function buildArchive(tunes, onProgress) {
       } catch (err) {
         console.warn(`Skipping attachment ${att.file}:`, err);
       }
+    }
+    if (links.length) {
+      files[`${folder}/links.txt`] = enc.encode(links.join('\n') + '\n');
     }
   }
 

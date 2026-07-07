@@ -30,19 +30,36 @@ export function useAttachments(tuneId) {
     if (pb.authStore.isValid) fetch();
   }, [fetch]);
 
-  const upload = useCallback(async ({ file, type, bpm, label }) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('user', pb.authStore.record.id);
-    formData.append('user_tune', tuneId);
-    if (type) formData.append('type', type);
-    if (bpm) formData.append('bpm', bpm);
-    if (label) formData.append('label', label);
-
-    const record = await pb.collection('attachments').create(formData);
+  const upload = useCallback(async ({ file, url, type, bpm, label }) => {
+    let record;
+    if (url) {
+      record = await pb.collection('attachments').create({
+        url,
+        user: pb.authStore.record.id,
+        user_tune: tuneId,
+        type: type || undefined,
+        bpm: bpm || undefined,
+        label: label || undefined,
+      });
+    } else {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('user', pb.authStore.record.id);
+      formData.append('user_tune', tuneId);
+      if (type) formData.append('type', type);
+      if (bpm) formData.append('bpm', bpm);
+      if (label) formData.append('label', label);
+      record = await pb.collection('attachments').create(formData);
+    }
     setAttachments(prev => [record, ...prev]);
     return record;
   }, [tuneId]);
+
+  const update = useCallback(async (id, data) => {
+    const updated = await pb.collection('attachments').update(id, data);
+    setAttachments(prev => prev.map(a => (a.id === id ? updated : a)));
+    return updated;
+  }, []);
 
   const remove = useCallback(async (id) => {
     await pb.collection('attachments').delete(id);
@@ -66,9 +83,9 @@ export function useAttachments(tuneId) {
   }, [attachments]);
 
   const mainSource = attachments.find(a => a.main_source && a.type === 'sheet_music');
-  const backingTrack = attachments.find(a => a.type === 'backing_track');
+  const backingTracks = attachments.filter(a => a.type === 'backing_track');
 
-  return { attachments, loading, upload, remove, setMainSource, mainSource, backingTrack, refresh: fetch };
+  return { attachments, loading, upload, update, remove, setMainSource, mainSource, backingTracks, refresh: fetch };
 }
 
 export function getFileUrl(attachment) {

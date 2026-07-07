@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "abcjs": "^6.6.2",
+    "dompurify": "^3.4.11",
     "fflate": "^0.8.3",
     "jspdf": "^4.2.1",
+    "marked": "^18.0.5",
     "pocketbase": "^0.26.8",
     "preact": "^10.29.1",
     "preact-router": "^4.1.2",

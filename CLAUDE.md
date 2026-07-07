@@ -30,11 +30,14 @@ Preact SPA talking directly to PocketBase (no intermediate backend). All data ac
 `AuthProvider` in `src/lib/auth.jsx` wraps the app. It uses PocketBase's Google OAuth2 provider. The `useAuth()` hook exposes `user`, `loginWithGoogle()`, `logout()`. When not authenticated, the router renders `LoginPage` instead of the app routes.
 
 ### Data Model (PocketBase Collections)
-Three collections, heavily denormalized:
+Four collections, heavily denormalized:
 
-- **`user_tunes`** — the core record. Holds tune data (title, type, abc, session_id), labels and instrument progress as JSON fields, spaced repetition state (next_review, interval_days, ease_factor, consecutive_correct), practice_tempo, and file attachments. All CRUD scoped to `user = @request.auth.id`.
+- **`user_tunes`** — the core record. Holds tune data (title, type, abc, session_id), labels and instrument progress as JSON fields, spaced repetition state (next_review, interval_days, ease_factor, consecutive_correct), and practice_tempo. All CRUD scoped to `user = @request.auth.id`.
+- **`attachments`** — per-tune media, related to user_tunes. Each record holds either a `file` (both optional in the schema) or a `url` (YouTube links), plus `type` (sheet_music / recording / backing_track / source / other), `bpm`, `label`, `main_source`. `backing_track` records surface on the practice card; the `main_source` sheet_music record replaces ABC rendering.
 - **`practice_log`** — append-only practice history (fluency_rating 1-5, tempo_used, practiced_at). Related to user_tunes.
 - **`users`** — built-in auth collection extended with `instruments` JSON field (array of instrument names).
+
+Schema changes ship as PB JS migrations kept in `pocketbase/pb_migrations/` (deployment to the self-hosted instance is described in `LOCAL_SETUP.md`).
 
 Labels are stored as JSON arrays on user_tunes: `[{type: "category", value: "learning"}, {type: "set", value: "Opening Set", order: 1}]`. Tunes sharing the same set name/type form a set. No separate labels or sets table.
 
@@ -43,6 +46,8 @@ Labels are stored as JSON arrays on user_tunes: `[{type: "category", value: "lea
 - **`src/lib/spaced-repetition.js`** — SM-2 algorithm. `calculateNextReview(state, rating)` returns new SR fields. `isDue(tune)` and `isNew(tune)` determine practice queue membership.
 - **`src/lib/session-api.js`** — calls PocketBase proxy endpoints (`/api/session/search`, `/api/session/tune/:id`) which forward to thesession.org JSON API.
 - **`src/lib/abc-utils.js`** — builds full ABC strings with headers from raw ABC + tune metadata. Maps tune types to meters and default tempos.
+- **`src/components/common/markdown.jsx`** — renders user-authored markdown (tune notes) via `marked` (GFM, breaks, bare-URL autolink) sanitized with DOMPurify; anchors forced to `target="_blank"`. Typography for the rendered subset lives under `.markdown-body` in `src/index.css`. Notes are edited in place on the tune page (`src/components/tune/tune-notes.jsx`), not through the tune form only.
+- **`src/lib/youtube.js`** + **`src/components/common/youtube-embed.jsx`** — YouTube URL parsing (watch/youtu.be/shorts/live/embed, `t=` start times, `shortYouTubeUrl` for display) and a click-to-load embed (thumbnail facade → `youtube-nocookie.com` iframe). Playback speed is deliberately left to the embedded player's own controls — programmatic rate control via the widget postMessage protocol was tried and removed (unreliable in practice; the iframe_api script would violate the CSP anyway). CSP allows `frame-src www.youtube-nocookie.com` and `img-src i.ytimg.com` for this.
 - **`src/lib/export-utils.js`** — bulk export builders: title list, concatenated ABC tunebook (placeholder ABC for tunes without notation), and full ZIP archive (folder per tune with ABC, record JSON, practice-history CSV, attachments) via lazy-loaded `fflate`.
 - **`src/lib/tunebook-pdf.js`** — tunebook PDF via lazy-loaded `jspdf` + `svg2pdf.js`: renders each tune's ABC to SVG offscreen, measures, paginates up front (so the optional index has exact page numbers), then draws. Tunes without ABC embed their main-source sheet-music attachment when it's an image (fetched → canvas → JPEG); optionally tunes with no notation at all are skipped. Note: don't use abcjs's `scale` option here — it scales via CSS transform which svg2pdf ignores. Print = same PDF opened in a hidden iframe (`frame-src blob:` is allowed in the CSP for this).
 - **`src/hooks/use-tunes.js`** — `useTunes()` for list with client-side label filtering, `useTune(id)` for single record.

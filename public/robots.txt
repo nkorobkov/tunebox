@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tunes.nkorobkov.com/sitemap.xml
+Sitemap: https://tunebox.net/sitemap.xml

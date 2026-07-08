@@ -222,7 +222,7 @@ curl -s -X PATCH "$PB/api/settings" \
     "trustedProxy": { "headers": ["X-Forwarded-For"], "useLeftmostIP": true },
     "meta": {
       "appName": "TuneBox",
-      "appURL": "https://tunes.home.nkorobkov.com",
+      "appURL": "https://tunebox.net",
       "senderName": "TuneBox",
       "senderAddress": "support@nkorobkov.com",
       "hideControls": false

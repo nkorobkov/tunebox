@@ -6,6 +6,7 @@ import { SearchResults } from '../components/search/search-results';
 import { TuneForm } from '../components/tune/tune-form';
 import { BulkImport } from '../components/bulk/bulk-import';
 import { TunebookImport } from '../components/bulk/tunebook-import';
+import { FileImport } from '../components/bulk/file-import';
 import { LoadingIndicator } from '../components/loading-indicator';
 import { searchTunes } from '../lib/session-api';
 import { useTunes } from '../hooks/use-tunes';
@@ -16,13 +17,14 @@ const VIEWS = [
   { value: 'search', label: 'Search The Session' },
   { value: 'manual', label: 'Add manually' },
   { value: 'bulk', label: 'Bulk import' },
+  { value: 'files', label: 'File import' },
   { value: 'tunebook', label: 'Import session tunebook' },
 ];
 
 export function AddTunePage() {
   const { tunes, createTune } = useTunes();
   const { isOffline } = useConnectivity();
-  const [view, setView] = useState('search'); // 'search' | 'manual' | 'bulk' | 'tunebook'
+  const [view, setView] = useState('search'); // 'search' | 'manual' | 'bulk' | 'files' | 'tunebook'
 
   const existingSessionIds = useMemo(() => {
     const set = new Set();
@@ -141,6 +143,11 @@ export function AddTunePage() {
       {/* Bulk Import */}
       {view === 'bulk' && (
         <BulkImport createTune={createTune} existingSessionIds={existingSessionIds} />
+      )}
+
+      {/* File Import (photos/scans/PDFs of sheet music) */}
+      {view === 'files' && (
+        <FileImport createTune={createTune} />
       )}
 
       {/* Session Tunebook Import */}

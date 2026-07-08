@@ -22,8 +22,9 @@ export default defineConfig({
         // sitemap.xml aren't precached, so without this the SW hijacks
         // browser navigations to them).
         navigateFallbackDenylist: [/^\/robots\.txt$/, /^\/sitemap\.xml$/],
-        // Don't precache .map files or other dev artifacts.
-        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],
+        // Don't precache .map files or other dev artifacts. The tesseract
+        // and pdf.js assets (~15MB) are lazy-loaded on demand, not precached.
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'tesseract/**', 'pdfjs/**'],
       },
     }),
   ],

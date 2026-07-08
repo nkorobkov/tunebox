@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import { parseAbcMeta, getDefaultTempo } from '../../lib/abc-utils';
 import { useConnectivity } from '../../lib/connectivity';
 
-const TUNE_TYPES = ['reel', 'jig', 'slip jig', 'hornpipe', 'polka', 'slide', 'waltz', 'mazurka', 'march', 'barndance', 'other'];
+export const TUNE_TYPES = ['reel', 'jig', 'slip jig', 'hornpipe', 'polka', 'slide', 'waltz', 'mazurka', 'march', 'barndance', 'other'];
 
 export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
   const [title, setTitle] = useState(initial.title || '');

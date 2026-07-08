@@ -6,19 +6,23 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/prerender.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node scripts/copy-vendor-assets.mjs"
   },
   "dependencies": {
+    "@tesseract.js-data/eng": "^1.0.0",
     "abcjs": "^6.6.2",
     "dompurify": "^3.4.11",
     "fflate": "^0.8.3",
     "jspdf": "^4.2.1",
     "marked": "^18.0.5",
+    "pdfjs-dist": "^6.1.200",
     "pocketbase": "^0.26.8",
     "preact": "^10.29.1",
     "preact-router": "^4.1.2",
     "react-activity-calendar": "^3.2.0",
-    "svg2pdf.js": "^2.7.0"
+    "svg2pdf.js": "^2.7.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",

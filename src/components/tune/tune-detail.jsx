@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { route } from 'preact-router';
 import { AbcViewer } from './abc-viewer';
 import { AbcPlayer } from './abc-player';
 import { TuneForm } from './tune-form';
@@ -66,7 +67,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
 
   const practiceWithInstrument = (inst) => {
     saveDefaultInstrument(inst);
-    window.location.href = `/practice?tune=${tune.id}`;
+    route(`/practice?tune=${tune.id}`);
   };
 
   const setLabel = (tune.labels || []).find(l => l.type === 'set');

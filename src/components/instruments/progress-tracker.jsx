@@ -4,6 +4,7 @@ import { useConnectivity } from '../../lib/connectivity';
 export function InstrumentProgress({ instruments, userInstruments, defaultTargetTempo = 0, onUpdate, onPractice }) {
   const [adding, setAdding] = useState(false);
   const [newInstrument, setNewInstrument] = useState('');
+  const [customMode, setCustomMode] = useState(false);
   const { isOffline } = useConnectivity();
   const offlineTitle = isOffline ? 'Unavailable offline' : undefined;
 
@@ -13,6 +14,7 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
     const updated = { ...instruments, [name]: { keys: [], current_tempo: 0, target_tempo: defaultTargetTempo || 0 } };
     await onUpdate(updated);
     setNewInstrument('');
+    setCustomMode(false);
     setAdding(false);
   };
 
@@ -113,8 +115,16 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
         <div class="flex items-center gap-2">
           {availableInstruments.length > 0 ? (
             <select
-              value={newInstrument}
-              onChange={e => setNewInstrument(e.target.value)}
+              value={customMode ? '__custom' : newInstrument}
+              onChange={e => {
+                if (e.target.value === '__custom') {
+                  setCustomMode(true);
+                  setNewInstrument('');
+                } else {
+                  setCustomMode(false);
+                  setNewInstrument(e.target.value);
+                }
+              }}
               class="text-sm border border-gray-300 rounded px-2 py-1"
             >
               <option value="">Select...</option>
@@ -122,18 +132,18 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
               <option value="__custom">Other...</option>
             </select>
           ) : null}
-          {(availableInstruments.length === 0 || newInstrument === '__custom') && (
+          {(availableInstruments.length === 0 || customMode) && (
             <input
               type="text"
-              value={newInstrument === '__custom' ? '' : newInstrument}
+              value={newInstrument}
               onInput={e => setNewInstrument(e.target.value)}
               placeholder="Instrument name..."
               class="text-sm border border-gray-300 rounded px-2 py-1"
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
             />
           )}
-          <button onClick={handleAdd} disabled={!newInstrument.trim() || newInstrument === '__custom'} class="text-sm px-3 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 disabled:opacity-50 cursor-pointer">Add</button>
-          <button onClick={() => { setAdding(false); setNewInstrument(''); }} class="text-sm text-gray-400 hover:text-gray-600 cursor-pointer">Cancel</button>
+          <button onClick={handleAdd} disabled={!newInstrument.trim()} class="text-sm px-3 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 disabled:opacity-50 cursor-pointer">Add</button>
+          <button onClick={() => { setAdding(false); setNewInstrument(''); setCustomMode(false); }} class="text-sm text-gray-400 hover:text-gray-600 cursor-pointer">Cancel</button>
         </div>
       )}
     </div>

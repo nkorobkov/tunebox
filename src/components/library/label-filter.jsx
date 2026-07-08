@@ -1,7 +1,8 @@
 export function LabelFilter({
   tunes,
-  selectedLabel,
-  onSelect,
+  selectedLabels,
+  onToggleLabel,
+  onClearLabels,
   proficiencyFilter,
   onProficiencyChange,
   instrumentFilter,
@@ -39,13 +40,11 @@ export function LabelFilter({
     <div class="flex flex-wrap items-center gap-2">
       {labels.length > 0 && (
         <>
-          <button onClick={() => onSelect(null)} class={`text-xs px-2.5 py-1 rounded-full border cursor-pointer ${
-            !selectedLabel ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
-          }`}>All</button>
+          <button onClick={onClearLabels} class={pill(selectedLabels.length === 0)}>All</button>
           {labels.map(label => {
             const key = `${label.type}:${label.value}`;
             return (
-              <button key={key} onClick={() => onSelect(selectedLabel === key ? null : key)} class={pill(selectedLabel === key)}>
+              <button key={key} onClick={() => onToggleLabel(key)} class={pill(selectedLabels.includes(key))}>
                 {label.value} ({label.count})
               </button>
             );

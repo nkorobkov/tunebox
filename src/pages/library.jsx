@@ -111,7 +111,7 @@ export function LibraryPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [sort, setSort] = useState('newest');
-  const [labelFilter, setLabelFilter] = useState(null);
+  const [labelFilters, setLabelFilters] = useState([]); // ["type:value", ...] — tunes must match all (AND)
   const [proficiencyFilter, setProficiencyFilter] = useState('');
   const [instrumentFilter, setInstrumentFilter] = useState('');
   const [selectMode, setSelectMode] = useState(false);
@@ -147,10 +147,14 @@ export function LibraryPage() {
     if (typeFilter) {
       result = result.filter(t => t.type === typeFilter);
     }
-    if (labelFilter) {
-      const [type, value] = labelFilter.split(':');
+    if (labelFilters.length > 0) {
       result = result.filter(t =>
-        (t.labels || []).some(l => l.type === type && l.value === value)
+        labelFilters.every(key => {
+          const i = key.indexOf(':');
+          const type = key.slice(0, i);
+          const value = key.slice(i + 1);
+          return (t.labels || []).some(l => l.type === type && l.value === value);
+        })
       );
     }
     if (proficiencyFilter) {
@@ -166,7 +170,7 @@ export function LibraryPage() {
       );
     }
     return sortTunes(result, sort);
-  }, [tunes, search, typeFilter, labelFilter, proficiencyFilter, instrumentFilter, sort]);
+  }, [tunes, search, typeFilter, labelFilters, proficiencyFilter, instrumentFilter, sort]);
 
   const types = useMemo(() =>
     [...new Set(tunes.map(t => t.type).filter(Boolean))].sort(),
@@ -264,8 +268,8 @@ export function LibraryPage() {
           instruments={allInstruments}
         />
       ) : (
-        <div class="flex items-center justify-end mb-6">
-          <div class="hidden lg:flex items-center gap-3">
+        <div class="hidden lg:flex items-center justify-end mb-6">
+          <div class="flex items-center gap-3">
             <Button variant="secondary" onClick={() => setSelectMode(true)}>Select</Button>
             <Button variant="secondary" href="/add">+ Add tune</Button>
             <Button href="/practice">Practice</Button>
@@ -327,8 +331,11 @@ export function LibraryPage() {
         </div>
         <LabelFilter
           tunes={tunes}
-          selectedLabel={labelFilter}
-          onSelect={setLabelFilter}
+          selectedLabels={labelFilters}
+          onToggleLabel={key => setLabelFilters(prev =>
+            prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+          )}
+          onClearLabels={() => setLabelFilters([])}
           proficiencyFilter={proficiencyFilter}
           onProficiencyChange={setProficiencyFilter}
           instrumentFilter={instrumentFilter}

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'preact/hooks';
+import { route } from 'preact-router';
 import { Shell } from '../components/layout/shell';
 import { PracticeCard } from '../components/practice/practice-card';
 import { PracticeEntry } from '../components/practice/practice-entry';
@@ -44,9 +45,16 @@ export function PracticePage({ tune: tuneIdParam }) {
   const { forInstrument, loading: tunesLoading, refetch } = useTunesByInstrument();
   const session = usePracticeSession(practicing && !singleTune ? instrument : null, { includePracticedToday: isReview, tags: selectedTags });
 
-  // Load single tune if tuneId param is present
+  // Load single tune if tuneId param is present; reset when the param goes
+  // away (back button or nav link) — the route stays mounted either way.
   useEffect(() => {
-    if (!tuneIdParam) return;
+    if (!tuneIdParam) {
+      setSingleTune(null);
+      setSingleTuneLoading(false);
+      setPracticing(false);
+      setLastResult(null);
+      return;
+    }
     setSingleTuneLoading(true);
     pb.collection('user_tunes').getOne(tuneIdParam)
       .then(t => { setSingleTune(t); setPracticing(true); })
@@ -113,10 +121,8 @@ export function PracticePage({ tune: tuneIdParam }) {
 
   const handleStop = () => {
     if (singleTune) {
-      setSingleTune(null);
-      setLastResult(null);
-      setPracticing(false);
-      history.replaceState(null, '', '/practice');
+      // Router prop change triggers the reset effect above
+      route('/practice', true);
       refetch();
       return;
     }

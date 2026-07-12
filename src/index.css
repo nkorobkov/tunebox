@@ -98,6 +98,22 @@
   border-radius: 0.375rem;
 }
 
+/* Practice-history chart status colors — hexes validated (CVD separation +
+   contrast) against the light (#fff) and dark (#1e2939) card surfaces;
+   re-validate with the dataviz palette checker if you change them. */
+.practice-chart {
+  --chart-good: #2c7a28;
+  --chart-hard: #d97706;
+  --chart-bad: #dc2626;
+  --chart-surface: #ffffff;
+}
+.dark .practice-chart {
+  --chart-good: #4aab44;
+  --chart-hard: #d97706;
+  --chart-bad: #fb2c36;
+  --chart-surface: #1e2939;
+}
+
 /* Escape hatch: restores the light palette for a subtree (or a single
    element) that is designed dark-on-light in both themes — the landing
    page and the dark metronome/record buttons. Values are Tailwind v4

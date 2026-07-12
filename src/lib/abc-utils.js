@@ -49,6 +49,18 @@ export function parseAbcMeta(abc) {
   return { title, type, key, source, author, session_id, session_url };
 }
 
+/**
+ * Inject or replace Q: tempo header in ABC string so abcjs uses it natively.
+ */
+export function setAbcTempo(abc, qpm) {
+  // If ABC already has a Q: field, replace it
+  if (/^Q:/m.test(abc)) {
+    return abc.replace(/^Q:.*$/m, `Q:1/4=${qpm}`);
+  }
+  // Insert Q: after K: line (key is typically the last header before the body)
+  return abc.replace(/^(K:.*)$/m, `$1\nQ:1/4=${qpm}`);
+}
+
 export function buildAbcString(title, tuneType, key, abc) {
   const meter = getMeter(tuneType);
   // If the ABC already has headers, strip transcription/source lines

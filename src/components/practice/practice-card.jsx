@@ -1,27 +1,57 @@
-import { useState } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 import { AbcViewer } from '../tune/abc-viewer';
-import { AbcPlayer } from '../tune/abc-player';
 import { SheetMusicViewer } from '../tune/sheet-music-viewer';
 import { Metronome } from './metronome';
+import { TunePlayer } from './tune-player';
+import { ToolTile, WaveformIcon } from './tool-tile';
 import { FluencyRater } from './fluency-rater';
 import { BackingTrackPlayer } from './backing-track-player';
+import { PracticeHistoryChart } from './practice-history-chart';
 import { useAttachments } from '../../hooks/use-attachments';
+import { usePracticeHistory } from '../../hooks/use-practice-history';
 import { NotesContent } from '../tune/tune-notes';
 import { buildAbcString, getDefaultTempo, getMeter } from '../../lib/abc-utils';
 import { getInstrumentData, instrumentProficiency, suggestLearningTempo } from '../../lib/practice-algorithm';
 
+function useElapsedSeconds() {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const t = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return seconds;
+}
+
+function fmtElapsed(s) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+/**
+ * Active practice view for one tune. The card owns a single shared `tempo`:
+ * metronome, tune playback, backing-track rate and the progress button all
+ * follow it. Mount with key={tune.id} so per-tune state (tempo, timer,
+ * spoilers) resets between tunes.
+ */
 export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleLearning, onCompletePlaying, onSkip }) {
   const [saving, setSaving] = useState(false);
+  const [showTracks, setShowTracks] = useState(false);
   const { mainSource, backingTracks } = useAttachments(tune.id);
+  const history = usePracticeHistory(tune.id, instrument);
+  const elapsed = useElapsedSeconds();
 
   const isLearning = instrumentProficiency(tune, instrument) === 'learning';
-
   const fallbackTempo = tune.canonical_tempo || getDefaultTempo(tune.type);
   const instData = getInstrumentData(tune, instrument, fallbackTempo);
+  const { suggestion, isFirstTime } = suggestLearningTempo(instData.current_tempo, instData.target_tempo);
+
+  const [tempo, setTempo] = useState(isLearning ? suggestion : instData.target_tempo);
+  const [transpose, setTranspose] = useState(tune.transpose || 0);
 
   const fullAbc = tune.abc
     ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc)
     : null;
+  const meetsTarget = tempo >= instData.target_tempo;
 
   const withSaving = (fn) => async (...args) => {
     setSaving(true);
@@ -34,39 +64,110 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
     }
   };
 
-  const handleLearningComplete = withSaving((tempo) => onCompleteLearning(tune, tempo));
-  const handleLearningStruggle = withSaving(() => onStruggleLearning(tune));
-  const handlePlayingRate = withSaving((rating) => onCompletePlaying(tune, rating));
+  const handleComplete = withSaving(() => onCompleteLearning(tune, tempo, elapsed));
+  const handleStruggle = withSaving(() => onStruggleLearning(tune, elapsed));
+  const handleRate = withSaving((rating) => onCompletePlaying(tune, rating, tempo, elapsed));
 
-  if (isLearning) {
-    return (
-      <LearningCard
-        tune={tune}
-        instrument={instrument}
-        instData={instData}
-        fullAbc={fullAbc}
-        mainSource={mainSource}
-        backingTracks={backingTracks}
-        saving={saving}
-        onComplete={handleLearningComplete}
-        onStruggle={handleLearningStruggle}
-        onSkip={onSkip}
-      />
-    );
-  }
+  const hint = isLearning
+    ? (isFirstTime
+      ? `First time on ${instrument} — start where it feels comfortable`
+      : `Last time ${instData.current_tempo} BPM — try ${suggestion} today`)
+    : `You know this one — play it at ${instData.target_tempo} BPM`;
+
+  const toolCount = (fullAbc ? 1 : 0) + (backingTracks.length > 0 ? 1 : 0);
 
   return (
-    <PlayingCard
-      tune={tune}
-      instrument={instrument}
-      instData={instData}
-      fullAbc={fullAbc}
-      mainSource={mainSource}
-      backingTracks={backingTracks}
-      saving={saving}
-      onRate={handlePlayingRate}
-      onSkip={onSkip}
-    />
+    <div class="space-y-4">
+      {/* Header + timer */}
+      <div class="flex items-start justify-between gap-3">
+        <TuneHeader tune={tune} instrument={instrument} targetTempo={instData.target_tempo} />
+        <span
+          class="text-sm text-gray-400 shrink-0 mt-1"
+          style="font-variant-numeric: tabular-nums"
+          title="Time on this tune"
+        >{fmtElapsed(elapsed)}</span>
+      </div>
+
+      {/* Tempo + metronome */}
+      <div class="space-y-1.5">
+        <p class="text-sm text-gray-500">{hint}</p>
+        <Metronome
+          tempo={tempo}
+          onTempoChange={setTempo}
+          targetTempo={instData.target_tempo}
+          defaultTimeSignature={getMeter(tune.type)}
+        />
+      </div>
+
+      {/* Playback tools */}
+      {toolCount > 0 && (
+        <div class={`grid gap-2 ${toolCount === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {fullAbc && <TunePlayer abc={fullAbc} tempo={tempo} transpose={transpose} />}
+          {backingTracks.length > 0 && (
+            <ToolTile
+              active={showTracks}
+              onClick={() => setShowTracks(!showTracks)}
+              icon={<WaveformIcon class="w-5 h-5" />}
+              label="Backing track"
+              sublabel={backingTracks.length > 1 ? `${backingTracks.length} tracks` : (showTracks ? 'hide' : 'show')}
+            />
+          )}
+        </div>
+      )}
+      {showTracks && backingTracks.length > 0 && (
+        <div class="space-y-2">
+          {backingTracks.map(bt => <BackingTrackPlayer key={bt.id} attachment={bt} targetTempo={tempo} />)}
+        </div>
+      )}
+
+      {/* Progress */}
+      {isLearning ? (
+        <div class="space-y-1">
+          <button
+            onClick={handleComplete}
+            disabled={saving || !tempo}
+            class="w-full py-4 rounded-lg text-white font-semibold cursor-pointer disabled:opacity-50 bg-brand-600 hover:bg-brand-700"
+          >
+            {meetsTarget
+              ? `Practiced at ${tempo} BPM — move to Playing!`
+              : `Played it cleanly at ${tempo} BPM`}
+          </button>
+          <div class="flex items-center justify-center gap-6 py-1.5">
+            <button
+              onClick={handleStruggle}
+              disabled={saving}
+              class="text-sm text-amber-700 hover:text-amber-800 cursor-pointer disabled:opacity-50"
+            >
+              Couldn't play it yet
+            </button>
+            <button onClick={onSkip} class="text-sm text-gray-400 hover:text-gray-600 cursor-pointer">
+              Skip for today
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div class="space-y-1">
+          <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <FluencyRater onRate={handleRate} disabled={saving} />
+          </div>
+          <div class="text-center py-1.5">
+            <button onClick={onSkip} class="text-sm text-gray-400 hover:text-gray-600 cursor-pointer">
+              Skip for today
+            </button>
+          </div>
+        </div>
+      )}
+
+      <PracticeSpoilers
+        tune={tune}
+        mainSource={mainSource}
+        fullAbc={fullAbc}
+        transpose={transpose}
+        onTransposeChange={setTranspose}
+      />
+
+      <PracticeHistoryChart entries={history} targetTempo={instData.target_tempo} />
+    </div>
   );
 }
 
@@ -125,7 +226,7 @@ function Spoiler({ label, children }) {
 
 function PracticeSpoilers({ tune, mainSource, fullAbc, transpose, onTransposeChange }) {
   return (
-    <>
+    <div class="border-t border-gray-200 pt-1">
       <Spoiler label="sheet music">
         <SheetMusic mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={onTransposeChange} />
       </Spoiler>
@@ -136,110 +237,6 @@ function PracticeSpoilers({ tune, mainSource, fullAbc, transpose, onTransposeCha
           </div>
         </Spoiler>
       )}
-    </>
-  );
-}
-
-function LearningCard({ tune, instrument, instData, fullAbc, mainSource, backingTracks, saving, onComplete, onStruggle, onSkip }) {
-  const { suggestion, isFirstTime } = suggestLearningTempo(instData.current_tempo, instData.target_tempo);
-  const [tempo, setTempo] = useState(suggestion);
-  const [transpose, setTranspose] = useState(tune.transpose || 0);
-  const meetsTarget = tempo >= instData.target_tempo;
-
-  return (
-    <div class="space-y-4">
-      <TuneHeader tune={tune} instrument={instrument} targetTempo={instData.target_tempo} />
-
-      {/* Prompt */}
-      <div class="bg-blue-50 rounded-lg border border-blue-200 p-4">
-        <p class="text-sm text-blue-800 font-medium">
-          Practice at the max BPM where you can play reliably.
-        </p>
-        {isFirstTime ? (
-          <p class="text-sm text-blue-600 mt-1">
-            First time! Start at whatever tempo feels comfortable.
-            Target: {instData.target_tempo} BPM.
-          </p>
-        ) : (
-          <p class="text-sm text-blue-600 mt-1">
-            Last time: {instData.current_tempo} BPM. How about {suggestion} BPM today?
-          </p>
-        )}
-      </div>
-
-      {/* Playback + Metronome */}
-      <div class="space-y-2">
-        {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={tempo} transpose={transpose} />}
-        <Metronome defaultBpm={tempo} defaultTimeSignature={getMeter(tune.type)} onTempoChange={setTempo} />
-        {backingTracks.map(bt => <BackingTrackPlayer key={bt.id} attachment={bt} targetTempo={tempo} />)}
-      </div>
-
-      {/* Complete button */}
-      <div class="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
-        <button
-          onClick={() => onComplete(tempo)}
-          disabled={saving || !tempo}
-          class="w-full py-3 rounded-lg text-white font-medium cursor-pointer disabled:opacity-50 bg-brand-600 hover:bg-brand-700"
-        >
-          {meetsTarget
-            ? `Practiced at ${tempo} BPM — move to Playing!`
-            : `Practiced with no mistakes at ${tempo} BPM`}
-        </button>
-        <button
-          onClick={onStruggle}
-          disabled={saving}
-          class="w-full py-3 rounded-lg text-amber-700 bg-amber-50 border border-amber-200 font-medium cursor-pointer disabled:opacity-50 hover:bg-amber-100"
-        >
-          Can't play with metronome yet
-        </button>
-        <button
-          onClick={onSkip}
-          class="w-full py-2 text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
-        >
-          Skip for today
-        </button>
-      </div>
-
-      <PracticeSpoilers tune={tune} mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={setTranspose} />
-    </div>
-  );
-}
-
-function PlayingCard({ tune, instrument, instData, fullAbc, mainSource, backingTracks, saving, onRate, onSkip }) {
-  const playTempo = instData.target_tempo;
-  const [transpose, setTranspose] = useState(tune.transpose || 0);
-
-  return (
-    <div class="space-y-4">
-      <TuneHeader tune={tune} instrument={instrument} targetTempo={instData.target_tempo} />
-
-      {/* Prompt */}
-      <div class="bg-brand-50 rounded-lg border border-brand-200 p-4">
-        <p class="text-sm text-brand-800 dark:text-brand-400 font-medium">
-          Play at {playTempo} BPM
-        </p>
-      </div>
-
-      {/* Playback + Metronome */}
-      <div class="space-y-2">
-        {fullAbc && <AbcPlayer abc={fullAbc} defaultTempo={playTempo} transpose={transpose} />}
-        <Metronome defaultBpm={playTempo} defaultTimeSignature={getMeter(tune.type)} />
-        {backingTracks.map(bt => <BackingTrackPlayer key={bt.id} attachment={bt} targetTempo={playTempo} />)}
-      </div>
-
-      {/* Rating */}
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <FluencyRater onRate={onRate} disabled={saving} />
-      </div>
-
-      <button
-        onClick={onSkip}
-        class="w-full py-2 text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
-      >
-        Skip for today
-      </button>
-
-      <PracticeSpoilers tune={tune} mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={setTranspose} />
     </div>
   );
 }

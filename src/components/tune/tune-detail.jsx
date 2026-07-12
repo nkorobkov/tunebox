@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useState, useRef, useEffect } from 'preact/hooks';
 import { route } from 'preact-router';
 import { AbcViewer } from './abc-viewer';
 import { AbcPlayer } from './abc-player';
@@ -59,7 +59,20 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   const [showRecorder, setShowRecorder] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickingInstrument, setPickingInstrument] = useState(false);
+  const practiceMenuRef = useRef(null);
   const [transpose, setTranspose] = useState(tune.transpose || 0);
+
+  // Close the practice instrument dropdown on outside click
+  useEffect(() => {
+    if (!pickingInstrument) return;
+    const handler = (e) => {
+      if (practiceMenuRef.current && !practiceMenuRef.current.contains(e.target)) {
+        setPickingInstrument(false);
+      }
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [pickingInstrument]);
   const { attachments, loading: attachmentsLoading, upload, update: updateAttachment, remove, setMainSource, mainSource } = useAttachments(tune.id);
   const { isOffline } = useConnectivity();
 
@@ -163,39 +176,34 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
           </div>
         </div>
         <div class="flex flex-col items-end gap-2">
-          {pickingInstrument ? (
-            <div class="flex items-center gap-1">
-              {allInstruments.map((inst, i) => (
+          <div class="flex gap-2">
+              <div class="relative" ref={practiceMenuRef}>
                 <button
-                  key={inst}
-                  onClick={() => practiceWithInstrument(inst)}
-                  class={`text-xs px-2 py-1.5 cursor-pointer capitalize border border-brand-300 bg-white text-brand-600 dark:text-brand-400 hover:bg-brand-600 hover:text-white ${
-                    i === 0 ? 'rounded-l' : ''}${i === allInstruments.length - 1 ? 'rounded-r' : ''}${i > 0 ? ' -ml-px' : ''}`}
+                  onClick={() => {
+                    if (allInstruments.length <= 1) {
+                      practiceWithInstrument(allInstruments[0] || '');
+                    } else {
+                      setPickingInstrument(!pickingInstrument);
+                    }
+                  }}
+                  class="px-3 py-1.5 text-sm bg-brand-600 text-white rounded-md hover:bg-brand-700 cursor-pointer"
                 >
-                  {inst}
+                  Practice
                 </button>
-              ))}
-              <button
-                onClick={() => setPickingInstrument(false)}
-                class="text-xs text-gray-400 hover:text-gray-600 ml-1 cursor-pointer"
-              >
-                cancel
-              </button>
-            </div>
-          ) : (
-            <div class="flex gap-2">
-              <button
-                onClick={() => {
-                  if (allInstruments.length <= 1) {
-                    practiceWithInstrument(allInstruments[0] || '');
-                  } else {
-                    setPickingInstrument(true);
-                  }
-                }}
-                class="px-3 py-1.5 text-sm bg-brand-600 text-white rounded-md hover:bg-brand-700 cursor-pointer"
-              >
-                Practice
-              </button>
+                {pickingInstrument && (
+                  <div class="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 min-w-36">
+                    {allInstruments.map(inst => (
+                      <button
+                        key={inst}
+                        onClick={() => practiceWithInstrument(inst)}
+                        class="block w-full px-4 py-2 text-sm text-left capitalize cursor-pointer text-gray-700 hover:bg-gray-100"
+                      >
+                        {inst}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => setEditing(true)}
                 disabled={isOffline}
@@ -218,8 +226,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
                 </svg>
                 <span class="hidden lg:inline">Delete</span>
               </button>
-            </div>
-          )}
+          </div>
         </div>
       </div>
 

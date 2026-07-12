@@ -1,17 +1,6 @@
 import { useRef, useEffect } from 'preact/hooks';
 import abcjs from 'abcjs';
-
-/**
- * Inject or replace Q: tempo header in ABC string so abcjs uses it natively.
- */
-function setAbcTempo(abc, qpm) {
-  // If ABC already has a Q: field, replace it
-  if (/^Q:/m.test(abc)) {
-    return abc.replace(/^Q:.*$/m, `Q:1/4=${qpm}`);
-  }
-  // Insert Q: after K: line (key is typically the last header before the body)
-  return abc.replace(/^(K:.*)$/m, `$1\nQ:1/4=${qpm}`);
-}
+import { setAbcTempo } from '../../lib/abc-utils';
 
 export function AbcPlayer({ abc, defaultTempo = 120, transpose = 0 }) {
   const containerRef = useRef(null);

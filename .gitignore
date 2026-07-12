@@ -41,3 +41,4 @@ LOCAL_SETUP.md
 public/tesseract/
 public/pdfjs/
 .claude/skills/verify/verify-file-import.mjs
+customer-research.md

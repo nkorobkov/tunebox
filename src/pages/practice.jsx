@@ -3,6 +3,8 @@ import { route } from 'preact-router';
 import { Shell } from '../components/layout/shell';
 import { PracticeCard } from '../components/practice/practice-card';
 import { PracticeEntry } from '../components/practice/practice-entry';
+import { SessionSummary, MoreTunes } from '../components/practice/session-summary';
+import { Button } from '../components/common/button';
 import { useAuth } from '../lib/auth';
 import { pb } from '../lib/pb';
 import { getDefaultTempo } from '../lib/abc-utils';
@@ -41,6 +43,8 @@ export function PracticePage({ tune: tuneIdParam }) {
   const [singleTune, setSingleTune] = useState(null);
   const [singleTuneLoading, setSingleTuneLoading] = useState(!!tuneIdParam);
   const [selectedTags, setSelectedTags] = useState([]);
+  const [sessionLog, setSessionLog] = useState([]);
+  const [showSummary, setShowSummary] = useState(false);
 
   const { forInstrument, loading: tunesLoading, refetch } = useTunesByInstrument();
   const session = usePracticeSession(practicing && !singleTune ? instrument : null, { includePracticedToday: isReview, tags: selectedTags });
@@ -105,8 +109,15 @@ export function PracticePage({ tune: tuneIdParam }) {
     );
   };
 
-  const handleStart = () => { setIsReview(false); setPracticing(true); setLastResult(null); };
-  const handleReviewAgain = () => { setIsReview(true); setPracticing(true); setLastResult(null); };
+  const startSession = (review) => {
+    setIsReview(review);
+    setSessionLog([]);
+    setShowSummary(false);
+    setPracticing(true);
+    setLastResult(null);
+  };
+  const handleStart = () => startSession(false);
+  const handleReviewAgain = () => startSession(true);
 
   const handleStartLearning = useCallback(async (tune, targetBpm, forInstrument) => {
     const inst = forInstrument || instrument;
@@ -127,8 +138,13 @@ export function PracticePage({ tune: tuneIdParam }) {
       return;
     }
     setPracticing(false);
+    if (sessionLog.length > 0) setShowSummary(true);
     refetch();
   };
+
+  const logEntry = useCallback((entry) => {
+    setSessionLog(prev => [...prev, entry]);
+  }, []);
 
   // Shared handler: save practice, show message, advance queue if in session
   const completePractice = useCallback(async (saveFn, getMsg) => {
@@ -141,46 +157,95 @@ export function PracticePage({ tune: tuneIdParam }) {
     return res;
   }, [singleTune, session]);
 
-  const onCompleteLearning = useCallback(async (tune, tempo) => {
+  const onCompleteLearning = useCallback(async (tune, tempo, durationSec) => {
     const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
-    const { target_tempo } = getInstrumentData(tune, instrument, fallback);
+    const { target_tempo, current_tempo } = getInstrumentData(tune, instrument, fallback);
     return completePractice(
-      () => singleTune
-        ? saveLearningPractice(tune, instrument, tempo)
-        : session.completeLearning(tune, tempo),
+      async () => {
+        const res = singleTune
+          ? await saveLearningPractice(tune, instrument, tempo)
+          : await session.completeLearning(tune, tempo);
+        logEntry({ tune, mode: 'learning', tempo, prevTempo: current_tempo, outcome: res.movedToPlaying ? 'moved' : 'progress', durationSec });
+        return res;
+      },
       (res) => learningResultMsg(tempo, res.movedToPlaying, target_tempo),
     );
-  }, [singleTune, instrument, session, completePractice]);
+  }, [singleTune, instrument, session, completePractice, logEntry]);
 
-  const onStruggleLearning = useCallback(async (tune) => {
+  const onStruggleLearning = useCallback(async (tune, durationSec) => {
     return completePractice(
-      () => singleTune
-        ? saveLearningStruggle(tune, instrument)
-        : session.completeLearningStruggle(tune),
+      async () => {
+        const res = singleTune
+          ? await saveLearningStruggle(tune, instrument)
+          : await session.completeLearningStruggle(tune);
+        logEntry({ tune, mode: 'learning', outcome: 'struggle', durationSec });
+        return res;
+      },
       'Good effort! We\'ll try again next time.',
     );
-  }, [singleTune, instrument, session, completePractice]);
+  }, [singleTune, instrument, session, completePractice, logEntry]);
 
-  const onCompletePlaying = useCallback(async (tune, rating) => {
+  const onCompletePlaying = useCallback(async (tune, rating, tempo, durationSec) => {
     return completePractice(
-      () => singleTune
-        ? savePlayingPractice(tune, instrument, rating)
-        : session.completePlaying(tune, rating),
+      async () => {
+        const res = singleTune
+          ? await savePlayingPractice(tune, instrument, rating, tempo)
+          : await session.completePlaying(tune, rating, tempo);
+        logEntry({ tune, mode: 'playing', tempo, outcome: rating, durationSec });
+        return res;
+      },
       PLAYING_MESSAGES[rating],
     );
-  }, [singleTune, instrument, session, completePractice]);
+  }, [singleTune, instrument, session, completePractice, logEntry]);
+
+  const handleSkip = useCallback(() => {
+    if (session.currentTune) {
+      logEntry({ tune: session.currentTune, mode: null, outcome: 'skip', durationSec: 0 });
+    }
+    session.skip();
+  }, [session, logEntry]);
+
+  // Queue exhausted after practicing something → move to the summary screen.
+  const queueExhausted = practicing && !singleTune && !session.loading && !session.currentTune && !lastResult;
+  useEffect(() => {
+    if (queueExhausted && sessionLog.length > 0) {
+      setPracticing(false);
+      setShowSummary(true);
+    }
+  }, [queueExhausted, sessionLog.length]);
+
+  // Refresh tune data behind the summary / post-practice screens so
+  // practiced-today status in the "more tunes" lists is current.
+  useEffect(() => {
+    if (showSummary || (lastResult && singleTune)) refetch(true);
+  }, [showSummary, lastResult, singleTune, refetch]);
+
+  const backHome = () => {
+    setShowSummary(false);
+    setSessionLog([]);
+  };
 
   // Loading single tune
   if (singleTuneLoading) {
     return <Shell><LoadingIndicator /></Shell>;
   }
 
-  // Entry page
+  // Entry page / session summary
   if (!practicing) {
     return (
       <Shell>
         {tunesLoading ? (
           <LoadingIndicator />
+        ) : showSummary ? (
+          <SessionSummary
+            entries={sessionLog}
+            instrument={instrument}
+            learning={allLearning}
+            playing={allPlaying}
+            notStarted={notStarted}
+            onStartLearning={handleStartLearning}
+            onBackHome={backHome}
+          />
         ) : (
           <PracticeEntry
             userInstruments={userInstruments}
@@ -220,15 +285,28 @@ export function PracticePage({ tune: tuneIdParam }) {
       {isLoading ? (
         <LoadingIndicator text="Building practice queue" />
       ) : lastResult ? (
-        <div class="text-center py-12">
-          <p class="text-lg font-medium text-gray-900">{lastResult}</p>
-          {singleTune && (
-            <div class="flex items-center justify-center gap-4 mt-4">
-              <button onClick={handleStop} class="text-sm text-blue-600 hover:underline cursor-pointer">Practice more tunes</button>
-              <a href="/" class="text-sm text-gray-500 hover:text-gray-700 no-underline">Back to library</a>
+        singleTune ? (
+          <div class="space-y-6">
+            <div class="text-center pt-4">
+              <p class="text-lg font-medium text-gray-900">{lastResult}</p>
             </div>
-          )}
-        </div>
+            <MoreTunes
+              learning={allLearning}
+              playing={allPlaying}
+              notStarted={notStarted}
+              instrument={instrument}
+              onStartLearning={handleStartLearning}
+            />
+            <div class="flex items-center justify-center gap-3">
+              <Button variant="secondary" size="lg" onClick={handleStop}>Back to practice home</Button>
+              <Button variant="ghost" size="lg" href="/">Back to library</Button>
+            </div>
+          </div>
+        ) : (
+          <div class="text-center py-12">
+            <p class="text-lg font-medium text-gray-900">{lastResult}</p>
+          </div>
+        )
       ) : !currentTune ? (
         <div class="text-center py-12">
           <p class="text-2xl mb-2">All done!</p>
@@ -239,12 +317,13 @@ export function PracticePage({ tune: tuneIdParam }) {
         </div>
       ) : (
         <PracticeCard
+          key={`${currentTune.id}-${instrument}`}
           tune={currentTune}
           instrument={instrument}
           onCompleteLearning={onCompleteLearning}
           onStruggleLearning={onStruggleLearning}
           onCompletePlaying={onCompletePlaying}
-          onSkip={singleTune ? handleStop : session.skip}
+          onSkip={singleTune ? handleStop : handleSkip}
         />
       )}
     </Shell>

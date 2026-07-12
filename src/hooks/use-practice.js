@@ -108,7 +108,7 @@ export async function saveLearningPractice(tune, instrument, practicedTempo) {
 /**
  * Save a playing-mode practice: update stability, optionally move to learning.
  */
-export async function savePlayingPractice(tune, instrument, rating) {
+export async function savePlayingPractice(tune, instrument, rating, tempoUsed) {
   const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
   const instData = getInstrumentData(tune, instrument, fallback);
   const isRelearn = rating === 'relearn';
@@ -118,7 +118,7 @@ export async function savePlayingPractice(tune, instrument, rating) {
   const { updated } = await savePractice(tune, instrument, {
     current_tempo: isRelearn ? relearnTempo(instData.target_tempo) : instData.current_tempo,
     stability: isRelearn ? INITIAL_STABILITY : updateStability(instData.stability, rating),
-    tempo_used: instData.target_tempo,
+    tempo_used: tempoUsed || instData.target_tempo,
     fluency_rating: fluencyMap[rating] || 1,
   });
 
@@ -279,8 +279,8 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
     return res;
   }, [instrument]);
 
-  const completePlaying = useCallback(async (tune, rating) => {
-    const res = await savePlayingPractice(tune, instrument, rating);
+  const completePlaying = useCallback(async (tune, rating, tempoUsed) => {
+    const res = await savePlayingPractice(tune, instrument, rating, tempoUsed);
     setQueue(prev => prev.map(t => t.id === res.updated.id ? res.updated : t));
     return res;
   }, [instrument]);

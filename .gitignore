@@ -40,5 +40,6 @@ LOCAL_SETUP.md
 # Copied from node_modules by scripts/copy-vendor-assets.mjs (postinstall)
 public/tesseract/
 public/pdfjs/
+public/abcjs/
 .claude/skills/verify/verify-file-import.mjs
 customer-research.md

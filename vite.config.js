@@ -20,11 +20,13 @@ export default defineConfig({
         navigateFallback: '/index.html',
         // Never serve the app shell for real static files (robots.txt and
         // sitemap.xml aren't precached, so without this the SW hijacks
-        // browser navigations to them).
-        navigateFallbackDenylist: [/^\/robots\.txt$/, /^\/sitemap\.xml$/],
+        // browser navigations to them). Same for the standalone Portland
+        // Collection page.
+        navigateFallbackDenylist: [/^\/robots\.txt$/, /^\/sitemap\.xml$/, /^\/portland-collection/],
         // Don't precache .map files or other dev artifacts. The tesseract
-        // and pdf.js assets (~15MB) are lazy-loaded on demand, not precached.
-        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'tesseract/**', 'pdfjs/**'],
+        // and pdf.js assets (~15MB), the abcjs copy, and the Portland
+        // Collection page (~700KB) are lazy-loaded on demand, not precached.
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'tesseract/**', 'pdfjs/**', 'abcjs/**', 'portland-collection/**'],
       },
     }),
   ],

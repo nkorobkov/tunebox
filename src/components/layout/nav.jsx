@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { useAuth } from '../../lib/auth';
 import { useConnectivity } from '../../lib/connectivity';
+import { canPromptInstall } from '../../lib/install';
 import { avatarUrl, initials } from '../../lib/avatar';
 import { OfflineIndicator } from './offline-indicator';
 
@@ -107,6 +108,9 @@ export function Nav() {
                   <div class="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]">
                     <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline" onClick={() => setMenuOpen(false)}>Library</a>
                     <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline" onClick={() => setMenuOpen(false)}>Settings</a>
+                    {canPromptInstall() && (
+                      <a href="/install" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 no-underline" onClick={() => setMenuOpen(false)}>Install app</a>
+                    )}
                     <hr class="my-1 border-gray-100" />
                     <a href="/user" class="flex items-center gap-2 px-4 pt-1.5 text-xs text-gray-400 hover:text-gray-600 no-underline" onClick={() => setMenuOpen(false)}>
                       <UserAvatar user={user} size="w-5 h-5" />

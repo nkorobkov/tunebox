@@ -10,6 +10,7 @@ import { TunePage } from './pages/tune';
 import { AddTunePage } from './pages/add-tune';
 import { PracticePage } from './pages/practice';
 import { SettingsPage } from './pages/settings';
+import { InstallPage } from './pages/install';
 import { UserPage } from './pages/user';
 import { LoadingIndicator } from './components/loading-indicator';
 
@@ -55,6 +56,7 @@ function AppRouter() {
         <AddTunePage path="/add" />
         <PracticePage path="/practice" />
         <SettingsPage path="/settings" />
+        <InstallPage path="/install" />
         <UserPage path="/user" />
       </Router>
     </>

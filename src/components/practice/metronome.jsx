@@ -81,10 +81,10 @@ export function Metronome({ tempo, onTempoChange, targetTempo = 0, defaultTimeSi
       <div class="flex items-center gap-2">
         <button
           onClick={playing ? stop : start}
-          class={`theme-light flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium cursor-pointer ${
+          class={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium cursor-pointer text-white ${
             playing
-              ? 'bg-red-600 text-white hover:bg-red-700'
-              : 'bg-gray-800 text-white hover:bg-gray-900'
+              ? 'bg-red-600 hover:bg-red-700'
+              : 'bg-brand-600 hover:bg-brand-700'
           }`}
         >
           <MetronomeIcon class="w-4 h-4" />

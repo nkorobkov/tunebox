@@ -14,20 +14,8 @@ export function StopIcon({ class: cls }) {
   );
 }
 
-export function WaveformIcon({ class: cls }) {
-  return (
-    <svg class={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-      <path d="M4 10v4" />
-      <path d="M8 7v10" />
-      <path d="M12 4v16" />
-      <path d="M16 7v10" />
-      <path d="M20 10v4" />
-    </svg>
-  );
-}
-
 /**
- * Equal-size tile for the playback tool row (play tune / backing track).
+ * Tile for the playback tool row (source-recording player).
  * `corner` renders a small secondary control in the top-right (loop toggle)
  * outside the main button.
  */

@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'preact/hooks';
 import { AbcViewer } from '../tune/abc-viewer';
+import { AbcPlayer } from '../tune/abc-player';
 import { SheetMusicViewer } from '../tune/sheet-music-viewer';
 import { Metronome } from './metronome';
-import { TunePlayer } from './tune-player';
-import { ToolTile, WaveformIcon } from './tool-tile';
+import { TrackPlayer } from './track-player';
 import { FluencyRater } from './fluency-rater';
 import { BackingTrackPlayer } from './backing-track-player';
 import { PracticeHistoryChart } from './practice-history-chart';
-import { useAttachments } from '../../hooks/use-attachments';
+import { useAttachments, isAudio } from '../../hooks/use-attachments';
+import { parseYouTube } from '../../lib/youtube';
 import { usePracticeHistory } from '../../hooks/use-practice-history';
 import { NotesContent } from '../tune/tune-notes';
 import { buildAbcString, getDefaultTempo, getMeter } from '../../lib/abc-utils';
@@ -29,14 +30,13 @@ function fmtElapsed(s) {
 
 /**
  * Active practice view for one tune. The card owns a single shared `tempo`:
- * metronome, tune playback, backing-track rate and the progress button all
- * follow it. Mount with key={tune.id} so per-tune state (tempo, timer,
- * spoilers) resets between tunes.
+ * metronome, backing-track rate, the sheet-music MIDI player and the
+ * progress button all follow it. Mount with key={tune.id} so per-tune state
+ * (tempo, timer, spoilers) resets between tunes.
  */
 export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleLearning, onCompletePlaying, onSkip }) {
   const [saving, setSaving] = useState(false);
-  const [showTracks, setShowTracks] = useState(false);
-  const { mainSource, backingTracks } = useAttachments(tune.id);
+  const { mainSource, backingTracks, sources } = useAttachments(tune.id);
   const history = usePracticeHistory(tune.id, instrument);
   const elapsed = useElapsedSeconds();
 
@@ -74,7 +74,9 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
       : `Last time ${instData.current_tempo} BPM — try ${suggestion} today`)
     : `You know this one — play it at ${instData.target_tempo} BPM`;
 
-  const toolCount = (fullAbc ? 1 : 0) + (backingTracks.length > 0 ? 1 : 0);
+  // The play tile plays the tune's source recording — first source
+  // attachment that is an audio file or a YouTube link.
+  const sourceTrack = sources.find(a => (a.file && isAudio(a.file)) || (a.url && parseYouTube(a.url)));
 
   return (
     <div class="space-y-4">
@@ -100,21 +102,8 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
       </div>
 
       {/* Playback tools */}
-      {toolCount > 0 && (
-        <div class={`grid gap-2 ${toolCount === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          {fullAbc && <TunePlayer abc={fullAbc} tempo={tempo} transpose={transpose} />}
-          {backingTracks.length > 0 && (
-            <ToolTile
-              active={showTracks}
-              onClick={() => setShowTracks(!showTracks)}
-              icon={<WaveformIcon class="w-5 h-5" />}
-              label="Backing track"
-              sublabel={backingTracks.length > 1 ? `${backingTracks.length} tracks` : (showTracks ? 'hide' : 'show')}
-            />
-          )}
-        </div>
-      )}
-      {showTracks && backingTracks.length > 0 && (
+      {sourceTrack && <TrackPlayer key={sourceTrack.id} attachment={sourceTrack} />}
+      {backingTracks.length > 0 && (
         <div class="space-y-2">
           {backingTracks.map(bt => <BackingTrackPlayer key={bt.id} attachment={bt} targetTempo={tempo} />)}
         </div>
@@ -162,6 +151,7 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
         tune={tune}
         mainSource={mainSource}
         fullAbc={fullAbc}
+        tempo={tempo}
         transpose={transpose}
         onTransposeChange={setTranspose}
       />
@@ -187,11 +177,16 @@ function TuneHeader({ tune, instrument, targetTempo }) {
   );
 }
 
-function SheetMusic({ mainSource, fullAbc, transpose, onTransposeChange }) {
+function SheetMusic({ mainSource, fullAbc, tempo, transpose, onTransposeChange }) {
   if (mainSource) {
     return (
       <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4">
         <SheetMusicViewer attachment={mainSource} />
+        {fullAbc && (
+          <div class="mt-3">
+            <AbcPlayer abc={fullAbc} defaultTempo={tempo} transpose={transpose} />
+          </div>
+        )}
       </div>
     );
   }
@@ -199,6 +194,9 @@ function SheetMusic({ mainSource, fullAbc, transpose, onTransposeChange }) {
     return (
       <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4 abc-full-bleed">
         <AbcViewer abc={fullAbc} transpose={transpose} onTransposeChange={onTransposeChange} />
+        <div class="mt-3">
+          <AbcPlayer abc={fullAbc} defaultTempo={tempo} transpose={transpose} />
+        </div>
       </div>
     );
   }
@@ -224,11 +222,11 @@ function Spoiler({ label, children }) {
   );
 }
 
-function PracticeSpoilers({ tune, mainSource, fullAbc, transpose, onTransposeChange }) {
+function PracticeSpoilers({ tune, mainSource, fullAbc, tempo, transpose, onTransposeChange }) {
   return (
     <div class="border-t border-gray-200 pt-1">
       <Spoiler label="sheet music">
-        <SheetMusic mainSource={mainSource} fullAbc={fullAbc} transpose={transpose} onTransposeChange={onTransposeChange} />
+        <SheetMusic mainSource={mainSource} fullAbc={fullAbc} tempo={tempo} transpose={transpose} onTransposeChange={onTransposeChange} />
       </Spoiler>
       {tune.notes && (
         <Spoiler label="notes">

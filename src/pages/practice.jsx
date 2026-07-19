@@ -8,10 +8,10 @@ import { Button } from '../components/common/button';
 import { useAuth } from '../lib/auth';
 import { pb } from '../lib/pb';
 import { getDefaultTempo } from '../lib/abc-utils';
-import { INITIAL_STABILITY, practicedToday, nextLearningTempo, getInstrumentData } from '../lib/practice-algorithm';
+import { INITIAL_STABILITY, practicedToday, isDue, nextLearningTempo, getInstrumentData } from '../lib/practice-algorithm';
 import { LoadingIndicator } from '../components/loading-indicator';
 import {
-  useTunesByInstrument, usePracticeSession,
+  useTunesByInstrument, usePracticeSession, useTodayPractice,
   getDefaultInstrument, saveDefaultInstrument,
   saveLearningPractice, saveLearningStruggle, savePlayingPractice,
 } from '../hooks/use-practice';
@@ -46,7 +46,7 @@ export function PracticePage({ tune: tuneIdParam }) {
   const [sessionLog, setSessionLog] = useState([]);
   const [showSummary, setShowSummary] = useState(false);
 
-  const { forInstrument, loading: tunesLoading, refetch } = useTunesByInstrument();
+  const { allTunes, forInstrument, loading: tunesLoading, refetch } = useTunesByInstrument();
   const session = usePracticeSession(practicing && !singleTune ? instrument : null, { includePracticedToday: isReview, tags: selectedTags });
 
   // Load single tune if tuneId param is present; reset when the param goes
@@ -99,9 +99,19 @@ export function PracticePage({ tune: tuneIdParam }) {
   const playing = filterByTags(allPlaying);
 
   const allPracticeable = [...learning, ...playing];
-  const unpracticedCount = allPracticeable.filter(t => !practicedToday(t, instrument)).length;
-  const practicedCount = allPracticeable.length - unpracticedCount;
-  const allDoneForToday = unpracticedCount === 0 && practicedCount > 0;
+  const isDueNow = (t) => isDue(t, instrument) && !practicedToday(t, instrument);
+  const dueLearning = learning.filter(isDueNow);
+  const duePlaying = playing.filter(isDueNow);
+  const practicedCount = allPracticeable.filter(t => practicedToday(t, instrument)).length;
+  const allDoneForToday = dueLearning.length + duePlaying.length === 0 && practicedCount > 0;
+
+  // Today's practice log for the entry screen; paused during a session so it
+  // refetches (and stays current) when the user comes back to the home view.
+  const todayLog = useTodayPractice(!practicing && !showSummary ? instrument : null);
+  const titleById = new Map(allTunes.map(t => [t.id, t.title]));
+  const todayEntries = todayLog
+    ? todayLog.map(e => ({ ...e, title: titleById.get(e.user_tune) || 'Deleted tune' }))
+    : null;
 
   const toggleTag = (tag) => {
     setSelectedTags(prev =>
@@ -253,6 +263,10 @@ export function PracticePage({ tune: tuneIdParam }) {
             onSelectInstrument={handleSelectInstrument}
             learning={learning}
             playing={playing}
+            dueLearning={dueLearning}
+            duePlaying={duePlaying}
+            practicedCount={practicedCount}
+            todayEntries={todayEntries}
             notStarted={notStarted}
             onStart={handleStart}
             onStartLearning={handleStartLearning}

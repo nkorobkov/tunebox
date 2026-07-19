@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { Button } from '../common/button';
-import { practicedToday } from '../../lib/practice-algorithm';
+import { practicedToday, isDue } from '../../lib/practice-algorithm';
 
 function fmtDuration(totalSec) {
   const m = Math.floor(totalSec / 60);
@@ -44,7 +44,7 @@ export function MoreTunes({ learning, playing, notStarted, instrument, onStartLe
 
   const byTitle = (a, b) => a.title.localeCompare(b.title);
   const practiceable = [...learning, ...playing];
-  const due = practiceable.filter(t => !practicedToday(t, instrument)).sort(byTitle);
+  const due = practiceable.filter(t => isDue(t, instrument) && !practicedToday(t, instrument)).sort(byTitle);
   const done = practiceable.filter(t => practicedToday(t, instrument)).sort(byTitle);
 
   const handleStartLearning = async (tune) => {

@@ -136,4 +136,33 @@ export function instrumentProficiency(tune, instrument) {
   return 'learning';
 }
 
+const DUE_RISK_THRESHOLD = 0.5;
+
+/**
+ * Whether a tune belongs in today's practice queue. Learning tunes are
+ * always due — daily practice while a tune is actively being worked on.
+ * Playing tunes rest until enough forgetting risk builds up (risk >= 0.5,
+ * reached ~0.69 × stability days after the last practice), so well-known
+ * tunes come back progressively less often as their stability grows.
+ */
+export function isDue(tune, instrument) {
+  const prof = instrumentProficiency(tune, instrument);
+  if (!prof) return false;
+  if (prof === 'learning') return true;
+  const data = tune.instruments[instrument];
+  const risk = forgettingRisk(daysSince(data.last_practiced), data.stability || INITIAL_STABILITY);
+  return risk >= DUE_RISK_THRESHOLD;
+}
+
+/**
+ * Days until a playing tune comes due; 0 when it is due now (or learning).
+ */
+export function dueInDays(tune, instrument) {
+  if (isDue(tune, instrument)) return 0;
+  const data = tune.instruments?.[instrument];
+  const s = data?.stability || INITIAL_STABILITY;
+  const dueAfter = -s * Math.log(1 - DUE_RISK_THRESHOLD);
+  return Math.max(0, dueAfter - daysSince(data?.last_practiced));
+}
+
 export { INITIAL_STABILITY };

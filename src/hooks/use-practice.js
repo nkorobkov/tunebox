@@ -8,6 +8,7 @@ import {
   updateStability,
   relearnTempo,
   practicedToday,
+  isDue,
   INITIAL_STABILITY,
 } from '../lib/practice-algorithm';
 import { updateTuneInCache, loadTunesFromCache } from '../lib/tune-cache';
@@ -189,6 +190,37 @@ export function useTunesByInstrument() {
   return { allTunes, forInstrument, loading, refetch: fetch };
 }
 
+/**
+ * Today's practice_log entries for the current user + instrument, newest
+ * first. Pass a falsy instrument to pause (e.g. while a session is active).
+ * Returns null while loading/paused/offline/on error, [] when nothing yet.
+ */
+export function useTodayPractice(instrument) {
+  const [entries, setEntries] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setEntries(null);
+    if (!instrument) return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    const userId = pb.authStore.record?.id;
+    if (!userId) return;
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    const since = midnight.toISOString().replace('T', ' ');
+    pb.collection('practice_log').getList(1, 200, {
+      filter: `user = "${userId}" && instrument = "${instrument}" && practiced_at >= "${since}"`,
+      sort: '-practiced_at',
+      fields: 'id,user_tune,practiced_at,tempo_used,fluency_rating',
+    })
+      .then(res => { if (!cancelled) setEntries(res.items); })
+      .catch(() => { /* today stats are optional — stay hidden */ });
+    return () => { cancelled = true; };
+  }, [instrument]);
+
+  return entries;
+}
+
 export function usePracticeSession(instrument, { includePracticedToday = false, tags = [] } = {}) {
   const [allTunes, setAllTunes] = useState([]);
   const [queue, setQueue] = useState([]);
@@ -204,7 +236,7 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
 
     let filtered = incl
       ? eligible
-      : eligible.filter(t => !practicedToday(t, instrument));
+      : eligible.filter(t => isDue(t, instrument) && !practicedToday(t, instrument));
 
     if (filterTags.length > 0) {
       filtered = filtered.filter(t =>

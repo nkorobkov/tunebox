@@ -51,7 +51,7 @@ Labels are stored as JSON arrays on user_tunes: `[{type: "category", value: "lea
 
 ### Key Modules
 
-- **`src/lib/spaced-repetition.js`** — SM-2 algorithm. `calculateNextReview(state, rating)` returns new SR fields. `isDue(tune)` and `isNew(tune)` determine practice queue membership.
+- **`src/lib/practice-algorithm.js`** — stability/forgetting-risk practice scheduling (per-instrument data on `user_tunes.instruments`). `forgettingRisk(t, stability)` = 1 − e^(−t/S); ratings multiply stability (easy ×1.4, good ×1.1, hard ×0.65). `isDue(tune, instrument)` gates the queue: learning tunes are always due, playing tunes rest until risk ≥ 0.5 (~0.69 × stability days); `calculatePriority` orders the due tunes. Queue assembly lives in `src/hooks/use-practice.js`.
 - **`src/lib/session-api.js`** — calls PocketBase proxy endpoints (`/api/session/search`, `/api/session/tune/:id`) which forward to thesession.org JSON API.
 - **`src/lib/abc-utils.js`** — builds full ABC strings with headers from raw ABC + tune metadata. Maps tune types to meters and default tempos.
 - **`src/components/common/markdown.jsx`** — renders user-authored markdown (tune notes) via `marked` (GFM, breaks, bare-URL autolink) sanitized with DOMPurify; anchors forced to `target="_blank"`. Typography for the rendered subset lives under `.markdown-body` in `src/index.css`. Notes are edited in place on the tune page (`src/components/tune/tune-notes.jsx`), not through the tune form only.

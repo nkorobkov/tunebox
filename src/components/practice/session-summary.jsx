@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { Button } from '../common/button';
 import { practicedToday, isDue } from '../../lib/practice-algorithm';
+import { setHref } from '../../lib/sets';
 
 function fmtDuration(totalSec) {
   const m = Math.floor(totalSec / 60);
@@ -118,6 +119,8 @@ export function MoreTunes({ learning, playing, notStarted, instrument, onStartLe
 
 export function SessionSummary({ entries, instrument, learning, playing, notStarted, onStartLearning, onBackHome }) {
   const practiced = entries.filter(e => e.outcome !== 'skip');
+  // A set entry stands for every tune in it.
+  const tunesPracticed = practiced.reduce((n, e) => n + (e.tuneCount || 1), 0);
   const totalSec = entries.reduce((s, e) => s + (e.durationSec || 0), 0);
   const tempoUps = entries.filter(e =>
     e.mode === 'learning' && (e.outcome === 'moved' || e.outcome === 'progress') && e.tempo > (e.prevTempo || 0)
@@ -125,7 +128,7 @@ export function SessionSummary({ entries, instrument, learning, playing, notStar
   const moved = entries.filter(e => e.outcome === 'moved').length;
 
   const stats = [
-    { label: 'Tunes practiced', value: practiced.length },
+    { label: 'Tunes practiced', value: tunesPracticed },
     { label: 'Time', value: fmtDuration(totalSec) },
     { label: 'Tempo ups', value: tempoUps },
     ...(moved > 0 ? [{ label: 'Moved to playing', value: moved }] : []),
@@ -150,7 +153,14 @@ export function SessionSummary({ entries, instrument, learning, playing, notStar
               const o = outcomeLabel(e);
               return (
                 <li key={i} class="flex items-center justify-between gap-2 text-sm">
-                  <a href={`/tune/${e.tune.id}`} class="text-gray-800 no-underline hover:text-blue-600 truncate">{e.tune.title}</a>
+                  {e.set ? (
+                    <a href={setHref(e.set.name)} class="text-gray-800 no-underline hover:text-blue-600 truncate">
+                      {e.set.name}
+                      <span class="text-gray-400"> — set of {e.tuneCount}</span>
+                    </a>
+                  ) : (
+                    <a href={`/tune/${e.tune.id}`} class="text-gray-800 no-underline hover:text-blue-600 truncate">{e.tune.title}</a>
+                  )}
                   <span class={`shrink-0 ${o.cls}`}>{o.text}</span>
                 </li>
               );

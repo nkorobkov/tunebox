@@ -13,7 +13,10 @@ import { YouTubeEmbed } from '../common/youtube-embed';
 import { SheetMusicViewer } from './sheet-music-viewer';
 import { InstrumentProgress } from '../instruments/progress-tracker';
 import { useAttachments } from '../../hooks/use-attachments';
-import { saveDefaultInstrument } from '../../hooks/use-practice';
+import { getDefaultInstrument, saveDefaultInstrument } from '../../hooks/use-practice';
+import { useSetTunes } from '../../hooks/use-sets';
+import { normalizeSetName, setHref, setReadiness } from '../../lib/sets';
+import { SetWarningBadge } from '../set/set-warning';
 import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
 import { addKnownSet } from '../../lib/tag-store';
 import { useConnectivity } from '../../lib/connectivity';
@@ -85,6 +88,17 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
 
   const setLabel = (tune.labels || []).find(l => l.type === 'set');
 
+  // Readiness of the whole set, judged on the instrument the user practises
+  // with by default — surfaced as a small marker next to the set name.
+  const setTunes = useSetTunes(setLabel ? normalizeSetName(setLabel.value) : null);
+  const savedInstrument = getDefaultInstrument();
+  const readinessInstrument = allInstruments.includes(savedInstrument)
+    ? savedInstrument
+    : (allInstruments[0] || '');
+  const setReady = setTunes && setTunes.length > 1 && readinessInstrument
+    ? setReadiness(setTunes.map(t => (t.id === tune.id ? tune : t)), readinessInstrument)
+    : null;
+
   const handleRemoveSet = async () => {
     const updated = (tune.labels || []).filter(l => l.type !== 'set');
     await onUpdate({ labels: updated });
@@ -148,8 +162,14 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
           {setLabel && (
             <div class="flex items-center gap-1.5 mt-0.5">
               <span class="text-sm text-gray-400">
-                part of <span class="text-gray-600 font-medium">{setLabel.value}</span> set
+                part of{' '}
+                <a
+                  href={setHref(setLabel.value)}
+                  class="text-gray-600 font-medium no-underline hover:text-blue-600 hover:underline"
+                >{setLabel.value}</a>{' '}
+                set
               </span>
+              <SetWarningBadge readiness={setReady} setName={setLabel.value} />
               {confirmRemoveSet ? (
                 <span class="flex items-center gap-1 text-xs">
                   <button onClick={handleRemoveSet} class="text-red-500 hover:underline cursor-pointer">remove</button>

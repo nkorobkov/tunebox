@@ -7,6 +7,7 @@ import { initServiceWorkerUpdates } from './lib/sw-update';
 import { LandingPage } from './pages/landing';
 import { LibraryPage } from './pages/library';
 import { TunePage } from './pages/tune';
+import { SetPage } from './pages/set';
 import { AddTunePage } from './pages/add-tune';
 import { PracticePage } from './pages/practice';
 import { SettingsPage } from './pages/settings';
@@ -53,6 +54,7 @@ function AppRouter() {
       <Router>
         <LibraryPage path="/" />
         <TunePage path="/tune/:id" />
+        <SetPage path="/set/:name" />
         <AddTunePage path="/add" />
         <PracticePage path="/practice" />
         <SettingsPage path="/settings" />

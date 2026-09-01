@@ -11,6 +11,7 @@ import {
   isDue,
   INITIAL_STABILITY,
 } from '../lib/practice-algorithm';
+import { groupSets, setPriority, setReadiness } from '../lib/sets';
 import { updateTuneInCache, loadTunesFromCache } from '../lib/tune-cache';
 import { enqueuePractice } from '../lib/practice-queue';
 
@@ -127,6 +128,22 @@ export async function savePlayingPractice(tune, instrument, rating, tempoUsed) {
 }
 
 /**
+ * Practise a whole set as one item: the single rating the user gave the set
+ * is recorded against every tune in it, so each tune's stability, tempo and
+ * practice_log advance exactly as if it had been practised on its own.
+ * Sequential on purpose — savePractice rolls a tune back if its log write
+ * fails, and a partial set is better than a corrupt one.
+ */
+export async function saveSetPlayingPractice(tunes, instrument, rating, tempoUsed) {
+  const updated = [];
+  for (const tune of tunes) {
+    const res = await savePlayingPractice(tune, instrument, rating, tempoUsed);
+    updated.push(res.updated);
+  }
+  return { isRelearn: rating === 'relearn', updated };
+}
+
+/**
  * Save a learning-mode struggle: lower stability, don't update tempo.
  */
 export async function saveLearningStruggle(tune, instrument) {
@@ -221,18 +238,70 @@ export function useTodayPractice(instrument) {
   return entries;
 }
 
-export function usePracticeSession(instrument, { includePracticedToday = false, tags = [] } = {}) {
+/**
+ * Replace one tune wherever it appears in the queue — standalone or inside
+ * a set item — after a save returns its updated record.
+ */
+function replaceTuneInQueue(queue, updated) {
+  return queue.map(item => {
+    if (item.kind === 'set') {
+      if (!item.tunes.some(t => t.id === updated.id)) return item;
+      return { ...item, tunes: item.tunes.map(t => (t.id === updated.id ? updated : t)) };
+    }
+    return item.tune.id === updated.id ? { ...item, tune: updated } : item;
+  });
+}
+
+/**
+ * The practice queue. Items are either a single tune
+ * (`{ kind: 'tune', tune }`) or a whole set played end to end
+ * (`{ kind: 'set', key, name, tunes }`). A set only collapses into one item
+ * when it is ready — every tune learned at one shared target tempo — and
+ * when all of its tunes made it through today's filters; otherwise its
+ * tunes queue individually.
+ */
+export function usePracticeSession(instrument, { includePracticedToday = false, tags = [], setKey = '' } = {}) {
   const [allTunes, setAllTunes] = useState([]);
   const [queue, setQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [skippedIds, setSkippedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
-  const buildQueue = useCallback((tunes, { includePracticedToday: incl = false, tags: filterTags = [] } = {}) => {
+  const buildQueue = useCallback((tunes, { includePracticedToday: incl = false, tags: filterTags = [], setKey: onlySet = '' } = {}) => {
     const eligible = tunes.filter(t => {
       const prof = instrumentProficiency(t, instrument);
       return prof === 'learning' || prof === 'playing';
     });
+
+    const asTuneItem = (tune) => ({
+      kind: 'tune',
+      id: tune.id,
+      tune,
+      priority: calculatePriority(tune, instrument, tune.canonical_tempo || getDefaultTempo(tune.type)),
+    });
+
+    const asSetItem = (set) => ({
+      kind: 'set',
+      id: `set:${set.key}`,
+      key: set.key,
+      name: set.name,
+      tunes: set.tunes,
+      priority: setPriority(set.tunes, instrument),
+    });
+
+    const isWholeSet = (set) =>
+      set.tunes.length >= 2 && setReadiness(set.tunes, instrument).ready;
+
+    // Deep link into one set (/practice?set=…): just that set, whether or not
+    // it is due — asking for it is the schedule.
+    if (onlySet) {
+      const set = groupSets(tunes).get(onlySet);
+      if (!set) return [];
+      const eligibleIds = new Set(eligible.map(t => t.id));
+      const members = set.tunes.filter(t => eligibleIds.has(t.id));
+      if (members.length === set.tunes.length && isWholeSet(set)) return [asSetItem(set)];
+      return members.map(asTuneItem);
+    }
 
     let filtered = incl
       ? eligible
@@ -244,13 +313,25 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
       );
     }
 
-    return filtered
-      .map(t => ({
-        tune: t,
-        priority: calculatePriority(t, instrument, t.canonical_tempo || getDefaultTempo(t.type)),
-      }))
-      .sort((a, b) => b.priority - a.priority)
-      .map(x => x.tune);
+    // Sets are grouped from the full library so membership is complete: a set
+    // with a member that didn't survive filtering stays split into tunes.
+    const queued = new Set(filtered.map(t => t.id));
+    const claimed = new Set();
+    const items = [];
+
+    for (const set of groupSets(tunes).values()) {
+      if (!isWholeSet(set)) continue;
+      if (!set.tunes.every(t => queued.has(t.id))) continue;
+      items.push(asSetItem(set));
+      for (const t of set.tunes) claimed.add(t.id);
+    }
+
+    for (const tune of filtered) {
+      if (claimed.has(tune.id)) continue;
+      items.push(asTuneItem(tune));
+    }
+
+    return items.sort((a, b) => b.priority - a.priority);
   }, [instrument]);
 
   const fetchAndBuild = useCallback(async () => {
@@ -262,7 +343,7 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
         filter: `user = "${userId}"`,
       });
       setAllTunes(result.items);
-      setQueue(buildQueue(result.items, { includePracticedToday, tags }));
+      setQueue(buildQueue(result.items, { includePracticedToday, tags, setKey }));
       setCurrentIndex(0);
       setSkippedIds(new Set());
     } catch (err) {
@@ -270,7 +351,7 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
       const cached = userId ? loadTunesFromCache(userId) : null;
       if (cached) {
         setAllTunes(cached.tunes);
-        setQueue(buildQueue(cached.tunes, { includePracticedToday, tags }));
+        setQueue(buildQueue(cached.tunes, { includePracticedToday, tags, setKey }));
         setCurrentIndex(0);
         setSkippedIds(new Set());
       } else {
@@ -279,13 +360,14 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
     } finally {
       setLoading(false);
     }
-  }, [buildQueue, includePracticedToday, tags]);
+  }, [buildQueue, includePracticedToday, tags, setKey]);
 
   useEffect(() => {
     if (pb.authStore.isValid && instrument) fetchAndBuild();
   }, [fetchAndBuild, instrument]);
 
-  const currentTune = queue[currentIndex] || null;
+  const currentItem = queue[currentIndex] || null;
+  const currentTune = currentItem?.kind === 'tune' ? currentItem.tune : null;
   const remaining = Math.max(0, queue.length - currentIndex);
 
   const advance = useCallback(() => {
@@ -293,32 +375,39 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
   }, []);
 
   const skip = useCallback(() => {
-    if (currentTune) {
-      setSkippedIds(prev => new Set([...prev, currentTune.id]));
+    if (currentItem) {
+      setSkippedIds(prev => new Set([...prev, currentItem.id]));
     }
     advance();
-  }, [currentTune, advance]);
+  }, [currentItem, advance]);
 
   const completeLearning = useCallback(async (tune, practicedTempo) => {
     const res = await saveLearningPractice(tune, instrument, practicedTempo);
-    setQueue(prev => prev.map(t => t.id === res.updated.id ? res.updated : t));
+    setQueue(prev => replaceTuneInQueue(prev, res.updated));
     return res;
   }, [instrument]);
 
   const completeLearningStruggle = useCallback(async (tune) => {
     const res = await saveLearningStruggle(tune, instrument);
-    setQueue(prev => prev.map(t => t.id === res.updated.id ? res.updated : t));
+    setQueue(prev => replaceTuneInQueue(prev, res.updated));
     return res;
   }, [instrument]);
 
   const completePlaying = useCallback(async (tune, rating, tempoUsed) => {
     const res = await savePlayingPractice(tune, instrument, rating, tempoUsed);
-    setQueue(prev => prev.map(t => t.id === res.updated.id ? res.updated : t));
+    setQueue(prev => replaceTuneInQueue(prev, res.updated));
+    return res;
+  }, [instrument]);
+
+  const completeSet = useCallback(async (tunes, rating, tempoUsed) => {
+    const res = await saveSetPlayingPractice(tunes, instrument, rating, tempoUsed);
+    setQueue(prev => res.updated.reduce(replaceTuneInQueue, prev));
     return res;
   }, [instrument]);
 
   return {
     queue,
+    currentItem,
     currentTune,
     currentIndex,
     remaining,
@@ -328,6 +417,7 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
     completeLearning,
     completeLearningStruggle,
     completePlaying,
+    completeSet,
     totalCount: queue.length,
   };
 }

@@ -38,21 +38,27 @@ Preact SPA talking directly to PocketBase (no intermediate backend). All data ac
 `AuthProvider` in `src/lib/auth.jsx` wraps the app. It uses PocketBase's Google OAuth2 provider. The `useAuth()` hook exposes `user`, `loginWithGoogle()`, `logout()`. When not authenticated, the router renders `LoginPage` instead of the app routes.
 
 ### Data Model (PocketBase Collections)
-Four collections, heavily denormalized:
+Five collections, heavily denormalized:
 
 - **`user_tunes`** — the core record. Holds tune data (title, type, abc, session_id), labels and instrument progress as JSON fields, spaced repetition state (next_review, interval_days, ease_factor, consecutive_correct), and practice_tempo. All CRUD scoped to `user = @request.auth.id`.
 - **`attachments`** — per-tune media, related to user_tunes. Each record holds either a `file` (both optional in the schema) or a `url` (YouTube links), plus `type` (sheet_music / recording / backing_track / source / other), `bpm`, `label`, `main_source`. `backing_track` records surface on the practice card; the `main_source` sheet_music record replaces ABC rendering.
 - **`practice_log`** — append-only practice history (fluency_rating 1-5, tempo_used, practiced_at). Related to user_tunes.
 - **`users`** — built-in auth collection extended with `instruments` JSON field (array of instrument names).
+- **`set_attachments`** — the same media shape as `attachments` but attached to a *set* instead of a tune (chiefly the backing track a set is practised over). Sets have no table, so records key on `user` + `set_key` (the normalized set name from `src/lib/sets.js`); `set_name` keeps the display spelling for reference only.
 
 Schema changes ship as PB JS migrations kept in `pocketbase/pb_migrations/` (deployment to the self-hosted instance is described in `LOCAL_SETUP.md`).
 
 Labels are stored as JSON arrays on user_tunes: `[{type: "category", value: "learning"}, {type: "set", value: "Opening Set", order: 1}]`. Tunes sharing the same set name/type form a set. No separate labels or sets table.
 
+### Sets
+
+A set is just the `set` label shared by its tunes; the *normalized* name (`normalizeSetName` in `src/lib/sets.js`) is its identity everywhere — the `/set/:name` route, `set_attachments.set_key`, and practice-queue item ids. `src/lib/sets.js` owns grouping (`groupSets`, `findSet`), the route href (`setHref`), and readiness (`setReadiness`): a set can be played end to end only when every tune is at `playing` proficiency on the instrument *and* they share one target tempo. Not-ready sets show a warning banner on `/set/:name` and a small marker beside the set name on the tune page; their tunes just queue individually. Ready sets collapse into a single practice item (`{kind:'set'}` in `usePracticeSession`), rendered by `set-practice-card.jsx` with one tempo, the set's backing track and one rating — which `saveSetPlayingPractice` then writes to every member tune (instrument state + a `practice_log` row each). `/practice?set=<key>` deep-links into one set. Note: PocketBase's SDK auto-cancels same-endpoint requests, so views that mount one `useAttachments` per tune pass a per-tune `requestKey`.
+
 ### Key Modules
 
 - **`src/lib/practice-algorithm.js`** — stability/forgetting-risk practice scheduling (per-instrument data on `user_tunes.instruments`). `forgettingRisk(t, stability)` = 1 − e^(−t/S); ratings multiply stability (easy ×1.4, good ×1.1, hard ×0.65). `isDue(tune, instrument)` gates the queue: learning tunes are always due, playing tunes rest until risk ≥ 0.5 (~0.69 × stability days); `calculatePriority` orders the due tunes. Queue assembly lives in `src/hooks/use-practice.js`.
 - **`src/lib/session-api.js`** — calls PocketBase proxy endpoints (`/api/session/search`, `/api/session/tune/:id`) which forward to thesession.org JSON API.
+- **`src/lib/sets.js`** — set identity, grouping and practice readiness (see Sets above). Used by the library grouping, the set page, the tune page's set line, and the practice queue.
 - **`src/lib/abc-utils.js`** — builds full ABC strings with headers from raw ABC + tune metadata. Maps tune types to meters and default tempos.
 - **`src/components/common/markdown.jsx`** — renders user-authored markdown (tune notes) via `marked` (GFM, breaks, bare-URL autolink) sanitized with DOMPurify; anchors forced to `target="_blank"`. Typography for the rendered subset lives under `.markdown-body` in `src/index.css`. Notes are edited in place on the tune page (`src/components/tune/tune-notes.jsx`), not through the tune form only.
 - **`src/lib/youtube.js`** + **`src/components/common/youtube-embed.jsx`** — YouTube URL parsing (watch/youtu.be/shorts/live/embed, `t=` start times, `shortYouTubeUrl` for display) and a click-to-load embed (thumbnail facade → `youtube-nocookie.com` iframe). Playback speed is deliberately left to the embedded player's own controls — programmatic rate control via the widget postMessage protocol was tried and removed (unreliable in practice; the iframe_api script would violate the CSP anyway). CSP allows `frame-src www.youtube-nocookie.com` and `img-src i.ytimg.com` for this.

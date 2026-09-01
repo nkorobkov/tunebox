@@ -11,43 +11,23 @@ import { useAuth } from '../lib/auth';
 import { instrumentProficiency } from '../lib/practice-algorithm';
 import { getDefaultTempo } from '../lib/abc-utils';
 import { addKnownTag } from '../lib/tag-store';
-
-// Normalize set name for grouping: lowercase, collapse whitespace, strip punctuation
-function normalizeSetName(name) {
-  return name.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
-}
+import { groupSets, setKeyOf } from '../lib/sets';
 
 function TuneList({ tunes, selectable = false, selectedIds, onToggleSelect }) {
+  // Sets are grouped by normalized name; each one lands where its first
+  // member falls in the current sort order.
+  const sets = groupSets(tunes);
   const items = [];
-  const setMap = new Map(); // normalized key -> { displayName, entries }
-  const inSet = new Set();
+  const placed = new Set();
 
   for (const tune of tunes) {
-    const setLabel = (tune.labels || []).find(l => l.type === 'set');
-    if (setLabel) {
-      const key = normalizeSetName(setLabel.value);
-      if (!setMap.has(key)) {
-        setMap.set(key, { displayName: setLabel.value, entries: [] });
+    const key = setKeyOf(tune);
+    if (key && sets.has(key)) {
+      if (!placed.has(key)) {
+        placed.add(key);
+        items.push({ type: 'set', set: sets.get(key) });
       }
-      setMap.get(key).entries.push({ tune, order: setLabel.order || 0 });
-      inSet.add(tune.id);
-    }
-  }
-
-  for (const [, group] of setMap) {
-    group.entries.sort((a, b) => a.order - b.order);
-  }
-
-  const placedSets = new Set();
-  for (const tune of tunes) {
-    const setLabel = (tune.labels || []).find(l => l.type === 'set');
-    if (setLabel) {
-      const key = normalizeSetName(setLabel.value);
-      if (!placedSets.has(key)) {
-        placedSets.add(key);
-        items.push({ type: 'set', name: setMap.get(key).displayName, tunes: setMap.get(key).entries.map(e => e.tune) });
-      }
-    } else if (!inSet.has(tune.id)) {
+    } else {
       items.push({ type: 'tune', tune });
     }
   }
@@ -57,9 +37,9 @@ function TuneList({ tunes, selectable = false, selectedIds, onToggleSelect }) {
       {items.map(item =>
         item.type === 'set' ? (
           <SetGroup
-            key={`set:${item.name}`}
-            name={item.name}
-            tunes={item.tunes}
+            key={`set:${item.set.key}`}
+            name={item.set.name}
+            tunes={item.set.tunes}
             selectable={selectable}
             selectedIds={selectedIds}
             onToggleSelect={onToggleSelect}

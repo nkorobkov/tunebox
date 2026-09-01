@@ -17,6 +17,9 @@ export function useAttachments(tuneId) {
     try {
       const result = await pb.collection('attachments').getList(1, 100, {
         filter: `user_tune = "${tuneId}"`,
+        // Set views mount one of these per tune; without a per-tune request
+        // key the SDK auto-cancels all but the last.
+        requestKey: `attachments-${tuneId}`,
       });
       setAttachments(result.items);
     } catch (err) {

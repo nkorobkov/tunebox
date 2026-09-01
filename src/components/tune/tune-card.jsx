@@ -1,4 +1,5 @@
 import { instrumentProficiency } from '../../lib/practice-algorithm';
+import { setHref } from '../../lib/sets';
 
 export function TuneCard({ tune, inSet = false, selectable = false, selected = false, onToggleSelect }) {
   const tags = (tune.labels || []).filter(l => l.type === 'tag');
@@ -105,7 +106,7 @@ export function TuneCard({ tune, inSet = false, selectable = false, selected = f
   );
 }
 
-export function SetGroup({ tunes, selectable = false, selectedIds, onToggleSelect }) {
+export function SetGroup({ name, tunes, selectable = false, selectedIds, onToggleSelect }) {
   const selectionProps = (tune) => ({
     selectable,
     selected: selectable && selectedIds?.has(tune.id),
@@ -118,12 +119,48 @@ export function SetGroup({ tunes, selectable = false, selectedIds, onToggleSelec
 
   return (
     <div class="flex rounded-lg border border-gray-200 overflow-hidden">
-      <div class="w-1 bg-brand-400 shrink-0" />
-      <div class="flex-1 divide-y divide-gray-100">
+      <SetBar name={name} interactive={!selectable} />
+      <div class="flex-1 min-w-0 divide-y divide-gray-100">
         {tunes.map(tune => (
           <TuneCard key={tune.id} tune={tune} inSet {...selectionProps(tune)} />
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * The set's spine down the left of the group: names the set and is the way
+ * into its page. Inert while the library is in bulk-select mode, where a
+ * click has to mean "select", not "navigate".
+ */
+function SetBar({ name, interactive }) {
+  const inner = (
+    <>
+      <span class="[writing-mode:vertical-rl] rotate-180 max-h-48 truncate text-[11px] font-medium tracking-wide text-brand-700 dark:text-brand-400">
+        {name}
+      </span>
+      {interactive && (
+        <svg class="w-3 h-3 shrink-0 text-brand-600 dark:text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      )}
+    </>
+  );
+
+  const classes = 'w-9 shrink-0 flex flex-col items-center justify-center gap-1.5 py-2 bg-brand-50 border-r border-brand-100';
+
+  if (!interactive) {
+    return <div class={classes}>{inner}</div>;
+  }
+
+  return (
+    <a
+      href={setHref(name)}
+      title={`Open the ${name} set`}
+      class={`${classes} no-underline hover:bg-brand-100 transition-colors`}
+    >
+      {inner}
+    </a>
   );
 }

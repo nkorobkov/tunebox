@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'preact/hooks';
 import { route } from 'preact-router';
 import { Shell } from '../components/layout/shell';
 import { PracticeCard } from '../components/practice/practice-card';
+import { SetPracticeCard } from '../components/practice/set-practice-card';
 import { PracticeEntry } from '../components/practice/practice-entry';
 import { SessionSummary, MoreTunes } from '../components/practice/session-summary';
 import { Button } from '../components/common/button';
@@ -23,6 +24,13 @@ function learningResultMsg(tempo, movedToPlaying, targetTempo) {
   return `Good! We'll try ${next} BPM next time.`;
 }
 
+const SET_MESSAGES = {
+  easy: 'Easy! The whole set can rest longer.',
+  good: 'Good work — logged against every tune in the set.',
+  hard: 'Keep at it — we\'ll bring the set back sooner.',
+  relearn: 'Back to learning — every tune in the set drops to a slower tempo.',
+};
+
 const PLAYING_MESSAGES = {
   easy: 'Easy! We\'ll wait longer before showing this one again.',
   good: 'Good work! This one can rest a little longer.',
@@ -30,7 +38,7 @@ const PLAYING_MESSAGES = {
   relearn: 'Back to learning mode — we\'ll rebuild it from a slower tempo.',
 };
 
-export function PracticePage({ tune: tuneIdParam }) {
+export function PracticePage({ tune: tuneIdParam, set: setKeyParam }) {
   const { user } = useAuth();
   const userInstruments = user?.instruments || [];
   const [instrument, setInstrument] = useState(() => {
@@ -47,7 +55,7 @@ export function PracticePage({ tune: tuneIdParam }) {
   const [showSummary, setShowSummary] = useState(false);
 
   const { allTunes, forInstrument, loading: tunesLoading, refetch } = useTunesByInstrument();
-  const session = usePracticeSession(practicing && !singleTune ? instrument : null, { includePracticedToday: isReview, tags: selectedTags });
+  const session = usePracticeSession(practicing && !singleTune ? instrument : null, { includePracticedToday: isReview, tags: selectedTags, setKey: setKeyParam || '' });
 
   // Load single tune if tuneId param is present; reset when the param goes
   // away (back button or nav link) — the route stays mounted either way.
@@ -55,11 +63,15 @@ export function PracticePage({ tune: tuneIdParam }) {
     if (!tuneIdParam) {
       setSingleTune(null);
       setSingleTuneLoading(false);
-      setPracticing(false);
-      setLastResult(null);
+      // A ?set= deep link owns `practicing` instead — don't stomp on it.
+      if (!setKeyParam) {
+        setPracticing(false);
+        setLastResult(null);
+      }
       return;
     }
     setSingleTuneLoading(true);
+    setLastResult(null);
     pb.collection('user_tunes').getOne(tuneIdParam)
       .then(t => { setSingleTune(t); setPracticing(true); })
       .catch(err => {
@@ -72,7 +84,17 @@ export function PracticePage({ tune: tuneIdParam }) {
         }
       })
       .finally(() => setSingleTuneLoading(false));
-  }, [tuneIdParam]);
+  }, [tuneIdParam, setKeyParam]);
+
+  // Deep link into one set — the session hook narrows the queue to it.
+  useEffect(() => {
+    if (!setKeyParam) return;
+    setSessionLog([]);
+    setShowSummary(false);
+    setLastResult(null);
+    setIsReview(false);
+    setPracticing(true);
+  }, [setKeyParam]);
 
   const handleSelectInstrument = (inst) => {
     setInstrument(inst);
@@ -141,7 +163,7 @@ export function PracticePage({ tune: tuneIdParam }) {
   }, [instrument, refetch]);
 
   const handleStop = () => {
-    if (singleTune) {
+    if (singleTune || setKeyParam) {
       // Router prop change triggers the reset effect above
       route('/practice', true);
       refetch();
@@ -208,15 +230,37 @@ export function PracticePage({ tune: tuneIdParam }) {
     );
   }, [singleTune, instrument, session, completePractice, logEntry]);
 
+  // One rating for a whole set: written to every tune, logged as one entry.
+  const onCompleteSet = useCallback(async (item, rating, tempo, durationSec) => {
+    return completePractice(
+      async () => {
+        const res = await session.completeSet(item.tunes, rating, tempo);
+        logEntry({
+          set: { key: item.key, name: item.name },
+          tuneCount: item.tunes.length,
+          mode: 'playing',
+          tempo,
+          outcome: rating,
+          durationSec,
+        });
+        return res;
+      },
+      SET_MESSAGES[rating],
+    );
+  }, [session, completePractice, logEntry]);
+
   const handleSkip = useCallback(() => {
-    if (session.currentTune) {
-      logEntry({ tune: session.currentTune, mode: null, outcome: 'skip', durationSec: 0 });
+    const item = session.currentItem;
+    if (item) {
+      logEntry(item.kind === 'set'
+        ? { set: { key: item.key, name: item.name }, tuneCount: item.tunes.length, mode: null, outcome: 'skip', durationSec: 0 }
+        : { tune: item.tune, mode: null, outcome: 'skip', durationSec: 0 });
     }
     session.skip();
   }, [session, logEntry]);
 
   // Queue exhausted after practicing something → move to the summary screen.
-  const queueExhausted = practicing && !singleTune && !session.loading && !session.currentTune && !lastResult;
+  const queueExhausted = practicing && !singleTune && !session.loading && !session.currentItem && !lastResult;
   useEffect(() => {
     if (queueExhausted && sessionLog.length > 0) {
       setPracticing(false);
@@ -233,6 +277,8 @@ export function PracticePage({ tune: tuneIdParam }) {
   const backHome = () => {
     setShowSummary(false);
     setSessionLog([]);
+    // Drop the ?set= deep link so the next session sees the whole queue.
+    if (setKeyParam) route('/practice', true);
   };
 
   // Loading single tune
@@ -281,8 +327,10 @@ export function PracticePage({ tune: tuneIdParam }) {
     );
   }
 
-  // Active practice (single tune or queue)
-  const currentTune = singleTune || session.currentTune;
+  // Active practice (single tune, or an item off the queue — tune or set)
+  const currentItem = singleTune
+    ? { kind: 'tune', id: singleTune.id, tune: singleTune }
+    : session.currentItem;
   const isLoading = !singleTune && session.loading;
 
   return (
@@ -321,7 +369,7 @@ export function PracticePage({ tune: tuneIdParam }) {
             <p class="text-lg font-medium text-gray-900">{lastResult}</p>
           </div>
         )
-      ) : !currentTune ? (
+      ) : !currentItem ? (
         <div class="text-center py-12">
           <p class="text-2xl mb-2">All done!</p>
           <p class="text-gray-500">
@@ -329,10 +377,18 @@ export function PracticePage({ tune: tuneIdParam }) {
           </p>
           <button onClick={handleStop} class="text-sm text-blue-600 hover:underline mt-4 inline-block cursor-pointer">Back to practice home</button>
         </div>
+      ) : currentItem.kind === 'set' ? (
+        <SetPracticeCard
+          key={`${currentItem.id}-${instrument}`}
+          item={currentItem}
+          instrument={instrument}
+          onCompleteSet={onCompleteSet}
+          onSkip={handleSkip}
+        />
       ) : (
         <PracticeCard
-          key={`${currentTune.id}-${instrument}`}
-          tune={currentTune}
+          key={`${currentItem.id}-${instrument}`}
+          tune={currentItem.tune}
           instrument={instrument}
           onCompleteLearning={onCompleteLearning}
           onStruggleLearning={onStruggleLearning}

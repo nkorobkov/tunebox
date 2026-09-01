@@ -14,7 +14,7 @@ import { NotesContent } from '../tune/tune-notes';
 import { buildAbcString, getDefaultTempo, getMeter } from '../../lib/abc-utils';
 import { getInstrumentData, instrumentProficiency, suggestLearningTempo } from '../../lib/practice-algorithm';
 
-function useElapsedSeconds() {
+export function useElapsedSeconds() {
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
     const started = Date.now();
@@ -24,7 +24,7 @@ function useElapsedSeconds() {
   return seconds;
 }
 
-function fmtElapsed(s) {
+export function fmtElapsed(s) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
@@ -177,7 +177,7 @@ function TuneHeader({ tune, instrument, targetTempo }) {
   );
 }
 
-function SheetMusic({ mainSource, fullAbc, tempo, transpose, onTransposeChange }) {
+export function SheetMusic({ mainSource, fullAbc, tempo, transpose, onTransposeChange }) {
   if (mainSource) {
     return (
       <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4">
@@ -207,7 +207,7 @@ function SheetMusic({ mainSource, fullAbc, tempo, transpose, onTransposeChange }
   );
 }
 
-function Spoiler({ label, children }) {
+export function Spoiler({ label, children }) {
   return (
     <details class="group">
       <summary class="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-900 list-none flex items-center gap-2 py-2 select-none">

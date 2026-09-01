@@ -38,12 +38,13 @@ Preact SPA talking directly to PocketBase (no intermediate backend). All data ac
 `AuthProvider` in `src/lib/auth.jsx` wraps the app. It uses PocketBase's Google OAuth2 provider. The `useAuth()` hook exposes `user`, `loginWithGoogle()`, `logout()`. When not authenticated, the router renders `LoginPage` instead of the app routes.
 
 ### Data Model (PocketBase Collections)
-Five collections, heavily denormalized:
+Six collections, heavily denormalized:
 
 - **`user_tunes`** — the core record. Holds tune data (title, type, abc, session_id), labels and instrument progress as JSON fields, spaced repetition state (next_review, interval_days, ease_factor, consecutive_correct), and practice_tempo. All CRUD scoped to `user = @request.auth.id`.
 - **`attachments`** — per-tune media, related to user_tunes. Each record holds either a `file` (both optional in the schema) or a `url` (YouTube links), plus `type` (sheet_music / recording / backing_track / source / other), `bpm`, `label`, `main_source`. `backing_track` records surface on the practice card; the `main_source` sheet_music record replaces ABC rendering.
 - **`practice_log`** — append-only practice history (fluency_rating 1-5, tempo_used, practiced_at). Related to user_tunes.
 - **`users`** — built-in auth collection extended with `instruments` JSON field (array of instrument names).
+- **`feedback`** — in-app feedback from the "Leave feedback" form (`kind`, `message`, plus the `page` it was sent from). `user` is deliberately optional with `cascadeDelete: false` and the address is denormalized into `user_email`, so a report outlives the account that sent it; update/delete rules are null, making records immutable to everyone but a superuser.
 - **`set_attachments`** — the same media shape as `attachments` but attached to a *set* instead of a tune (chiefly the backing track a set is practised over). Sets have no table, so records key on `user` + `set_key` (the normalized set name from `src/lib/sets.js`); `set_name` keeps the display spelling for reference only.
 
 Schema changes ship as PB JS migrations kept in `pocketbase/pb_migrations/` (deployment to the self-hosted instance is described in `LOCAL_SETUP.md`).
@@ -58,6 +59,7 @@ A set is just the `set` label shared by its tunes; the *normalized* name (`norma
 
 - **`src/lib/practice-algorithm.js`** — stability/forgetting-risk practice scheduling (per-instrument data on `user_tunes.instruments`). `forgettingRisk(t, stability)` = 1 − e^(−t/S); ratings multiply stability (easy ×1.4, good ×1.1, hard ×0.65). `isDue(tune, instrument)` gates the queue: learning tunes are always due, playing tunes rest until risk ≥ 0.5 (~0.69 × stability days); `calculatePriority` orders the due tunes. Queue assembly lives in `src/hooks/use-practice.js`.
 - **`src/lib/session-api.js`** — calls PocketBase proxy endpoints (`/api/session/search`, `/api/session/tune/:id`) which forward to thesession.org JSON API.
+- **`src/components/feedback/`** — `feedback-dialog.jsx` (the form; writes to the `feedback` collection and offers `nikkorobk@gmail.com` as an email fallback) and `feedback-footer.jsx` (the button closing out the library and settings pages). The mobile hamburger in `layout/nav.jsx` opens the same dialog. Note the dialog must not be nested inside the footer's `text-center` wrapper — `position: fixed` does not stop `text-align` inheriting.
 - **`src/lib/sets.js`** — set identity, grouping and practice readiness (see Sets above). Used by the library grouping, the set page, the tune page's set line, and the practice queue.
 - **`src/lib/abc-utils.js`** — builds full ABC strings with headers from raw ABC + tune metadata. Maps tune types to meters and default tempos.
 - **`src/components/common/markdown.jsx`** — renders user-authored markdown (tune notes) via `marked` (GFM, breaks, bare-URL autolink) sanitized with DOMPurify; anchors forced to `target="_blank"`. Typography for the rendered subset lives under `.markdown-body` in `src/index.css`. Notes are edited in place on the tune page (`src/components/tune/tune-notes.jsx`), not through the tune form only.

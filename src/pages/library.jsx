@@ -12,6 +12,7 @@ import { instrumentProficiency } from '../lib/practice-algorithm';
 import { getDefaultTempo } from '../lib/abc-utils';
 import { addKnownTag } from '../lib/tag-store';
 import { groupSets, setKeyOf } from '../lib/sets';
+import { FeedbackFooter } from '../components/feedback/feedback-footer';
 
 function TuneList({ tunes, selectable = false, selectedIds, onToggleSelect }) {
   // Sets are grouped by normalized name; each one lands where its first
@@ -350,6 +351,8 @@ export function LibraryPage() {
           onToggleSelect={toggleSelect}
         />
       )}
+
+      {!selectMode && <FeedbackFooter />}
 
       {dialog && selectedTunes.length > 0 && (
         <ExportDialog

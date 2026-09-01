@@ -7,6 +7,7 @@ import { getDefaultInstrument, saveDefaultInstrument } from '../hooks/use-practi
 import { getTheme, setTheme } from '../lib/theme';
 import { OfflineBanner } from '../components/common/offline-banner';
 import { useConnectivity } from '../lib/connectivity';
+import { FeedbackFooter } from '../components/feedback/feedback-footer';
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -120,6 +121,8 @@ export function SettingsPage() {
           />
           {saving && <p class="text-xs text-gray-400 mt-2">Saving...</p>}
         </div>
+
+        <FeedbackFooter />
       </div>
     </Shell>
   );

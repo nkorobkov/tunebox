@@ -138,14 +138,21 @@ export function LibraryPage() {
         })
       );
     }
-    if (proficiencyFilter) {
+    // Instrument and level are one condition when both are set: the chosen
+    // instrument must itself be at the chosen level. Filtering them
+    // independently would also pass a tune that's learning on the chosen
+    // instrument while merely playing some other one.
+    if (instrumentFilter && proficiencyFilter) {
+      result = result.filter(t =>
+        instrumentProficiency(t, instrumentFilter) === proficiencyFilter
+      );
+    } else if (proficiencyFilter) {
       result = result.filter(t =>
         Object.keys(t.instruments || {}).some(name =>
           instrumentProficiency(t, name) === proficiencyFilter
         )
       );
-    }
-    if (instrumentFilter) {
+    } else if (instrumentFilter) {
       result = result.filter(t =>
         t.instruments && instrumentFilter in t.instruments
       );

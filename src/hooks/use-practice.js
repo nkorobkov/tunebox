@@ -368,11 +368,29 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
 
   const currentItem = queue[currentIndex] || null;
   const currentTune = currentItem?.kind === 'tune' ? currentItem.tune : null;
-  const remaining = Math.max(0, queue.length - currentIndex);
+  // Everything still waiting behind the item on screen.
+  const upcoming = queue.slice(currentIndex + 1);
+  const remaining = upcoming.length;
 
   const advance = useCallback(() => {
     setCurrentIndex(prev => prev + 1);
   }, []);
+
+  /**
+   * Pull a queued item forward to practise it now. The item being practised
+   * isn't dropped — it slides into second place, so jumping is a reorder
+   * rather than a skip.
+   */
+  const jumpTo = useCallback((id) => {
+    setQueue(prev => {
+      const from = prev.findIndex(it => it.id === id);
+      if (from <= currentIndex) return prev;
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(currentIndex, 0, item);
+      return next;
+    });
+  }, [currentIndex]);
 
   const skip = useCallback(() => {
     if (currentItem) {
@@ -410,10 +428,12 @@ export function usePracticeSession(instrument, { includePracticedToday = false, 
     currentItem,
     currentTune,
     currentIndex,
+    upcoming,
     remaining,
     loading,
     advance,
     skip,
+    jumpTo,
     completeLearning,
     completeLearningStruggle,
     completePlaying,

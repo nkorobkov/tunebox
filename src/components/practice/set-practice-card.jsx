@@ -45,9 +45,11 @@ export function SetPracticeCard({ item, instrument, onCompleteSet, onSkip }) {
   const elapsed = useElapsedSeconds();
 
   const first = item.tunes[0];
-  const targetTempo = getInstrumentData(
-    first, instrument, first.canonical_tempo || getDefaultTempo(first.type),
-  ).target_tempo;
+  const instDataFor = (t) => getInstrumentData(t, instrument, t.canonical_tempo || getDefaultTempo(t.type));
+  const targetTempo = instDataFor(first).target_tempo;
+  // One rating covers every tune, so the set comes back as soon as its
+  // shakiest member does — rate the intervals off the lowest stability.
+  const stability = Math.min(...item.tunes.map(t => instDataFor(t).stability));
   const [tempo, setTempo] = useState(targetTempo);
 
   const handleRate = async (rating) => {
@@ -123,7 +125,7 @@ export function SetPracticeCard({ item, instrument, onCompleteSet, onSkip }) {
       {/* One rating for the whole set */}
       <div class="space-y-1">
         <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <FluencyRater onRate={handleRate} disabled={saving} />
+          <FluencyRater onRate={handleRate} disabled={saving} stability={stability} />
           <p class="text-xs text-gray-400 mt-2 text-center">
             Recorded against all {item.tunes.length} tunes in the set.
           </p>

@@ -137,7 +137,7 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
       ) : (
         <div class="space-y-1">
           <div class="bg-white rounded-lg border border-gray-200 p-4">
-            <FluencyRater onRate={handleRate} disabled={saving} />
+            <FluencyRater onRate={handleRate} disabled={saving} stability={instData.stability} />
           </div>
           <div class="text-center py-1.5">
             <button onClick={onSkip} class="text-sm text-gray-400 hover:text-gray-600 cursor-pointer">

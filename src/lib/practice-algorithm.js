@@ -154,15 +154,40 @@ export function isDue(tune, instrument) {
   return risk >= DUE_RISK_THRESHOLD;
 }
 
+/** Days a tune rests at a given stability before it comes due again. */
+function restDays(stability) {
+  return -(stability || INITIAL_STABILITY) * Math.log(1 - DUE_RISK_THRESHOLD);
+}
+
 /**
  * Days until a playing tune comes due; 0 when it is due now (or learning).
  */
 export function dueInDays(tune, instrument) {
   if (isDue(tune, instrument)) return 0;
   const data = tune.instruments?.[instrument];
-  const s = data?.stability || INITIAL_STABILITY;
-  const dueAfter = -s * Math.log(1 - DUE_RISK_THRESHOLD);
-  return Math.max(0, dueAfter - daysSince(data?.last_practiced));
+  return Math.max(0, restDays(data?.stability) - daysSince(data?.last_practiced));
+}
+
+/**
+ * How long a playing tune rests after a given rating: the point where its
+ * forgetting risk climbs back to the due threshold, measured from now.
+ * Shown on the rating buttons so the choice is as legible as Anki's.
+ */
+export function nextIntervalDays(stability, rating) {
+  return restDays(updateStability(stability, rating));
+}
+
+/**
+ * Compact interval label: "<1d", "1.9d", "12d", "1.3mo", "1.4y". Short
+ * intervals keep a decimal because a day either way is the whole difference
+ * between ratings while a tune is still shaky.
+ */
+export function formatInterval(days) {
+  if (!(days >= 1)) return '<1d';
+  if (days < 10) return `${days.toFixed(1)}d`;
+  if (days < 31) return `${Math.round(days)}d`;
+  if (days < 365) return `${(days / 30.4).toFixed(1)}mo`;
+  return `${(days / 365).toFixed(1)}y`;
 }
 
 export { INITIAL_STABILITY };

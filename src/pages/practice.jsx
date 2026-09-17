@@ -4,6 +4,7 @@ import { Shell } from '../components/layout/shell';
 import { PracticeCard } from '../components/practice/practice-card';
 import { SetPracticeCard } from '../components/practice/set-practice-card';
 import { PracticeEntry } from '../components/practice/practice-entry';
+import { QueueMenu } from '../components/practice/queue-menu';
 import { SessionSummary, MoreTunes } from '../components/practice/session-summary';
 import { Button } from '../components/common/button';
 import { useAuth } from '../lib/auth';
@@ -338,7 +339,12 @@ export function PracticePage({ tune: tuneIdParam, set: setKeyParam }) {
       <div class="flex items-center justify-end mb-6">
         <div class="flex items-center gap-4">
           {!singleTune && session.remaining > 0 && (
-            <span class="text-sm text-gray-500">{session.remaining} remaining</span>
+            // While the result message is up the current item is already
+            // rated and the queue is about to advance — freeze the counter
+            // rather than let a jump land on a finished tune.
+            lastResult
+              ? <span class="text-sm text-gray-500">{session.remaining} remaining</span>
+              : <QueueMenu items={session.upcoming} onJump={session.jumpTo} />
           )}
           <button onClick={handleStop} class="text-sm text-gray-500 hover:text-gray-700 cursor-pointer">Stop</button>
         </div>

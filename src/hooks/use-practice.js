@@ -3,6 +3,7 @@ import { pb } from '../lib/pb';
 import { getDefaultTempo } from '../lib/abc-utils';
 import {
   calculatePriority,
+  daysSince,
   getInstrumentData,
   instrumentProficiency,
   updateStability,
@@ -96,15 +97,20 @@ async function savePractice(tune, instrument, { current_tempo, stability, tempo_
 export async function saveLearningPractice(tune, instrument, practicedTempo) {
   const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
   const instData = getInstrumentData(tune, instrument, fallback);
+  const movedToPlaying = practicedTempo >= instData.target_tempo;
 
+  // Learning tunes are due every day no matter what stability says, so daily
+  // work in learning mode must not move it — it would only decide, arbitrarily,
+  // where the tune starts its playing ladder. Graduating resets that ladder to
+  // its first rung instead.
   const { updated } = await savePractice(tune, instrument, {
     current_tempo: practicedTempo,
-    stability: updateStability(instData.stability, 'good'),
+    stability: movedToPlaying ? INITIAL_STABILITY : instData.stability,
     tempo_used: practicedTempo,
     fluency_rating: 4,
   });
 
-  return { movedToPlaying: practicedTempo >= instData.target_tempo, updated };
+  return { movedToPlaying, updated };
 }
 
 /**
@@ -117,9 +123,13 @@ export async function savePlayingPractice(tune, instrument, rating, tempoUsed) {
 
   const fluencyMap = { easy: 5, good: 4, hard: 2 };
 
+  // Growth is scaled by how much of the scheduled rest was actually used, so
+  // the model needs the real gap, not just the rating.
+  const elapsed = daysSince(instData.last_practiced);
+
   const { updated } = await savePractice(tune, instrument, {
     current_tempo: isRelearn ? relearnTempo(instData.target_tempo) : instData.current_tempo,
-    stability: isRelearn ? INITIAL_STABILITY : updateStability(instData.stability, rating),
+    stability: isRelearn ? INITIAL_STABILITY : updateStability(instData.stability, rating, elapsed),
     tempo_used: tempoUsed || instData.target_tempo,
     fluency_rating: fluencyMap[rating] || 1,
   });
@@ -144,14 +154,17 @@ export async function saveSetPlayingPractice(tunes, instrument, rating, tempoUse
 }
 
 /**
- * Save a learning-mode struggle: lower stability, don't update tempo.
+ * Save a learning-mode struggle: log the attempt, leave tempo alone.
+ * Stability is deliberately untouched — a tune still being learned comes back
+ * tomorrow either way, and letting these presses drive it down is what used to
+ * leave tunes graduating into playing mode with a stability far below a day.
  */
 export async function saveLearningStruggle(tune, instrument) {
   const fallback = tune.canonical_tempo || getDefaultTempo(tune.type);
   const instData = getInstrumentData(tune, instrument, fallback);
 
   const { updated } = await savePractice(tune, instrument, {
-    stability: updateStability(instData.stability, 'hard'),
+    stability: instData.stability,
     tempo_used: instData.current_tempo,
     fluency_rating: 2,
   });

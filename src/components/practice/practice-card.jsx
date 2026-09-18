@@ -12,7 +12,7 @@ import { parseYouTube } from '../../lib/youtube';
 import { usePracticeHistory } from '../../hooks/use-practice-history';
 import { NotesContent } from '../tune/tune-notes';
 import { buildAbcString, getDefaultTempo, getMeter } from '../../lib/abc-utils';
-import { getInstrumentData, instrumentProficiency, suggestLearningTempo } from '../../lib/practice-algorithm';
+import { daysSince, getInstrumentData, instrumentProficiency, suggestLearningTempo } from '../../lib/practice-algorithm';
 
 export function useElapsedSeconds() {
   const [seconds, setSeconds] = useState(0);
@@ -137,7 +137,12 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
       ) : (
         <div class="space-y-1">
           <div class="bg-white rounded-lg border border-gray-200 p-4">
-            <FluencyRater onRate={handleRate} disabled={saving} stability={instData.stability} />
+            <FluencyRater
+              onRate={handleRate}
+              disabled={saving}
+              stability={instData.stability}
+              elapsedDays={daysSince(instData.last_practiced)}
+            />
           </div>
           <div class="text-center py-1.5">
             <button onClick={onSkip} class="text-sm text-gray-400 hover:text-gray-600 cursor-pointer">

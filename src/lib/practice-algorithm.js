@@ -1,18 +1,22 @@
 /**
- * Practice priority and stability algorithm.
+ * Practice scheduling: when a tune comes back, and how far it moves each time.
+ * The reasoning behind the constants, and how to change them safely, is in
+ * PRACTICE_ALGORITHM.md — read that before touching the numbers here.
  *
  * Each tune's instrument entry stores:
- *   stability    — how well-learned (days); higher = more resistant to forgetting
+ *   stability      — how long it holds (days); higher = more resistant to forgetting
  *   last_practiced — ISO date string of last practice
  *   current_tempo  — BPM the user can reliably play at
  *   target_tempo   — goal BPM
  *
- * Priority formula:
- *   priority = W1 * (target - current) + W2 * forgettingRisk
- *   priority += sigmoid(forgettingRisk - 0.7) * BOOST
- *
  * forgettingRisk = 1 - exp(-t / S)
  *   where t = days since last practice, S = stability
+ * A playing tune is due once that risk reaches DUE_RISK_THRESHOLD, i.e. after
+ * restDays(S) = 0.69 * S days; learning tunes are due every day.
+ *
+ * Priority formula (orders the tunes that are due):
+ *   priority = W1 * (target - current) + W2 * forgettingRisk
+ *   priority += sigmoid(forgettingRisk - 0.7) * BOOST
  */
 
 const W1 = 0.01;
@@ -21,11 +25,19 @@ const BOOST = 5;
 const INITIAL_STABILITY = 1.0;
 const RELEARN_TEMPO_FACTOR = 0.8;
 
-const STABILITY_MULTIPLIERS = {
-  easy: 1.4,
-  good: 1.1,
-  hard: 0.65,
+// Stability is measured in days and bounded at both ends: never below a day
+// (a tune you can play is never a two-hour tune) and never beyond half a year
+// (anything you haven't touched in that long is worth a look regardless).
+const MIN_STABILITY = 1.0;
+const MAX_STABILITY = 180;
+
+// Growth per successful review, reached only when the review happens on or
+// after its due date; see updateStability for the early-review damping.
+const STABILITY_GAIN = {
+  easy: 2,
+  good: 1.4,
 };
+const HARD_FACTOR = 0.75;
 
 function sigmoid(x) {
   return 1 / (1 + Math.exp(-x));
@@ -74,13 +86,44 @@ export function calculatePriority(tune, instrument, fallbackTempo) {
 
 /**
  * Update stability after a playing-mode rating.
- * Returns new stability value.
+ *
+ * A success multiplies stability, but only in proportion to how much of the
+ * scheduled rest was actually used:
+ *
+ *   dueness = min(1, elapsed / restDays(S))     1 = played on or after its due day
+ *   S' = S * (1 + (gain - 1) * dueness)
+ *
+ * so playing a tune the day after you last played it earns a sliver of the
+ * growth, and playing it on schedule earns all of it. The cap at 1 means
+ * neglect is never worth *more* than discipline: a tune left for three months
+ * and then played well lands exactly where an on-time success would have put
+ * it. (Anki and FSRS both pay a bonus there; we deliberately don't — under-
+ * resting a tune you still know is a cheaper mistake than over-resting one
+ * you've quietly lost.)
+ *
+ * `hard` is a pass you struggled through: it shrinks stability from where it
+ * was, ignoring elapsed time, so the tune comes back sooner than the gap you
+ * just survived. `relearn` is the fail button and is handled by the caller
+ * (reset to INITIAL_STABILITY, tune drops back to learning).
+ *
+ * @param {number} currentStability days
+ * @param {string} rating easy | good | hard
+ * @param {number} elapsedDays since the last practice on this instrument
  */
-export function updateStability(currentStability, rating) {
-  const s = currentStability || INITIAL_STABILITY;
-  const multiplier = STABILITY_MULTIPLIERS[rating];
-  if (!multiplier) return s;
-  return Math.round(s * multiplier * 100) / 100;
+export function updateStability(currentStability, rating, elapsedDays = 0) {
+  const s = clampStability(currentStability || INITIAL_STABILITY);
+  if (rating === 'hard') return clampStability(s * HARD_FACTOR);
+
+  const gain = STABILITY_GAIN[rating];
+  if (!gain) return s;
+
+  const scheduled = restDays(s);
+  const dueness = scheduled > 0 ? Math.min(1, Math.max(0, elapsedDays) / scheduled) : 1;
+  return clampStability(s * (1 + (gain - 1) * dueness));
+}
+
+function clampStability(s) {
+  return Math.round(Math.min(MAX_STABILITY, Math.max(MIN_STABILITY, s)) * 100) / 100;
 }
 
 /**
@@ -155,7 +198,7 @@ export function isDue(tune, instrument) {
 }
 
 /** Days a tune rests at a given stability before it comes due again. */
-function restDays(stability) {
+export function restDays(stability) {
   return -(stability || INITIAL_STABILITY) * Math.log(1 - DUE_RISK_THRESHOLD);
 }
 
@@ -169,12 +212,13 @@ export function dueInDays(tune, instrument) {
 }
 
 /**
- * How long a playing tune rests after a given rating: the point where its
- * forgetting risk climbs back to the due threshold, measured from now.
- * Shown on the rating buttons so the choice is as legible as Anki's.
+ * How long a playing tune will rest if it is rated `rating` right now: the
+ * point where its forgetting risk climbs back to the due threshold. Shown on
+ * the rating buttons, so it has to be told the same `elapsedDays` the save
+ * path will use — rating a tune early earns less, and the button must say so.
  */
-export function nextIntervalDays(stability, rating) {
-  return restDays(updateStability(stability, rating));
+export function nextIntervalDays(stability, rating, elapsedDays = 0) {
+  return restDays(updateStability(stability, rating, elapsedDays));
 }
 
 /**

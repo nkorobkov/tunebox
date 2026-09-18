@@ -9,10 +9,12 @@ const RATINGS = [
 /**
  * Playing-mode rating buttons. Each carries the rest interval that rating
  * buys — how long before the tune comes due again — the way Anki does, so
- * the trade-off is visible before the tap. Pass the tune's current
- * stability (days); omit it and the intervals are left off.
+ * the trade-off is visible before the tap. Pass the tune's current stability
+ * (days) and how long it has rested; growth is scaled by the gap, so a tune
+ * played early honestly shows a smaller number. Omit `stability` and the
+ * intervals are left off.
  */
-export function FluencyRater({ onRate, disabled, stability }) {
+export function FluencyRater({ onRate, disabled, stability, elapsedDays = 0 }) {
   const showIntervals = typeof stability === 'number';
 
   return (
@@ -31,7 +33,7 @@ export function FluencyRater({ onRate, disabled, stability }) {
             <div class="text-xs opacity-75 mt-0.5">{r.description}</div>
             {showIntervals && (
               <div class="text-xs font-semibold opacity-90 mt-1" style="font-variant-numeric: tabular-nums">
-                {formatInterval(nextIntervalDays(stability, r.value))}
+                {formatInterval(nextIntervalDays(stability, r.value, elapsedDays))}
               </div>
             )}
           </button>

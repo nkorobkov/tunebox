@@ -7,7 +7,7 @@ import { NotesContent } from '../tune/tune-notes';
 import { useAttachments } from '../../hooks/use-attachments';
 import { useSetAttachments } from '../../hooks/use-set-attachments';
 import { buildAbcString, getDefaultTempo, getMeter } from '../../lib/abc-utils';
-import { getInstrumentData } from '../../lib/practice-algorithm';
+import { daysSince, getInstrumentData } from '../../lib/practice-algorithm';
 import { setHref } from '../../lib/sets';
 
 /** One member tune's notation inside the set's sheet-music spoiler. */
@@ -48,8 +48,13 @@ export function SetPracticeCard({ item, instrument, onCompleteSet, onSkip }) {
   const instDataFor = (t) => getInstrumentData(t, instrument, t.canonical_tempo || getDefaultTempo(t.type));
   const targetTempo = instDataFor(first).target_tempo;
   // One rating covers every tune, so the set comes back as soon as its
-  // shakiest member does — rate the intervals off the lowest stability.
-  const stability = Math.min(...item.tunes.map(t => instDataFor(t).stability));
+  // shakiest member does — rate the intervals off that tune, both its
+  // stability and the gap since it was last played.
+  const weakest = item.tunes.reduce(
+    (worst, t) => (instDataFor(t).stability < instDataFor(worst).stability ? t : worst),
+    item.tunes[0],
+  );
+  const { stability, last_practiced: weakestLastPracticed } = instDataFor(weakest);
   const [tempo, setTempo] = useState(targetTempo);
 
   const handleRate = async (rating) => {
@@ -125,7 +130,12 @@ export function SetPracticeCard({ item, instrument, onCompleteSet, onSkip }) {
       {/* One rating for the whole set */}
       <div class="space-y-1">
         <div class="bg-white rounded-lg border border-gray-200 p-4">
-          <FluencyRater onRate={handleRate} disabled={saving} stability={stability} />
+          <FluencyRater
+            onRate={handleRate}
+            disabled={saving}
+            stability={stability}
+            elapsedDays={daysSince(weakestLastPracticed)}
+          />
           <p class="text-xs text-gray-400 mt-2 text-center">
             Recorded against all {item.tunes.length} tunes in the set.
           </p>

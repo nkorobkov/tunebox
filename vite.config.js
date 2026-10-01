@@ -15,6 +15,12 @@ export default defineConfig({
       manifest: false, // public/manifest.json is already linked from index.html
       devOptions: { enabled: false },
       workbox: {
+        // vite-plugin-pwa only injects these two for `autoUpdate` when it also
+        // injects the registration script; with `injectRegister: false` it
+        // silently doesn't, so every deploy installed and then parked in
+        // "waiting" forever and the app never picked it up. Set them by hand.
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,mp3}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: '/index.html',

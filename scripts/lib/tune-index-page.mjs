@@ -10,10 +10,11 @@
 // SEO / traffic pages that link out to tunebox.net.
 //
 // Tune records: { book, name, type?, url?, abc?, settings?, closest?,
-//                 page?, sessionName? }
+//                 page?, sessionName?, altNames? }
 // `page` enables the page chip and the book-order sort; `sessionName` (the
 // tune's name on thesession.org, when the book calls it something else) is
-// shown on the card and included in search.
+// shown on the card and included in search, as are `altNames` (the book's
+// own alternative titles).
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -29,7 +30,7 @@ const looseName = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(
  * @param {string} c.slug          URL path segment, e.g. 'portland-collection'
  * @param {string} c.generator     script path, for the "do not edit" comment
  * @param {object[]} c.tunes       tune records (see above)
- * @param {{value:number,label:string}[]} c.books  book filter options
+ * @param {{value:number,label:string}[]} [c.books]  book filter options (omit for a single book)
  * @param {(t:object)=>string} c.bookChip         chip text for a tune
  * @param {string} c.siteTitle     header bar text (HTML)
  * @param {(s:object)=>string} c.title            <title>
@@ -42,6 +43,10 @@ const looseName = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(
  * @param {string} c.promoHeading
  * @param {string} c.footerCopyright   footer paragraph inner HTML
  * @param {boolean} [c.availFilter=true] show the availability filter
+ * @param {boolean} [c.ordered]   enable the book-order sort (default: tunes have `page`)
+ * @param {string} [c.notationNote]  caption above each score (default: thesession disclaimer)
+ * @param {string} [c.creditsHtml]   footer credits line (default: thesession notation credit)
+ * @param {string} [c.statsHtml]     footer stats line (default: totals vs thesession)
  */
 export function writeTuneIndexPage(c) {
   const outDir = join(c.root, 'public', c.slug);
@@ -51,14 +56,16 @@ export function writeTuneIndexPage(c) {
   // Stable ids follow source-data order (data-o keeps it for the book-order
   // sort); cards are emitted alphabetically.
   const withIds = c.tunes.map((t, i) => ({ ...t, _id: 't' + i, _o: i }));
-  const sorted = [...withIds].sort((a, b) => a.name.localeCompare(b.name));
+  // Name sort ignores a leading article, as thesession does ("The Kesh" under K).
+  const sortKey = (n) => n.replace(/^(the|an|a)\s+/i, '');
+  const sorted = [...withIds].sort((a, b) => sortKey(a.name).localeCompare(sortKey(b.name)));
 
   const total = c.tunes.length;
   const linked = c.tunes.filter((t) => t.url).length;
   const playable = c.tunes.filter((t) => t.abc).length;
   const types = [...new Set(c.tunes.map((t) => t.type).filter(Boolean))].sort();
   const stats = { total, linked, playable };
-  const hasPages = c.tunes.some((t) => t.page);
+  const hasPages = c.ordered ?? c.tunes.some((t) => t.page);
 
   // ---- ABC payload (lazy-fetched) ----
   const abcMap = {};
@@ -69,6 +76,7 @@ export function writeTuneIndexPage(c) {
   // Row click (JS) expands the score; the side button links to thesession.org.
   const cards = sorted.map((t) => {
     const aka = t.sessionName && looseName(t.sessionName) !== looseName(t.name) ? t.sessionName : '';
+    const alt = (t.altNames || []).join(' / ');
     const chips = [
       `<span class="chip chip-book">${esc(c.bookChip(t))}</span>`,
       t.type ? `<span class="chip">${esc(cap(t.type))}</span>` : '',
@@ -79,13 +87,13 @@ export function writeTuneIndexPage(c) {
     const sessionBtn = t.url
       ? `<a class="btn-session" href="${esc(t.url)}" target="_blank" rel="noopener">thesession &#8599;</a>`
       : '';
-    const nameHtml = aka
-      ? `<span class="tune-name">${esc(t.name)}<span class="tune-aka">thesession: ${esc(aka)}</span></span>`
-      : `<span class="tune-name">${esc(t.name)}</span>`;
+    const akaHtml = (alt ? `<span class="tune-aka">also: ${esc(alt)}</span>` : '') +
+      (aka ? `<span class="tune-aka">thesession: ${esc(aka)}</span>` : '');
+    const nameHtml = `<span class="tune-name">${esc(t.name)}${akaHtml}</span>`;
     const attrs = [
       `data-id="${t._id}"`,
       `data-n="${esc(t.name.toLowerCase())}"`,
-      aka ? `data-s="${esc(aka.toLowerCase())}"` : '',
+      aka || alt ? `data-s="${esc([aka, alt].filter(Boolean).join(' ').toLowerCase())}"` : '',
       `data-b="${t.book}"`,
       hasPages ? `data-o="${t._o}"` : '',
       `data-t="${esc(t.type || '')}"`,
@@ -100,7 +108,7 @@ export function writeTuneIndexPage(c) {
   }).join('\n');
 
   const typeOptions = types.map((t) => `<option value="${esc(t)}">${esc(cap(t))}</option>`).join('');
-  const bookOptions = c.books.map((b) => `<option value="${b.value}">${esc(b.label)}</option>`).join('');
+  const bookOptions = (c.books || []).map((b) => `<option value="${b.value}">${esc(b.label)}</option>`).join('');
   const description = c.description(stats);
 
   const availSelect = c.availFilter === false ? '' : `
@@ -260,9 +268,9 @@ ${JSON.stringify({
 
   <div class="controls" id="controls" hidden>
     <input id="q" type="search" placeholder="Search ${total} tunes&hellip;" autocomplete="off" aria-label="Search tunes by name">
-    <select id="book" aria-label="Filter by book">
+    ${c.books ? `<select id="book" aria-label="Filter by book">
       <option value="">All books</option>${bookOptions}
-    </select>
+    </select>` : ''}
     <select id="type" aria-label="Filter by tune type">
       <option value="">All types</option>${typeOptions}
     </select>${availSelect}
@@ -274,7 +282,7 @@ ${JSON.stringify({
     <span class="count" id="count"></span>
   </div>
 
-  <main class="list" id="list" data-abc="/${c.slug}/tunes-abc.json">
+  <main class="list" id="list" data-abc="/${c.slug}/tunes-abc.json"${c.notationNote ? ` data-note="${esc(c.notationNote)}"` : ''}>
 ${cards}
   </main>
   <div class="empty" id="empty">No tunes match your filters.</div>
@@ -288,9 +296,9 @@ ${cards}
   </section>
 
   <footer class="site">
-    <p>${total} tunes &middot; ${linked} matched on thesession.org &middot; ${playable} with sheet music &amp; playback</p>
+    <p>${c.statsHtml ? c.statsHtml(stats) : `${total} tunes &middot; ${linked} matched on thesession.org &middot; ${playable} with sheet music &amp; playback`}</p>
     <p>${c.footerCopyright}</p>
-    <p>Notation and links from the community archive <a href="https://thesession.org" target="_blank" rel="noopener">thesession.org</a>
+    <p>${c.creditsHtml || `Notation and links from the community archive <a href="https://thesession.org" target="_blank" rel="noopener">thesession.org</a>`}
     &middot; rendering &amp; playback by <a href="https://www.abcjs.net/" target="_blank" rel="noopener">abcjs</a>
     &middot; page by <a href="https://tunebox.net/">TuneBox</a>.</p>
   </footer>

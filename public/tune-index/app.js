@@ -13,7 +13,7 @@
   var emptyEl = document.getElementById('empty');
   var countEl = document.getElementById('count');
   var q = document.getElementById('q');
-  var bookSel = document.getElementById('book');
+  var bookSel = document.getElementById('book'); // optional
   var typeSel = document.getElementById('type');
   var availSel = document.getElementById('avail'); // optional
   var sortSel = document.getElementById('sort');
@@ -36,7 +36,7 @@
   // ---- search / filter / sort ----
   function apply() {
     var term = q.value.trim().toLowerCase();
-    var bk = bookSel.value, tp = typeSel.value, av = availSel ? availSel.value : '', so = sortSel.value;
+    var bk = bookSel ? bookSel.value : '', tp = typeSel.value, av = availSel ? availSel.value : '', so = sortSel.value;
 
     var visible = tunes.filter(function (t) {
       if (term && t.search.indexOf(term) === -1) return false;
@@ -109,7 +109,9 @@
     var meta = document.createElement('p');
     meta.className = 'meta';
     var settings = card.getAttribute('data-settings');
-    meta.textContent = (settings ? 'First of ' + settings + ' settings on thesession.org · ' : '') +
+    // Pages showing the book's own notation set a caption on #list instead.
+    meta.textContent = list.getAttribute('data-note') ||
+      (settings ? 'First of ' + settings + ' settings on thesession.org · ' : '') +
       'notation from thesession.org — the book’s version may differ';
     var score = document.createElement('div');
     score.className = 'score';

@@ -34,8 +34,8 @@ cpSync(nm('pdfjs-dist/wasm'), join(pdfDest, 'wasm'), { recursive: true });
 cpSync(nm('pdfjs-dist/iccs'), join(pdfDest, 'iccs'), { recursive: true });
 cpSync(nm('pdfjs-dist/standard_fonts'), join(pdfDest, 'standard_fonts'), { recursive: true });
 
-// abcjs — lazy-loaded by the standalone Portland Collection page
-// (public/portland-collection/), which is plain HTML outside the app bundle.
+// abcjs — lazy-loaded by the standalone tune-index pages
+// (public/{portland-collection,foinn-seisiun}/), plain HTML outside the app bundle.
 const abcDest = join(root, 'public', 'abcjs');
 mkdirSync(abcDest, { recursive: true });
 copyFileSync(nm('abcjs/dist/abcjs-basic-min.js'), join(abcDest, 'abcjs-basic-min.js'));

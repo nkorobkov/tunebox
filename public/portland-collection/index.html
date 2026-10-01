@@ -24,13 +24,23 @@
   "name": "The Portland Collection tune index",
   "url": "https://tunebox.net/portland-collection/",
   "description": "A free searchable index of all 942 tunes in The Portland Collection — contra dance music from Portland, Oregon, compiled by Sue Songer and Clyde Curley — with sheet music and audio playback for the 545 tunes found on thesession.org.",
-  "isPartOf": { "@type": "WebSite", "name": "TuneBox", "url": "https://tunebox.net/" },
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "TuneBox",
+    "url": "https://tunebox.net/"
+  },
   "about": {
     "@type": "BookSeries",
     "name": "The Portland Collection: Contra Dance Music in the Pacific Northwest",
     "author": [
-      { "@type": "Person", "name": "Sue Songer" },
-      { "@type": "Person", "name": "Clyde Curley" }
+      {
+        "@type": "Person",
+        "name": "Sue Songer"
+      },
+      {
+        "@type": "Person",
+        "name": "Clyde Curley"
+      }
     ],
     "url": "https://www.theportlandcollection.com/"
   }
@@ -95,6 +105,7 @@
   .tune[data-a="1"] .tune-head:hover { background:var(--gray-50); }
   .tune[data-a="1"] .tune-head:focus-visible { outline:2px solid var(--brand-600); outline-offset:-2px; }
   .tune-name { font-weight:600; flex:1 1 auto; min-width:10rem; }
+  .tune-aka { display:block; font-weight:400; font-size:.75rem; color:var(--gray-500); }
   .caret { color:var(--gray-400); font-size:.8rem; transition:transform .15s; }
   .tune.open .caret { transform:rotate(180deg); }
   .tune.open .tune-head { border-radius:.75rem .75rem 0 0; }
@@ -181,7 +192,7 @@
     <span class="count" id="count"></span>
   </div>
 
-  <main class="list" id="list">
+  <main class="list" id="list" data-abc="/portland-collection/tunes-abc.json">
 <article class="tune" data-id="t300" data-n="28th of january, the" data-b="1" data-t="reel" data-a="1" data-l="1">
 <div class="tune-head"><span class="tune-name">28th of January, The</span><span class="chip chip-book">Book 1</span><span class="chip">Reel</span><span class="caret" aria-hidden="true">&#9662;</span><a class="btn-session" href="https://thesession.org/tunes/15717" target="_blank" rel="noopener">thesession &#8599;</a></div>
 <div class="tune-detail" hidden></div>
@@ -3972,6 +3983,6 @@
   </footer>
 </div>
 
-<script src="/portland-collection/app.js" defer></script>
+<script src="/tune-index/app.js" defer></script>
 </body>
 </html>

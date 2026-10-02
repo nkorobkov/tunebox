@@ -10,11 +10,12 @@
 // SEO / traffic pages that link out to tunebox.net.
 //
 // Tune records: { book, name, type?, url?, abc?, settings?, closest?,
-//                 page?, sessionName?, altNames? }
+//                 page?, sessionName?, altNames?, source? }
 // `page` enables the page chip and the book-order sort; `sessionName` (the
 // tune's name on thesession.org, when the book calls it something else) is
 // shown on the card and included in search, as are `altNames` (the book's
-// own alternative titles).
+// own alternative titles). `source` ({url, label}) is where a tune that isn't
+// on thesession takes its notation from; the card links there instead.
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -31,7 +32,7 @@ const looseName = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(
  * @param {string} c.generator     script path, for the "do not edit" comment
  * @param {object[]} c.tunes       tune records (see above)
  * @param {{value:number,label:string}[]} [c.books]  book filter options (omit for a single book)
- * @param {(t:object)=>string} c.bookChip         chip text for a tune
+ * @param {(t:object)=>string} [c.bookChip]       chip text for a tune (omit for an unnumbered book)
  * @param {string} c.siteTitle     header bar text (HTML)
  * @param {(s:object)=>string} c.title            <title>
  * @param {(s:object)=>string} c.ogTitle
@@ -45,6 +46,7 @@ const looseName = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(
  * @param {boolean} [c.availFilter=true] show the availability filter
  * @param {boolean} [c.ordered]   enable the book-order sort (default: tunes have `page`)
  * @param {string} [c.notationNote]  caption above each score (default: thesession disclaimer)
+ * @param {string} [c.sourceNote]    caption above scores taken from a tune's `source`
  * @param {string} [c.creditsHtml]   footer credits line (default: thesession notation credit)
  * @param {string} [c.statsHtml]     footer stats line (default: totals vs thesession)
  */
@@ -78,15 +80,17 @@ export function writeTuneIndexPage(c) {
     const aka = t.sessionName && looseName(t.sessionName) !== looseName(t.name) ? t.sessionName : '';
     const alt = (t.altNames || []).join(' / ');
     const chips = [
-      `<span class="chip chip-book">${esc(c.bookChip(t))}</span>`,
+      c.bookChip ? `<span class="chip chip-book">${esc(c.bookChip(t))}</span>` : '',
       t.type ? `<span class="chip">${esc(cap(t.type))}</span>` : '',
-      t.closest ? `<span class="chip chip-approx" title="Matched to thesession.org by name similarity — may differ from the book&#39;s version">&asymp; match</span>` : '',
+      t.closest ? `<span class="chip chip-approx" title="Approximate match on thesession.org — may differ from the book&#39;s version">&asymp; match</span>` : '',
       !t.url ? `<span class="chip chip-na">Not on thesession</span>` : '',
     ].filter(Boolean).join('');
     const caret = t.abc ? `<span class="caret" aria-hidden="true">&#9662;</span>` : '';
     const sessionBtn = t.url
       ? `<a class="btn-session" href="${esc(t.url)}" target="_blank" rel="noopener">thesession &#8599;</a>`
-      : '';
+      : t.source
+        ? `<a class="btn-session" href="${esc(t.source.url)}" target="_blank" rel="noopener">${esc(t.source.label)} &#8599;</a>`
+        : '';
     const akaHtml = (alt ? `<span class="tune-aka">also: ${esc(alt)}</span>` : '') +
       (aka ? `<span class="tune-aka">thesession: ${esc(aka)}</span>` : '');
     const nameHtml = `<span class="tune-name">${esc(t.name)}${akaHtml}</span>`;
@@ -100,6 +104,7 @@ export function writeTuneIndexPage(c) {
       `data-a="${t.abc ? 1 : 0}"`,
       `data-l="${t.url ? 1 : 0}"`,
       t.settings > 1 ? `data-settings="${t.settings}"` : '',
+      t.source && c.sourceNote ? `data-note="${esc(c.sourceNote)}"` : '',
     ].filter(Boolean).join(' ');
     return `<article class="tune" ${attrs}>
 <div class="tune-head">${nameHtml}${chips}${caret}${sessionBtn}</div>
@@ -276,7 +281,7 @@ ${JSON.stringify({
     </select>${availSelect}
     <select id="sort" aria-label="Sort order">
       <option value="name">Sort: name</option>
-      <option value="book">${hasPages ? 'Sort: book order' : 'Sort: book'}</option>
+      ${hasPages || c.books ? `<option value="book">${hasPages ? 'Sort: book order' : 'Sort: book'}</option>` : ''}
       <option value="type">Sort: type</option>
     </select>
     <span class="count" id="count"></span>

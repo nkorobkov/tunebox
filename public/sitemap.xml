@@ -25,6 +25,18 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://tunebox.net/ryans-mammoth-collection/</loc>
+    <lastmod>2026-10-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tunebox.net/ceol-rince-na-heireann/</loc>
+    <lastmod>2026-10-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://tunebox.net/privacy.html</loc>
     <lastmod>2026-07-08</lastmod>
     <changefreq>yearly</changefreq>

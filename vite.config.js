@@ -28,11 +28,11 @@ export default defineConfig({
         // sitemap.xml aren't precached, so without this the SW hijacks
         // browser navigations to them). Same for the standalone tune-index
         // pages (Portland Collection, Foinn Seisiún).
-        navigateFallbackDenylist: [/^\/robots\.txt$/, /^\/sitemap\.xml$/, /^\/portland-collection/, /^\/foinn-seisiun/, /^\/oneills-1001/],
+        navigateFallbackDenylist: [/^\/robots\.txt$/, /^\/sitemap\.xml$/, /^\/portland-collection/, /^\/foinn-seisiun/, /^\/oneills-1001/, /^\/ryans-mammoth-collection/, /^\/ceol-rince-na-heireann/],
         // Don't precache .map files or other dev artifacts. The tesseract
         // and pdf.js assets (~15MB), the abcjs copy, and the standalone
         // tune-index pages (~700KB each) are lazy-loaded on demand, not precached.
-        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'tesseract/**', 'pdfjs/**', 'abcjs/**', 'tune-index/**', 'portland-collection/**', 'foinn-seisiun/**', 'oneills-1001/**'],
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'tesseract/**', 'pdfjs/**', 'abcjs/**', 'tune-index/**', 'portland-collection/**', 'foinn-seisiun/**', 'oneills-1001/**', 'ryans-mammoth-collection/**', 'ceol-rince-na-heireann/**'],
       },
     }),
   ],

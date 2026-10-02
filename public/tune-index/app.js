@@ -109,8 +109,9 @@
     var meta = document.createElement('p');
     meta.className = 'meta';
     var settings = card.getAttribute('data-settings');
-    // Pages showing the book's own notation set a caption on #list instead.
-    meta.textContent = list.getAttribute('data-note') ||
+    // Pages showing the book's own notation set a caption on #list instead;
+    // a card whose notation comes from elsewhere carries its own.
+    meta.textContent = card.getAttribute('data-note') || list.getAttribute('data-note') ||
       (settings ? 'First of ' + settings + ' settings on thesession.org · ' : '') +
       'notation from thesession.org — the book’s version may differ';
     var score = document.createElement('div');

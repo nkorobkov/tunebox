@@ -19,6 +19,105 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+// Shared page styles (also used by the /collections/ hub, scripts/build-collections.mjs).
+export const BASE_CSS = `  :root {
+    --gray-50:#f9fafb; --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-300:#d1d5dc;
+    --gray-400:#99a1af; --gray-500:#6a7282; --gray-600:#4a5565; --gray-700:#364153;
+    --gray-900:#101828;
+    --brand-50:#f2faf1; --brand-100:#e2f3e0; --brand-200:#c4e8c0; --brand-600:#389833;
+    --brand-700:#2c7a28; --brand-800:#25631f;
+    --amber-50:#fffbeb; --amber-200:#fee685; --amber-800:#973c00;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--gray-50); color:var(--gray-900);
+    font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  a { color:var(--brand-700); }
+  .wrap { max-width:56rem; margin:0 auto; padding:0 1rem; }
+
+  header.site {
+    position:sticky; top:0; z-index:20; background:rgba(249,250,251,.85);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--gray-200);
+  }
+  header.site .wrap { height:3.5rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+  .site-title { font-weight:600; font-size:.95rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .site-title .crumb { font-weight:500; color:var(--gray-500); text-decoration:none; }
+  .site-title .crumb:hover { color:var(--brand-700); text-decoration:underline; }
+  .site-title .crumb-sep { color:var(--gray-400); margin:0 .35rem; font-weight:400; }
+  .site-brand { display:flex; align-items:center; gap:.5rem; font-size:.8rem; color:var(--gray-500); text-decoration:none; white-space:nowrap; }
+  .site-brand:hover { color:var(--gray-700); }
+  .site-brand img { height:1.5rem; display:block; }
+
+  .hero { padding:2.5rem 0 1.5rem; display:flex; flex-wrap:wrap; gap:1.5rem 3rem; align-items:flex-start; }
+  .hero-intro { flex:1 1 26rem; min-width:0; }
+  h1 { margin:0 0 .75rem; font-size:2rem; line-height:1.15; font-weight:700; letter-spacing:-.02em; }
+  h1 .accent { color:var(--brand-600); }
+  .hero p { margin:.5rem 0 0; color:var(--gray-600); }
+
+  .buy { flex:0 0 auto; font-size:.85rem; }
+  .buy h2 { margin:0 0 .35rem; font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-500); }
+  .buy a { display:block; margin:.3rem 0; color:var(--brand-700); }
+
+  .controls {
+    position:sticky; top:3.5rem; z-index:10; background:var(--gray-50);
+    padding:.75rem 0; border-bottom:1px solid var(--gray-200);
+    display:flex; flex-wrap:wrap; gap:.5rem; align-items:center;
+  }
+  .controls input[type=search], .controls select {
+    font:inherit; font-size:.9rem; padding:.5rem .65rem; color:var(--gray-900);
+    border:1px solid var(--gray-300); border-radius:.5rem; background:#fff;
+  }
+  .controls input[type=search] { flex:1 1 14rem; min-width:11rem; }
+  .controls :focus-visible { outline:2px solid var(--brand-600); outline-offset:1px; }
+  .count { margin-left:auto; color:var(--gray-500); font-size:.8rem; white-space:nowrap; }
+
+  .list { display:flex; flex-direction:column; gap:.4rem; margin:.75rem 0 2rem; }
+  .tune { background:#fff; border:1px solid var(--gray-200); border-radius:.75rem; }
+  .tune-head { display:flex; align-items:center; flex-wrap:wrap; gap:.4rem; padding:.6rem .85rem; border-radius:.75rem; }
+  .tune[data-a="1"] .tune-head { cursor:pointer; }
+  .tune[data-a="1"] .tune-head:hover { background:var(--gray-50); }
+  .tune[data-a="1"] .tune-head:focus-visible { outline:2px solid var(--brand-600); outline-offset:-2px; }
+  .tune-name { font-weight:600; flex:1 1 auto; min-width:10rem; }
+  .tune-aka { display:block; font-weight:400; font-size:.75rem; color:var(--gray-500); }
+  .caret { color:var(--gray-400); font-size:.8rem; transition:transform .15s; }
+  .tune.open .caret { transform:rotate(180deg); }
+  .tune.open .tune-head { border-radius:.75rem .75rem 0 0; }
+  .btn-session {
+    font-size:.8rem; font-weight:500; white-space:nowrap; text-decoration:none;
+    padding:.35rem .8rem; border:1px solid var(--gray-300); border-radius:.5rem;
+    background:#fff; color:var(--gray-700);
+  }
+  .btn-session:hover { border-color:var(--brand-600); color:var(--brand-700); }
+  .chip {
+    font-size:.72rem; padding:.1rem .55rem; border-radius:9999px;
+    background:var(--gray-100); color:var(--gray-600); white-space:nowrap;
+  }
+  .chip-book { background:var(--brand-100); color:var(--brand-800); }
+  .chip-approx { background:var(--amber-50); color:var(--amber-800); border:1px solid var(--amber-200); }
+  .chip-na { background:none; border:1px dashed var(--gray-300); color:var(--gray-400); }
+  .tune-detail { border-top:1px solid var(--gray-200); padding:.85rem; }
+  .tune-detail .meta { color:var(--gray-500); font-size:.75rem; margin:0 0 .5rem; }
+  .score { overflow-x:auto; background:#fff; color:#000; }
+  .abcjs-inline-audio { margin-top:.6rem; border-radius:.5rem; }
+  .empty { text-align:center; color:var(--gray-500); padding:2.5rem 0; display:none; }
+
+  .promo {
+    background:var(--brand-50); border:1px solid var(--brand-200); border-radius:.75rem;
+    padding:1.5rem; margin:2.5rem 0 1rem; text-align:center;
+  }
+  .promo h2 { margin:0 0 .5rem; font-size:1.3rem; letter-spacing:-.01em; }
+  .promo p { margin:0 auto; color:var(--gray-600); max-width:36rem; }
+  .promo .cta {
+    display:inline-block; margin-top:1rem; padding:.6rem 1.4rem; border-radius:.5rem;
+    background:var(--brand-600); color:#fff; text-decoration:none; font-weight:500; font-size:.9rem;
+  }
+  .promo .cta:hover { background:var(--brand-700); }
+
+  footer.site { color:var(--gray-500); font-size:.78rem; text-align:center; padding:0 0 2.5rem; }
+  footer.site p { margin:.35rem 0; }
+`;
+
 export const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 // Loose comparison so "The Teetotaller" vs "Teetotaller" doesn't count as a different name.
@@ -157,105 +256,12 @@ ${JSON.stringify({
 <script data-goatcounter="https://tunebox.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <link rel="stylesheet" href="/abcjs/abcjs-audio.css">
 <style>
-  :root {
-    --gray-50:#f9fafb; --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-300:#d1d5dc;
-    --gray-400:#99a1af; --gray-500:#6a7282; --gray-600:#4a5565; --gray-700:#364153;
-    --gray-900:#101828;
-    --brand-50:#f2faf1; --brand-100:#e2f3e0; --brand-200:#c4e8c0; --brand-600:#389833;
-    --brand-700:#2c7a28; --brand-800:#25631f;
-    --amber-50:#fffbeb; --amber-200:#fee685; --amber-800:#973c00;
-  }
-  * { box-sizing:border-box; }
-  body {
-    margin:0; background:var(--gray-50); color:var(--gray-900);
-    font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  }
-  a { color:var(--brand-700); }
-  .wrap { max-width:56rem; margin:0 auto; padding:0 1rem; }
-
-  header.site {
-    position:sticky; top:0; z-index:20; background:rgba(249,250,251,.85);
-    backdrop-filter:blur(8px); border-bottom:1px solid var(--gray-200);
-  }
-  header.site .wrap { height:3.5rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; }
-  .site-title { font-weight:600; font-size:.95rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .site-brand { display:flex; align-items:center; gap:.5rem; font-size:.8rem; color:var(--gray-500); text-decoration:none; white-space:nowrap; }
-  .site-brand:hover { color:var(--gray-700); }
-  .site-brand img { height:1.5rem; display:block; }
-
-  .hero { padding:2.5rem 0 1.5rem; display:flex; flex-wrap:wrap; gap:1.5rem 3rem; align-items:flex-start; }
-  .hero-intro { flex:1 1 26rem; min-width:0; }
-  h1 { margin:0 0 .75rem; font-size:2rem; line-height:1.15; font-weight:700; letter-spacing:-.02em; }
-  h1 .accent { color:var(--brand-600); }
-  .hero p { margin:.5rem 0 0; color:var(--gray-600); }
-
-  .buy { flex:0 0 auto; font-size:.85rem; }
-  .buy h2 { margin:0 0 .35rem; font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-500); }
-  .buy a { display:block; margin:.3rem 0; color:var(--brand-700); }
-
-  .controls {
-    position:sticky; top:3.5rem; z-index:10; background:var(--gray-50);
-    padding:.75rem 0; border-bottom:1px solid var(--gray-200);
-    display:flex; flex-wrap:wrap; gap:.5rem; align-items:center;
-  }
-  .controls input[type=search], .controls select {
-    font:inherit; font-size:.9rem; padding:.5rem .65rem; color:var(--gray-900);
-    border:1px solid var(--gray-300); border-radius:.5rem; background:#fff;
-  }
-  .controls input[type=search] { flex:1 1 14rem; min-width:11rem; }
-  .controls :focus-visible { outline:2px solid var(--brand-600); outline-offset:1px; }
-  .count { margin-left:auto; color:var(--gray-500); font-size:.8rem; white-space:nowrap; }
-
-  .list { display:flex; flex-direction:column; gap:.4rem; margin:.75rem 0 2rem; }
-  .tune { background:#fff; border:1px solid var(--gray-200); border-radius:.75rem; }
-  .tune-head { display:flex; align-items:center; flex-wrap:wrap; gap:.4rem; padding:.6rem .85rem; border-radius:.75rem; }
-  .tune[data-a="1"] .tune-head { cursor:pointer; }
-  .tune[data-a="1"] .tune-head:hover { background:var(--gray-50); }
-  .tune[data-a="1"] .tune-head:focus-visible { outline:2px solid var(--brand-600); outline-offset:-2px; }
-  .tune-name { font-weight:600; flex:1 1 auto; min-width:10rem; }
-  .tune-aka { display:block; font-weight:400; font-size:.75rem; color:var(--gray-500); }
-  .caret { color:var(--gray-400); font-size:.8rem; transition:transform .15s; }
-  .tune.open .caret { transform:rotate(180deg); }
-  .tune.open .tune-head { border-radius:.75rem .75rem 0 0; }
-  .btn-session {
-    font-size:.8rem; font-weight:500; white-space:nowrap; text-decoration:none;
-    padding:.35rem .8rem; border:1px solid var(--gray-300); border-radius:.5rem;
-    background:#fff; color:var(--gray-700);
-  }
-  .btn-session:hover { border-color:var(--brand-600); color:var(--brand-700); }
-  .chip {
-    font-size:.72rem; padding:.1rem .55rem; border-radius:9999px;
-    background:var(--gray-100); color:var(--gray-600); white-space:nowrap;
-  }
-  .chip-book { background:var(--brand-100); color:var(--brand-800); }
-  .chip-approx { background:var(--amber-50); color:var(--amber-800); border:1px solid var(--amber-200); }
-  .chip-na { background:none; border:1px dashed var(--gray-300); color:var(--gray-400); }
-  .tune-detail { border-top:1px solid var(--gray-200); padding:.85rem; }
-  .tune-detail .meta { color:var(--gray-500); font-size:.75rem; margin:0 0 .5rem; }
-  .score { overflow-x:auto; background:#fff; color:#000; }
-  .abcjs-inline-audio { margin-top:.6rem; border-radius:.5rem; }
-  .empty { text-align:center; color:var(--gray-500); padding:2.5rem 0; display:none; }
-
-  .promo {
-    background:var(--brand-50); border:1px solid var(--brand-200); border-radius:.75rem;
-    padding:1.5rem; margin:2.5rem 0 1rem; text-align:center;
-  }
-  .promo h2 { margin:0 0 .5rem; font-size:1.3rem; letter-spacing:-.01em; }
-  .promo p { margin:0 auto; color:var(--gray-600); max-width:36rem; }
-  .promo .cta {
-    display:inline-block; margin-top:1rem; padding:.6rem 1.4rem; border-radius:.5rem;
-    background:var(--brand-600); color:#fff; text-decoration:none; font-weight:500; font-size:.9rem;
-  }
-  .promo .cta:hover { background:var(--brand-700); }
-
-  footer.site { color:var(--gray-500); font-size:.78rem; text-align:center; padding:0 0 2.5rem; }
-  footer.site p { margin:.35rem 0; }
-</style>
+${BASE_CSS}</style>
 </head>
 <body>
 <header class="site">
   <div class="wrap">
-    <span class="site-title">${c.siteTitle}</span>
+    <span class="site-title"><a class="crumb" href="/collections/">Collections</a><span class="crumb-sep" aria-hidden="true">&rsaquo;</span>${c.siteTitle}</span>
     <a class="site-brand" href="https://tunebox.net/">hosted by <img src="/tunebook.svg" alt="TuneBox"></a>
   </div>
 </header>
@@ -306,6 +312,7 @@ ${cards}
     <p>${c.creditsHtml || `Notation and links from the community archive <a href="https://thesession.org" target="_blank" rel="noopener">thesession.org</a>`}
     &middot; rendering &amp; playback by <a href="https://www.abcjs.net/" target="_blank" rel="noopener">abcjs</a>
     &middot; page by <a href="https://tunebox.net/">TuneBox</a>.</p>
+    <p><a href="/collections/">More tune collections</a></p>
   </footer>
 </div>
 

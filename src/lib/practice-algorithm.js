@@ -222,13 +222,11 @@ export function nextIntervalDays(stability, rating, elapsedDays = 0) {
 }
 
 /**
- * Compact interval label: "<1d", "1.9d", "12d", "1.3mo", "1.4y". Short
- * intervals keep a decimal because a day either way is the whole difference
- * between ratings while a tune is still shaky.
+ * Compact interval label: "<1d", "2d", "12d", "1.3mo", "1.4y". Days are
+ * always whole.
  */
 export function formatInterval(days) {
   if (!(days >= 1)) return '<1d';
-  if (days < 10) return `${days.toFixed(1)}d`;
   if (days < 31) return `${Math.round(days)}d`;
   if (days < 365) return `${(days / 30.4).toFixed(1)}mo`;
   return `${(days / 365).toFixed(1)}y`;

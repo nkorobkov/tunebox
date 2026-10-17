@@ -33,6 +33,23 @@ function TuneSheet({ tune, position, tempo }) {
 }
 
 /**
+ * One member tune's own backing tracks — the fallback when the set has none
+ * of its own. Renders nothing for a tune without any.
+ */
+function TuneBackingTracks({ tune, tempo }) {
+  const { backingTracks } = useAttachments(tune.id);
+  if (backingTracks.length === 0) return null;
+  return (
+    <div class="space-y-1.5">
+      <p class="text-xs font-medium text-gray-500">{tune.title}</p>
+      {backingTracks.map(bt => (
+        <BackingTrackPlayer key={bt.id} attachment={bt} targetTempo={tempo} />
+      ))}
+    </div>
+  );
+}
+
+/**
  * Active practice view for a whole set played end to end. Mirrors
  * PracticeCard, but there is one tempo, one backing track and one rating for
  * the set — the rating is then written to every tune in it. Only ready sets
@@ -41,7 +58,7 @@ function TuneSheet({ tune, position, tempo }) {
  */
 export function SetPracticeCard({ item, instrument, onCompleteSet, onSkip }) {
   const [saving, setSaving] = useState(false);
-  const { backingTracks } = useSetAttachments(item.key, item.name);
+  const { backingTracks, loading: setTracksLoading } = useSetAttachments(item.key, item.name);
   const elapsed = useElapsedSeconds();
 
   const first = item.tunes[0];
@@ -114,17 +131,20 @@ export function SetPracticeCard({ item, instrument, onCompleteSet, onSkip }) {
         />
       </div>
 
-      {/* The set's own backing tracks */}
+      {/* The set's own backing tracks, else each tune's */}
       {backingTracks.length > 0 ? (
         <div class="space-y-2">
           {backingTracks.map(bt => (
             <BackingTrackPlayer key={bt.id} attachment={bt} targetTempo={tempo} />
           ))}
         </div>
-      ) : (
-        <p class="text-xs text-gray-400">
-          No backing track for this set yet — <a href={setHref(item.name)} class="text-blue-600 hover:underline">record one on the set page</a>.
-        </p>
+      ) : !setTracksLoading && (
+        <div class="space-y-2">
+          <p class="text-xs text-gray-400">
+            No backing track for this set yet — <a href={setHref(item.name)} class="text-blue-600 hover:underline">record one on the set page</a>.
+          </p>
+          {item.tunes.map(t => <TuneBackingTracks key={t.id} tune={t} tempo={tempo} />)}
+        </div>
       )}
 
       {/* One rating for the whole set */}

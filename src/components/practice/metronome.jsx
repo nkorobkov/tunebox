@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import { useMetronome } from '../../hooks/use-metronome';
+import { claimPlayback, releasePlayback } from '../../lib/exclusive-playback';
 
 const TIME_SIGNATURES = ['4/4', '3/4', '2/4', '6/8', '9/8', '12/8'];
 const MIN_BPM = 20;
@@ -19,9 +20,23 @@ function MetronomeIcon({ class: cls }) {
  * a target tick), the metronome start/stop button, and the time-signature
  * picker — everything metronome-related in one place. `tempo` is owned by
  * the card; tune playback and backing-track rate follow the same value.
+ * `extraButton` sits at the end of the start/stop row (the generated-backing toggle).
  */
-export function Metronome({ tempo, onTempoChange, targetTempo = 0, defaultTimeSignature = '4/4' }) {
+export function Metronome({ tempo, onTempoChange, targetTempo = 0, defaultTimeSignature = '4/4', extraButton = null }) {
   const { timeSignature, playing, start, stop, updateTimeSignature } = useMetronome(tempo, defaultTimeSignature);
+  // starting the metronome stops the generated backing, and vice versa
+  const token = useRef({ stop: () => {} });
+  token.current.stop = stop;
+  useEffect(() => () => releasePlayback(token.current), []);
+  const toggle = () => {
+    if (playing) {
+      stop();
+      releasePlayback(token.current);
+    } else {
+      claimPlayback(token.current);
+      start();
+    }
+  };
   const [showTsPicker, setShowTsPicker] = useState(false);
   const pickerRef = useRef(null);
 
@@ -80,7 +95,8 @@ export function Metronome({ tempo, onTempoChange, targetTempo = 0, defaultTimeSi
       </div>
       <div class="flex items-center gap-2">
         <button
-          onClick={playing ? stop : start}
+          onClick={toggle}
+          aria-label={playing ? 'Stop metronome' : 'Start metronome'}
           class={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium cursor-pointer text-white ${
             playing
               ? 'bg-red-600 hover:bg-red-700'
@@ -88,7 +104,9 @@ export function Metronome({ tempo, onTempoChange, targetTempo = 0, defaultTimeSi
           }`}
         >
           <MetronomeIcon class="w-4 h-4" />
-          {playing ? 'Stop metronome' : 'Start metronome'}
+          {/* short on phones, where the row also holds the Backing button */}
+          <span class="sm:hidden">{playing ? 'Stop' : 'Metronome'}</span>
+          <span class="hidden sm:inline">{playing ? 'Stop metronome' : 'Start metronome'}</span>
         </button>
         <div class="relative" ref={pickerRef}>
           <button
@@ -114,6 +132,7 @@ export function Metronome({ tempo, onTempoChange, targetTempo = 0, defaultTimeSi
             </div>
           )}
         </div>
+        {extraButton}
       </div>
     </div>
   );

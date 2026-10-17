@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'preact/hooks';
+import { scheduleClick } from '../lib/click';
 
 function getBeatsPerMeasure(timeSignature) {
   const [num] = timeSignature.split('/').map(Number);
@@ -28,18 +29,6 @@ export function useMetronome(initialBpm = 120, initialTimeSignature = '4/4') {
     return audioCtxRef.current;
   };
 
-  const scheduleClick = useCallback((ctx, time, accent) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = accent ? 1500 : 1000;
-    gain.gain.setValueAtTime(accent ? 0.9 : 0.5, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
-    osc.start(time);
-    osc.stop(time + 0.08);
-  }, []);
-
   const startScheduler = useCallback(() => {
     const ctx = getCtx();
     if (ctx.state === 'suspended') ctx.resume();
@@ -62,7 +51,7 @@ export function useMetronome(initialBpm = 120, initialTimeSignature = '4/4') {
 
     scheduler();
     timerRef.current = setInterval(scheduler, LOOKAHEAD_MS);
-  }, [scheduleClick]);
+  }, []);
 
   const stop = useCallback(() => {
     if (timerRef.current) {

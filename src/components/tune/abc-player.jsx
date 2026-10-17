@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'preact/hooks';
 import abcjs from 'abcjs';
 import { setAbcTempo } from '../../lib/abc-utils';
+import { claimPlaybackSession } from '../../lib/audio-session';
 
 export function AbcPlayer({ abc, defaultTempo = 120, transpose = 0 }) {
   const containerRef = useRef(null);
@@ -36,5 +37,6 @@ export function AbcPlayer({ abc, defaultTempo = 120, transpose = 0 }) {
 
   if (!abc) return null;
 
-  return <div ref={containerRef} />;
+  // capture phase: runs before the controller's play handler creates its AudioContext
+  return <div ref={containerRef} onClickCapture={claimPlaybackSession} />;
 }

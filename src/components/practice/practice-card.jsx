@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useMemo } from 'preact/hooks';
 import { AbcViewer } from '../tune/abc-viewer';
 import { AbcPlayer } from '../tune/abc-player';
 import { SheetMusicViewer } from '../tune/sheet-music-viewer';
@@ -6,6 +6,10 @@ import { Metronome } from './metronome';
 import { TrackPlayer } from './track-player';
 import { FluencyRater } from './fluency-rater';
 import { BackingTrackPlayer } from './backing-track-player';
+import { BackingPanel } from './backing-panel';
+import { useTuneChords } from '../../hooks/use-tune-chords';
+import { injectChordSymbols } from '../../lib/backing/abc-bars';
+import { barSlots, NO_CHORD } from '../../lib/backing/chords';
 import { PracticeHistoryChart } from './practice-history-chart';
 import { useAttachments, isAudio } from '../../hooks/use-attachments';
 import { parseYouTube } from '../../lib/youtube';
@@ -48,9 +52,14 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
   const [tempo, setTempo] = useState(isLearning ? suggestion : instData.target_tempo);
   const [transpose, setTranspose] = useState(tune.transpose || 0);
 
-  const fullAbc = tune.abc
+  const fullAbc = useMemo(() => (tune.abc
     ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc)
-    : null;
+    : null), [tune.abc, tune.title, tune.type, tune.setting_key]);
+  const chordState = useTuneChords(tune, fullAbc);
+  const [showBacking, setShowBacking] = useState(false);
+  // Once chords are saved or being worked on, the sheet music shows them too.
+  const showChords = showBacking || chordState.source === 'saved';
+  const sheetAbc = useChordedAbc(fullAbc, chordState, showChords);
   const meetsTarget = tempo >= instData.target_tempo;
 
   const withSaving = (fn) => async (...args) => {
@@ -98,7 +107,13 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
           onTempoChange={setTempo}
           targetTempo={instData.target_tempo}
           defaultTimeSignature={getMeter(tune.type)}
+          extraButton={fullAbc && (
+            <BackingToggle open={showBacking} onClick={() => setShowBacking(!showBacking)} />
+          )}
         />
+        {showBacking && fullAbc && (
+          <BackingPanel tune={tune} abc={fullAbc} tempo={tempo} transpose={transpose} chordState={chordState} />
+        )}
       </div>
 
       {/* Playback tools */}
@@ -156,6 +171,7 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
         tune={tune}
         mainSource={mainSource}
         fullAbc={fullAbc}
+        viewAbc={sheetAbc}
         tempo={tempo}
         transpose={transpose}
         onTransposeChange={setTranspose}
@@ -163,6 +179,43 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
 
       <PracticeHistoryChart entries={history} targetTempo={instData.target_tempo} />
     </div>
+  );
+}
+
+function useChordedAbc(abc, { model, chords }, enabled) {
+  return useMemo(() => {
+    if (!enabled || !abc || !model || !chords) return abc;
+    const half = model.barLength / 2;
+    return injectChordSymbols(abc, (i) => {
+      const slots = barSlots(chords[i]);
+      return slots.map((name, h) => ({ name: name === NO_CHORD ? 'N.C.' : name, off: h * half }));
+    });
+  }, [abc, model, chords, enabled]);
+}
+
+function BackingIcon({ class: cls }) {
+  return (
+    <svg class={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 18V5l12-2v13" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="18" cy="16" r="3" />
+    </svg>
+  );
+}
+
+function BackingToggle({ open, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-expanded={open}
+      title="Generated backing track"
+      class={`flex items-center gap-1.5 px-3 py-2.5 rounded-md text-sm font-medium border cursor-pointer ${
+        open ? 'bg-brand-50 border-brand-600 text-brand-800 dark:text-brand-400' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+      }`}
+    >
+      <BackingIcon class="w-4 h-4" />
+      Backing
+    </button>
   );
 }
 
@@ -182,7 +235,7 @@ function TuneHeader({ tune, instrument, targetTempo }) {
   );
 }
 
-export function SheetMusic({ mainSource, fullAbc, tempo, transpose, onTransposeChange }) {
+export function SheetMusic({ mainSource, fullAbc, viewAbc, tempo, transpose, onTransposeChange }) {
   if (mainSource) {
     return (
       <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4">
@@ -198,7 +251,7 @@ export function SheetMusic({ mainSource, fullAbc, tempo, transpose, onTransposeC
   if (fullAbc) {
     return (
       <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4 abc-full-bleed">
-        <AbcViewer abc={fullAbc} transpose={transpose} onTransposeChange={onTransposeChange} />
+        <AbcViewer abc={viewAbc || fullAbc} transpose={transpose} onTransposeChange={onTransposeChange} />
         <div class="mt-3">
           <AbcPlayer abc={fullAbc} defaultTempo={tempo} transpose={transpose} />
         </div>
@@ -227,11 +280,11 @@ export function Spoiler({ label, children }) {
   );
 }
 
-function PracticeSpoilers({ tune, mainSource, fullAbc, tempo, transpose, onTransposeChange }) {
+function PracticeSpoilers({ tune, mainSource, fullAbc, viewAbc, tempo, transpose, onTransposeChange }) {
   return (
     <div class="border-t border-gray-200 pt-1">
       <Spoiler label="sheet music">
-        <SheetMusic mainSource={mainSource} fullAbc={fullAbc} tempo={tempo} transpose={transpose} onTransposeChange={onTransposeChange} />
+        <SheetMusic mainSource={mainSource} fullAbc={fullAbc} viewAbc={viewAbc} tempo={tempo} transpose={transpose} onTransposeChange={onTransposeChange} />
       </Spoiler>
       {tune.notes && (
         <Spoiler label="notes">

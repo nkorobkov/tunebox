@@ -32,7 +32,15 @@ export default defineConfig({
         // Don't precache .map files or other dev artifacts. The tesseract
         // and pdf.js assets (~15MB), the abcjs copy, and the standalone
         // tune-index pages (~700KB each) are lazy-loaded on demand, not precached.
-        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'tesseract/**', 'pdfjs/**', 'abcjs/**', 'tune-index/**', 'collections/**', 'portland-collection/**', 'foinn-seisiun/**', 'oneills-1001/**', 'ryans-mammoth-collection/**', 'ceol-rince-na-heireann/**', 'kerrs-merry-melodies/**', 'skye-collection/**', 'athole-collection/**', 'new-england-fiddlers-repertoire/**', 'irish-session-tunes/**', '110-irelands-best-session-tunes/**'],
+        // Soundfonts: piano and the generated backing's core band (bass,
+        // steel guitar, percussion) are precached so playback works offline;
+        // the optional instruments are cached the first time they're used.
+        globIgnores: ['soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/**', 'soundfonts/FluidR3_GM/violin-mp3/**', 'soundfonts/FluidR3_GM/flute-mp3/**', '**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'tesseract/**', 'pdfjs/**', 'abcjs/**', 'tune-index/**', 'collections/**', 'portland-collection/**', 'foinn-seisiun/**', 'oneills-1001/**', 'ryans-mammoth-collection/**', 'ceol-rince-na-heireann/**', 'kerrs-merry-melodies/**', 'skye-collection/**', 'athole-collection/**', 'new-england-fiddlers-repertoire/**', 'irish-session-tunes/**', '110-irelands-best-session-tunes/**'],
+        runtimeCaching: [{
+          urlPattern: ({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/soundfonts/'),
+          handler: 'CacheFirst',
+          options: { cacheName: 'soundfonts', expiration: { maxEntries: 600 } },
+        }],
       },
     }),
   ],

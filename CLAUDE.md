@@ -40,7 +40,7 @@ Preact SPA talking directly to PocketBase (no intermediate backend). All data ac
 ### Data Model (PocketBase Collections)
 Six collections, heavily denormalized:
 
-- **`user_tunes`** — the core record. Holds tune data (title, type, abc, session_id), labels and instrument progress as JSON fields, spaced repetition state (next_review, interval_days, ease_factor, consecutive_correct), and practice_tempo. All CRUD scoped to `user = @request.auth.id`.
+- **`user_tunes`** — the core record. Holds tune data (title, type, abc, session_id), labels and instrument progress as JSON fields, spaced repetition state (next_review, interval_days, ease_factor, consecutive_correct), and practice_tempo. `backing` (JSON) holds the generated backing's chord chart (`{ chords: [...] | null, bars }`, see Generated backing below). All CRUD scoped to `user = @request.auth.id`.
 - **`attachments`** — per-tune media, related to user_tunes. Each record holds either a `file` (both optional in the schema) or a `url` (YouTube links), plus `type` (sheet_music / recording / backing_track / source / other), `bpm`, `label`, `main_source`. `backing_track` records surface on the practice card; the `main_source` sheet_music record replaces ABC rendering.
 - **`practice_log`** — append-only practice history (fluency_rating 1-5, tempo_used, practiced_at). Related to user_tunes.
 - **`users`** — built-in auth collection extended with `instruments` JSON field (array of instrument names).
@@ -70,6 +70,18 @@ A set is just the `set` label shared by its tunes; the *normalized* name (`norma
 - **`src/hooks/use-tunes.js`** — `useTunes()` for list with client-side label filtering, `useTune(id)` for single record.
 - **`src/hooks/use-practice.js`** — builds practice queue (due tunes + new tunes), provides `advance()` to move through queue.
 - **`src/hooks/use-metronome.js`** — Web Audio API click generator with BPM control.
+
+### Generated backing
+
+The practice card's **Backing** button (beside the metronome start button) opens `components/practice/backing-panel.jsx`: an arranged band — guitar strum or piano vamp, bass, bodhrán, synthesized drone — built from the tune's ABC and played at the card's tempo/transpose, for tunes without a recorded backing track. Everything lives in `src/lib/backing/`:
+
+- **`abc-bars.js`** — the bar model: one entry per *written* bar of voice 1 (key, part, pickup/partial, ending, notes as pitch classes, `startChar`s). Bars are the identity chords hang on. Also `injectChordSymbols` (chords into ABC for the notation view only).
+- **`chords.js`** — chord names (`parseChord`, transposition, key palette) and the per-bar value format: `'G'`, `'G D'` (half bars), `''` carry on, `'% D'`, `'N.C.'`. `suggestChords` guesses from the melody (chord-tone fit weighted by note length and beat position, a prior per mode chord, continuity, tonic at part ends); chords already written in the ABC win over the guess.
+- **`arrange.js`** — builds an abcjs note *sequence*: the melody from `setUpAudio` (repeats expanded, `chordsOff`), mapped back to written bars through each note's `startChar` (`buildTimeline`), plus generated chords/bass/drums/count-in/ending, swing and light humanising. abcjs's own `gchord` track is not used. `LAYER_TRIM` balances the default mix — re-measure (rendered RMS per solo layer) if you change voicings or velocities.
+- **`engine.js`** — renders with `CreateSynth.init({ sequence })` + `prime()` (init preloads every sample the sequence uses — notes added later, e.g. in `sequenceCallback`, would be silent) and plays `getAudioBuffer()` itself with an exact loop region; the drone is Web Audio oscillators on the same clock.
+- **`patterns.js`** / **`prefs.js`** — rhythm families, strum/piano/bodhrán patterns, swing; global mix settings in localStorage (`tunebox.backing`).
+
+Chords are per tune: `hooks/use-tune-chords.js` starts from `user_tunes.backing.chords`, else ABC chords, else the guess; saving chords equal to the guess stores `null` so guesser improvements still apply. Saved chords record the bar count and are set aside if the notation changes shape. Tempo follows the sheet-music player's convention (`Q:1/4=tempo`, also for compound meters). Samples are self-hosted under `public/soundfonts/FluidR3_GM/` (`scripts/fetch-soundfonts.mjs`; percussion comes from abcjs's set because FluidR3's is a placeholder); nylon guitar, fiddle and flute are runtime-cached rather than precached (vite.config.js). Pitch ranges in the fetch script must cover what `arrange.js` produces — abcjs silently skips missing samples. `src/lib/audio-session.js` claims the iOS "playback" audio session (so the silent switch doesn't mute playback) when tune or backing playback is first used.
 
 ### UI Conventions
 Brand color tokens (`brand-50`…`brand-900`, anchored on the logo green #389833) are defined in `src/index.css` via Tailwind's `@theme`.

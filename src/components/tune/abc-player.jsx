@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'preact/hooks';
 import abcjs from 'abcjs';
-import { setAbcTempo } from '../../lib/abc-utils';
+import { setAbcTempo, openImplicitRepeats } from '../../lib/abc-utils';
 import { claimPlaybackSession } from '../../lib/audio-session';
 
 export function AbcPlayer({ abc, defaultTempo = 120, transpose = 0 }) {
@@ -12,6 +12,7 @@ export function AbcPlayer({ abc, defaultTempo = 120, transpose = 0 }) {
 
     const abcWithTempo = setAbcTempo(abc, defaultTempo);
     const visualObj = abcjs.renderAbc('*', abcWithTempo, { responsive: 'resize', visualTranspose: transpose })[0];
+    openImplicitRepeats(visualObj);
     const controller = new abcjs.synth.SynthController();
 
     controller.load(containerRef.current, null, {

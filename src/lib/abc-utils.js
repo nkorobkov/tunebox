@@ -71,3 +71,41 @@ export function buildAbcString(title, tuneType, key, abc) {
   const body = abc.replace(/!\s*/g, '\n');
   return `X:1\nT:${title}\nM:${meter}\nL:1/8\nK:${key}\n${body}`;
 }
+
+const SECTION_END = /thin_thin|thin_thick|thick_thin/;
+
+/**
+ * abcjs only starts a repeat at `|:` (or the top of the tune), so a part that
+ * closes with `:|` but never opens with `|:` — common after `|1 … :|2 … ||` —
+ * is swallowed into the previous part's last ending and played once. Treat
+ * the last `||` (or end of an ending) before such a `:|` as the opening
+ * repeat instead. Mutates the parsed tune's bar types only (audio expansion;
+ * startChars and the drawn notation are untouched). Call before setUpAudio.
+ */
+export function openImplicitRepeats(tune) {
+  const voices = new Map();
+  for (const line of tune?.lines || []) {
+    (line.staff || []).forEach((staff, s) => {
+      (staff.voices || []).forEach((voice, v) => {
+        const id = `${s}:${v}`;
+        const state = voices.get(id) || { open: false, boundary: null };
+        voices.set(id, state);
+        for (const el of voice) {
+          if (el.el_type !== 'bar') continue;
+          const type = el.type || '';
+          if (/right_repeat|dbl_repeat/.test(type)) {
+            if (!state.open && state.boundary) state.boundary.type = 'bar_left_repeat';
+            state.open = /dbl_repeat/.test(type);
+            state.boundary = null;
+          } else if (/left_repeat/.test(type)) {
+            state.open = true;
+            state.boundary = null;
+          } else if (SECTION_END.test(type) || el.endEnding) {
+            state.boundary = el;
+          }
+        }
+      });
+    });
+  }
+  return tune;
+}

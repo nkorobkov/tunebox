@@ -5,6 +5,7 @@ import {
   STRUM_PATTERNS, PIANO_PATTERNS,
 } from './patterns';
 import { INSTRUMENTS, BASS_PROGRAM } from './prefs';
+import { openImplicitRepeats } from '../abc-utils';
 
 // Builds the whole backing as an abcjs note sequence (times in whole notes).
 //
@@ -99,6 +100,7 @@ export function arrange({ abc, model, chordValues, tempo, transpose = 0, prefs, 
   if (!abc || !model) return null;
   const tune = abcjs.parseOnly(abc)[0];
   if (!tune) return null;
+  openImplicitRepeats(tune);
   const melodyProgram = INSTRUMENTS[prefs.melody]?.program ?? 0;
   const flat = tune.setUpAudio({ program: melodyProgram, midiTranspose: transpose, chordsOff: true });
   const voiceTracks = flat.tracks.filter(t => t.some(e => e.cmd === 'note' && e.instrument !== DRUM));

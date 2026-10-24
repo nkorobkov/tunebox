@@ -1,9 +1,10 @@
 import { useEffect } from 'preact/hooks';
-import Router from 'preact-router';
+import Router, { route } from 'preact-router';
 import { AuthProvider, useAuth } from './lib/auth';
 import { ConnectivityProvider, useConnectivity } from './lib/connectivity';
 import { flushQueue } from './lib/practice-queue';
 import { initServiceWorkerUpdates } from './lib/sw-update';
+import { claimPendingTune } from './lib/pending-tune';
 import { LandingPage } from './pages/landing';
 import { LibraryPage } from './pages/library';
 import { TunePage } from './pages/tune';
@@ -32,6 +33,16 @@ function ServiceWorkerBootstrap() {
   return null;
 }
 
+// Adds the tune a signed-out visitor picked on a collection page before signing in.
+function PendingTuneImport() {
+  useEffect(() => {
+    claimPendingTune()
+      .then((record) => { if (record) route(`/tune/${record.id}`); })
+      .catch((err) => console.error('Failed to add tune from collection page:', err));
+  }, []);
+  return null;
+}
+
 function AppRouter() {
   const { user, loading } = useAuth();
 
@@ -51,6 +62,7 @@ function AppRouter() {
     <>
       <FlushOnReconnect />
       <ServiceWorkerBootstrap />
+      <PendingTuneImport />
       <Router>
         <LibraryPage path="/" />
         <TunePage path="/tune/:id" />

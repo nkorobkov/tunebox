@@ -6,8 +6,8 @@
 // lazy-loaded from /abcjs/ (copied out of node_modules by
 // copy-vendor-assets.mjs on postinstall).
 //
-// These pages are deliberately NOT linked from the app — they're standalone
-// SEO / traffic pages that link out to tunebox.net.
+// The app links here only via the add-tune page's "Browse collections"; these
+// are otherwise standalone SEO / traffic pages that link out to tunebox.net.
 //
 // Tune records: { book, name, type?, url?, abc?, settings?, closest?,
 //                 page?, sessionName?, altNames?, source? }
@@ -18,6 +18,10 @@
 // on thesession takes its notation from; the card links there instead.
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+
+// The "+" buttons (app.js) write straight to the app's PocketBase with the
+// visitor's TuneBox session (same origin, so the SDK's localStorage entry).
+const PB_URL = 'https://pb.home.nkorobkov.com';
 
 // Shared page styles (also used by the /collections/ hub, scripts/build-collections.mjs).
 export const BASE_CSS = `  :root {
@@ -113,6 +117,47 @@ export const BASE_CSS = `  :root {
     background:var(--brand-600); color:#fff; text-decoration:none; font-weight:500; font-size:.9rem;
   }
   .promo .cta:hover { background:var(--brand-700); }
+
+  .add-wrap { position:relative; flex:0 0 auto; }
+  .btn-add {
+    font:inherit; font-size:1.1rem; line-height:1; width:2rem; height:2rem; padding:0; cursor:pointer;
+    border:1px solid var(--gray-300); border-radius:.5rem; background:#fff; color:var(--brand-700);
+  }
+  .btn-add:hover { border-color:var(--brand-600); background:var(--brand-50); }
+  .btn-add:focus-visible { outline:2px solid var(--brand-600); outline-offset:1px; }
+  .btn-add.added { background:var(--brand-600); border-color:var(--brand-600); color:#fff; font-size:.9rem; }
+  .add-pop {
+    position:absolute; right:0; top:calc(100% + .4rem); z-index:30; width:max-content; max-width:16rem;
+    background:#fff; border:1px solid var(--gray-200); border-radius:.6rem; padding:.6rem .7rem;
+    box-shadow:0 8px 24px rgba(16,24,40,.14); font-size:.82rem; color:var(--gray-700); cursor:default;
+  }
+  .add-pop p { margin:0 0 .5rem; }
+  .add-pop p:last-child { margin-bottom:0; }
+  .add-pop .actions { display:flex; gap:.4rem; justify-content:flex-end; }
+  .btn {
+    font:inherit; font-size:.82rem; font-weight:500; padding:.35rem .8rem; border-radius:.45rem; cursor:pointer;
+    border:1px solid var(--gray-300); background:#fff; color:var(--gray-700); text-decoration:none; display:inline-block;
+  }
+  .btn:hover { background:var(--gray-50); }
+  .btn-primary { background:var(--brand-600); border-color:var(--brand-600); color:#fff; }
+  .btn-primary:hover { background:var(--brand-700); }
+  .btn:disabled { opacity:.6; cursor:default; }
+  .add-error { color:#b42318; }
+
+  dialog.signin {
+    border:none; border-radius:1rem; padding:1.75rem 1.5rem 1.5rem; width:min(26rem, calc(100vw - 2rem));
+    box-shadow:0 24px 64px rgba(16,24,40,.25); color:var(--gray-900); text-align:center;
+  }
+  dialog.signin::backdrop { background:rgba(16,24,40,.45); }
+  dialog.signin .close {
+    position:absolute; top:.6rem; right:.6rem; width:2rem; height:2rem; border:none; background:none;
+    font-size:1.3rem; line-height:1; color:var(--gray-400); cursor:pointer; border-radius:.4rem;
+  }
+  dialog.signin .close:hover { color:var(--gray-700); background:var(--gray-100); }
+  dialog.signin img { height:2rem; margin-bottom:.75rem; }
+  dialog.signin h2 { margin:0 0 .5rem; font-size:1.2rem; letter-spacing:-.01em; }
+  dialog.signin p { margin:0 0 1rem; color:var(--gray-600); font-size:.9rem; }
+  dialog.signin .btn { font-size:.95rem; padding:.65rem 1rem; width:100%; }
 
   footer.site { color:var(--gray-500); font-size:.78rem; text-align:center; padding:0 0 2.5rem; }
   footer.site p { margin:.35rem 0; }
@@ -230,7 +275,7 @@ export function writeTuneIndexPage(c) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self' 'unsafe-inline'; connect-src 'self' https://tunebox.goatcounter.com; img-src 'self' data: https://tunebox.goatcounter.com; media-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self' 'unsafe-inline'; connect-src 'self' ${PB_URL} https://tunebox.goatcounter.com; img-src 'self' data: https://tunebox.goatcounter.com; media-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>${esc(c.title(stats))}</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${base}">
@@ -293,7 +338,7 @@ ${BASE_CSS}</style>
     <span class="count" id="count"></span>
   </div>
 
-  <main class="list" id="list" data-abc="/${c.slug}/tunes-abc.json"${c.notationNote ? ` data-note="${esc(c.notationNote)}"` : ''}>
+  <main class="list" id="list" data-abc="/${c.slug}/tunes-abc.json" data-pb="${PB_URL}"${c.notationNote ? ` data-note="${esc(c.notationNote)}"` : ''}>
 ${cards}
   </main>
   <div class="empty" id="empty">No tunes match your filters.</div>
@@ -301,7 +346,7 @@ ${cards}
   <section class="promo">
     <h2>${c.promoHeading}</h2>
     <p><a href="https://tunebox.net/">TuneBox</a> is a free digital tunebook and practice planner for traditional
-    musicians. Import any of these tunes from thesession.org in a couple of taps, keep your repertoire organized
+    musicians. Add any of these tunes to your tunebook with the + button, keep your repertoire organized
     per instrument, and let spaced repetition decide what to practice tonight.</p>
     <a class="cta" href="https://tunebox.net/">Open TuneBox &mdash; it&rsquo;s free</a>
   </section>

@@ -155,9 +155,9 @@
     }
   }
 
-  // Row click opens the score; clicks on the thesession link pass through.
+  // Row click opens the score; clicks on the thesession link and the add button pass through.
   list.addEventListener('click', function (e) {
-    if (e.target.closest('a')) return;
+    if (e.target.closest('a, .add-wrap')) return;
     var head = e.target.closest('.tune-head');
     if (!head) return;
     var card = head.closest('.tune');
@@ -165,6 +165,7 @@
   });
   list.addEventListener('keydown', function (e) {
     if (e.key !== 'Enter' && e.key !== ' ') return;
+    if (e.target.closest('.add-wrap')) return;
     var head = e.target.closest('.tune-head');
     if (!head) return;
     e.preventDefault();
@@ -178,5 +179,247 @@
     head.setAttribute('role', 'button');
     head.setAttribute('tabindex', '0');
     head.setAttribute('aria-expanded', 'false');
+  });
+
+  // ---- add to TuneBox ----
+  // Same origin as the app, so a signed-in visitor's PocketBase session is in
+  // localStorage (the SDK's LocalAuthStore entry): add the tune right here
+  // after a small confirmation. Signed-out visitors get a sign-in dialog; if
+  // they sign in, the tune is parked in localStorage and the app creates it
+  // after the OAuth round trip (src/lib/pending-tune.js — keep the key in sync).
+  var PB_URL = list.getAttribute('data-pb');
+  var PENDING_KEY = 'tunebox.pendingTune';
+
+  function session() {
+    try {
+      var auth = JSON.parse(localStorage.getItem('pocketbase_auth'));
+      if (!auth || !auth.token || !auth.record) return null;
+      var payload = JSON.parse(atob(auth.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      if (!(payload.exp * 1000 > Date.now() + 60000)) return null;
+      return { token: auth.token, userId: auth.record.id };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text) n.textContent = text;
+    return n;
+  }
+
+  function tuneName(card) {
+    return card.querySelector('.tune-name').firstChild.nodeValue;
+  }
+
+  // The user_tunes record for a card, in the shape the app's own importers use.
+  function buildTune(card) {
+    var link = card.querySelector('a.btn-session');
+    var m = link && /thesession\.org\/tunes\/(\d+)/.exec(link.href);
+    var type = card.getAttribute('data-t');
+    var tune = {
+      title: tuneName(card),
+      // thesession (and the app's tempo/meter defaults) call double jigs plain jigs.
+      type: type === 'double jig' ? 'jig' : type || undefined,
+      session_id: m ? Number(m[1]) : undefined,
+      session_url: m ? link.href : undefined,
+    };
+    if (card.getAttribute('data-a') !== '1') return Promise.resolve(tune);
+    return loadAbcData().then(function (data) {
+      var abc = data[card.getAttribute('data-id')];
+      if (abc) {
+        tune.abc = abc;
+        var key = /^K:\s*(\S+)/m.exec(abc);
+        if (key) tune.setting_key = key[1];
+      }
+      return tune;
+    });
+  }
+
+  function pbFetch(s, path, opts) {
+    opts = opts || {};
+    opts.headers = { 'Authorization': s.token, 'Content-Type': 'application/json' };
+    return fetch(PB_URL + path, opts).then(function (r) {
+      if (!r.ok) { var err = new Error('HTTP ' + r.status); err.status = r.status; throw err; }
+      return r.json();
+    });
+  }
+
+  function findExisting(s, tune) {
+    if (!tune.session_id) return Promise.resolve(null);
+    var filter = encodeURIComponent('user = "' + s.userId + '" && session_id = ' + tune.session_id);
+    return pbFetch(s, '/api/collections/user_tunes/records?perPage=1&fields=id&filter=' + filter)
+      .then(function (res) { return res.items[0] || null; })
+      .catch(function () { return null; }); // the check is a courtesy; adding still works
+  }
+
+  function createTune(s, tune) {
+    tune.user = s.userId;
+    tune.labels = [];
+    tune.instruments = {};
+    return pbFetch(s, '/api/collections/user_tunes/records', { method: 'POST', body: JSON.stringify(tune) });
+  }
+
+  // -- small confirmation popover (signed in) --
+  var openPop = null;
+  function closePop() {
+    if (!openPop) return;
+    openPop.pop.remove();
+    openPop.btn.setAttribute('aria-expanded', 'false');
+    openPop = null;
+  }
+  document.addEventListener('click', function (e) {
+    if (openPop && !openPop.wrap.contains(e.target)) closePop();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && openPop) { var b = openPop.btn; closePop(); b.focus(); }
+  });
+
+  function openLink(id) {
+    var a = el('a', null, 'Open in TuneBox');
+    a.href = '/tune/' + id;
+    return a;
+  }
+
+  function showPop(s, card, wrap, btn) {
+    closePop();
+    var pop = el('div', 'add-pop');
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', 'Add to your tunebook');
+    wrap.appendChild(pop);
+    btn.setAttribute('aria-expanded', 'true');
+    openPop = { pop: pop, btn: btn, wrap: wrap };
+
+    function render(msg, actions) {
+      pop.textContent = '';
+      pop.appendChild(msg);
+      if (actions) pop.appendChild(actions);
+    }
+    function confirmView(existing) {
+      var msg = el('p');
+      if (existing) {
+        msg.appendChild(document.createTextNode('Already in your tunebook. '));
+        msg.appendChild(openLink(existing.id));
+      } else {
+        msg.textContent = 'Add to your tunebook?';
+      }
+      var actions = el('div', 'actions');
+      var cancel = el('button', 'btn', 'Cancel');
+      cancel.type = 'button';
+      cancel.addEventListener('click', function () { closePop(); btn.focus(); });
+      var add = el('button', 'btn btn-primary', existing ? 'Add again' : 'Add');
+      add.type = 'button';
+      add.addEventListener('click', function () {
+        add.disabled = cancel.disabled = true;
+        add.textContent = 'Adding…';
+        buildTune(card).then(function (tune) { return createTune(s, tune); }).then(function (rec) {
+          btn.classList.add('added');
+          btn.innerHTML = '&#10003;';
+          btn.setAttribute('aria-label', 'Added to your tunebook');
+          var done = el('p');
+          done.appendChild(document.createTextNode('Added. '));
+          done.appendChild(openLink(rec.id));
+          render(done);
+        }).catch(function (err) {
+          if (err.status === 401 || err.status === 403) { closePop(); showSignin(card); return; }
+          add.disabled = cancel.disabled = false;
+          add.textContent = 'Try again';
+          msg.className = 'add-error';
+          msg.textContent = 'Could not add the tune — check your connection.';
+        });
+      });
+      actions.appendChild(cancel);
+      actions.appendChild(add);
+      render(msg, actions);
+      add.focus();
+    }
+
+    render(el('p', null, 'Checking your tunebook…'));
+    buildTune(card).then(function (tune) { return findExisting(s, tune); }, function () { return null; })
+      .then(function (existing) { if (openPop && openPop.pop === pop) confirmView(existing); });
+  }
+
+  // -- sign-in dialog (signed out) --
+  var dialog = null, dialogTitle, dialogError, signinBtn, pendingCard = null;
+  function buildDialog() {
+    dialog = el('dialog', 'signin');
+    dialog.setAttribute('aria-labelledby', 'signin-title');
+    var close = el('button', 'close');
+    close.type = 'button';
+    close.innerHTML = '&times;';
+    close.setAttribute('aria-label', 'Close');
+    close.addEventListener('click', function () { dialog.close(); });
+    var logo = el('img');
+    logo.src = '/tunebook.svg';
+    logo.alt = 'TuneBox';
+    dialogTitle = el('h2');
+    dialogTitle.id = 'signin-title';
+    var p = el('p', null, 'TuneBox is a free digital tunebook and practice planner. Sign in and this tune goes straight into your library, with its sheet music, ready to practice.');
+    dialogError = el('p', 'add-error');
+    dialogError.hidden = true;
+    signinBtn = el('button', 'btn btn-primary', 'Sign in with Google');
+    signinBtn.type = 'button';
+    signinBtn.addEventListener('click', startSignin);
+    [close, logo, dialogTitle, p, dialogError, signinBtn].forEach(function (n) { dialog.appendChild(n); });
+    // Click on the backdrop (outside the dialog box) closes it.
+    dialog.addEventListener('click', function (e) {
+      var r = dialog.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dialog.close();
+    });
+    document.body.appendChild(dialog);
+  }
+
+  function showSignin(card) {
+    if (!dialog) buildDialog();
+    pendingCard = card;
+    dialogTitle.textContent = 'Add “' + tuneName(card) + '” to your tunebook';
+    dialogError.hidden = true;
+    signinBtn.disabled = false;
+    signinBtn.textContent = 'Sign in with Google';
+    dialog.showModal();
+  }
+
+  // Same steps as loginWithGoogle in src/lib/auth.jsx: the app at / finishes
+  // the code exchange (pb_oauth_pending), then claims the pending tune.
+  function startSignin() {
+    signinBtn.disabled = true;
+    signinBtn.textContent = 'Redirecting…';
+    Promise.all([
+      buildTune(pendingCard),
+      fetch(PB_URL + '/api/collections/users/auth-methods').then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      }),
+    ]).then(function (res) {
+      var google = (res[1].oauth2 && res[1].oauth2.providers || []).filter(function (p) { return p.name === 'google'; })[0];
+      if (!google) throw new Error('Google sign-in is not configured');
+      localStorage.setItem(PENDING_KEY, JSON.stringify({ tune: res[0], savedAt: Date.now() }));
+      localStorage.setItem('pb_oauth_pending', JSON.stringify({
+        provider: google.name, codeVerifier: google.codeVerifier, state: google.state,
+      }));
+      location.href = google.authURL + encodeURIComponent(location.origin + '/');
+    }).catch(function () {
+      signinBtn.disabled = false;
+      signinBtn.textContent = 'Sign in with Google';
+      dialogError.textContent = 'Sign-in could not start — check your connection and try again.';
+      dialogError.hidden = false;
+    });
+  }
+
+  cards.forEach(function (card) {
+    var wrap = el('span', 'add-wrap');
+    var btn = el('button', 'btn-add', '+');
+    btn.type = 'button';
+    btn.title = 'Add to your TuneBox tunebook';
+    btn.setAttribute('aria-label', 'Add ' + tuneName(card) + ' to your tunebook');
+    btn.setAttribute('aria-haspopup', 'dialog');
+    btn.addEventListener('click', function () {
+      if (openPop && openPop.btn === btn) { closePop(); return; }
+      var s = session();
+      if (s) showPop(s, card, wrap, btn); else showSignin(card);
+    });
+    wrap.appendChild(btn);
+    card.querySelector('.tune-head').appendChild(wrap);
   });
 })();

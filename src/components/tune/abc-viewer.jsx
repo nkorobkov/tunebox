@@ -6,9 +6,11 @@ const KEYS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const KEY_MAP = { 'C#': 1, 'Db': 1, 'D#': 3, 'Eb': 3, 'F#': 6, 'Gb': 6, 'G#': 8, 'Ab': 8, 'A#': 10, 'Bb': 10 };
 
 function transposedKeyName(abc, semitones) {
-  const m = abc.match(/^K:\s*([A-G][b#]?)\s*(.*)/m);
+  // Horizontal whitespace only: with a bare "K: F" a \s would run on into the
+  // tune body. A trailing comment ("% ...") isn't part of the key either.
+  const m = abc.match(/^K:[ \t]*([A-G][b#]?)[ \t]*([^\n%]*)/m);
   if (!m) return null;
-  const root = m[1], suffix = m[2]; // suffix = "maj", "min", "m", "Dor", etc.
+  const root = m[1], suffix = m[2].trim(); // suffix = "maj", "min", "m", "Dor", etc.
   const idx = KEY_MAP[root] ?? KEYS.indexOf(root);
   if (idx < 0) return null;
   const newIdx = ((idx + semitones) % 12 + 12) % 12;

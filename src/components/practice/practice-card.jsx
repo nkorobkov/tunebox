@@ -209,12 +209,14 @@ function BackingToggle({ open, onClick }) {
       onClick={onClick}
       aria-expanded={open}
       title="Generated backing track"
-      class={`flex items-center gap-1.5 px-3 py-2.5 rounded-md text-sm font-medium border cursor-pointer ${
+      aria-label="Generated backing track"
+      class={`shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-md text-sm font-medium border cursor-pointer ${
         open ? 'bg-brand-50 border-brand-600 text-brand-800 dark:text-brand-400' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
       }`}
     >
       <BackingIcon class="w-4 h-4" />
-      Backing
+      {/* icon only on phones, where the word doesn't fit beside the metronome */}
+      <span class="hidden sm:inline">Backing</span>
     </button>
   );
 }

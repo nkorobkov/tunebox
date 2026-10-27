@@ -68,7 +68,7 @@ const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self' 'unsafe-inline'; connect-src 'self' https://tunebox.goatcounter.com; img-src 'self' data: https://tunebox.goatcounter.com; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://tunebox.goatcounter.com https://cloudflareinsights.com; img-src 'self' data: https://tunebox.goatcounter.com; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Traditional tune collections — searchable indexes of ${all.length} tunebooks</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${base}">

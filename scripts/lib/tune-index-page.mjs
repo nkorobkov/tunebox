@@ -275,7 +275,7 @@ export function writeTuneIndexPage(c) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self' 'unsafe-inline'; connect-src 'self' ${PB_URL} https://tunebox.goatcounter.com; img-src 'self' data: https://tunebox.goatcounter.com; media-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; connect-src 'self' ${PB_URL} https://tunebox.goatcounter.com https://cloudflareinsights.com; img-src 'self' data: https://tunebox.goatcounter.com; media-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>${esc(c.title(stats))}</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${base}">

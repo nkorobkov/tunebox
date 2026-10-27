@@ -14,6 +14,7 @@ import { PracticePage } from './pages/practice';
 import { SettingsPage } from './pages/settings';
 import { InstallPage } from './pages/install';
 import { UserPage } from './pages/user';
+import { ParseAbcPage } from './pages/parse-abc';
 import { LoadingIndicator } from './components/loading-indicator';
 
 function FlushOnReconnect() {
@@ -55,7 +56,13 @@ function AppRouter() {
   }
 
   if (!user) {
-    return <LandingPage />;
+    // Pages that work signed out; every other path shows the landing page
+    return (
+      <Router>
+        <ParseAbcPage path="/parse-abc" />
+        <LandingPage default />
+      </Router>
+    );
   }
 
   return (
@@ -72,6 +79,7 @@ function AppRouter() {
         <SettingsPage path="/settings" />
         <InstallPage path="/install" />
         <UserPage path="/user" />
+        <ParseAbcPage path="/parse-abc" />
       </Router>
     </>
   );

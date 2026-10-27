@@ -4,6 +4,13 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  server: {
+    // /parse-abc in development talks to a local omr-service (img2abc/omr-service) through
+    // this proxy, so the CSP's connect-src 'self' covers it
+    proxy: {
+      '/omr-api': { target: 'http://127.0.0.1:8080', changeOrigin: false, rewrite: (p) => p.replace(/^\/omr-api/, '') },
+    },
+  },
   plugins: [
     preact(),
     tailwindcss(),

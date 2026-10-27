@@ -88,3 +88,28 @@ export async function analyzePdf(file) {
     task.destroy();
   }
 }
+
+/**
+ * Render one page of a PDF as a PNG big enough for music recognition (/parse-abc).
+ * @returns {Promise<{blob: Blob, pages: number}>}
+ */
+export async function renderPdfPage(file, pageNumber = 1) {
+  const pdfjs = await loadPdfjs();
+  const task = pdfjs.getDocument({
+    data: await file.arrayBuffer(),
+    isEvalSupported: false,
+    wasmUrl: '/pdfjs/wasm/',
+    iccUrl: '/pdfjs/iccs/',
+    standardFontDataUrl: '/pdfjs/standard_fonts/',
+  });
+  try {
+    const doc = await task.promise;
+    const page = await doc.getPage(Math.min(Math.max(pageNumber, 1), doc.numPages));
+    const viewport = page.getViewport({ scale: 1 });
+    // About 2500px on the long side: what the recognizer works best with
+    const scale = Math.min(2500 / Math.max(viewport.width, viewport.height), 4);
+    return { blob: await renderToBlob(page, scale), pages: doc.numPages };
+  } finally {
+    task.destroy();
+  }
+}

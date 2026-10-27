@@ -205,6 +205,9 @@ export function LandingPage() {
               </GoogleButton>
               {error && <p class="text-sm text-red-600">{error}</p>}
               <p class="text-sm text-gray-500">Free · Nothing to install · Your data exports anytime</p>
+              <a href="/parse-abc" class="text-sm text-blue-600 hover:underline">
+                Have a tune on paper? Convert sheet music to ABC — no account needed
+              </a>
             </div>
           </div>
           <PracticeCardMock />

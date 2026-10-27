@@ -72,14 +72,22 @@ export function AddTunePage() {
     <Shell>
       <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Add tune</h1>
-        {/* Static pages outside the SPA (public/collections/); `native` keeps preact-router out of it. */}
-        <a
-          href="/collections/"
-          native
-          class="px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-        >
-          Browse collections
-        </a>
+        <div class="flex flex-wrap gap-2">
+          <a
+            href="/parse-abc"
+            class="px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            Sheet music to ABC
+          </a>
+          {/* Static pages outside the SPA (public/collections/); `native` keeps preact-router out of it. */}
+          <a
+            href="/collections/"
+            native
+            class="px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            Browse collections
+          </a>
+        </div>
       </div>
 
       <OfflineBanner message="Adding tunes is unavailable offline. Reconnect to add or import tunes." />

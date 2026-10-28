@@ -90,7 +90,7 @@ export async function analyzePdf(file) {
 }
 
 /**
- * Render one page of a PDF as a PNG big enough for music recognition (/parse-abc).
+ * Render one page of a PDF as a PNG big enough for music recognition (/play-sheet-music).
  * @returns {Promise<{blob: Blob, pages: number}>}
  */
 export async function renderPdfPage(file, pageNumber = 1) {

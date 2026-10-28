@@ -14,7 +14,7 @@ import { PracticePage } from './pages/practice';
 import { SettingsPage } from './pages/settings';
 import { InstallPage } from './pages/install';
 import { UserPage } from './pages/user';
-import { ParseAbcPage } from './pages/parse-abc';
+import { PlaySheetMusicPage } from './pages/play-sheet-music';
 import { LoadingIndicator } from './components/loading-indicator';
 
 function FlushOnReconnect() {
@@ -44,6 +44,13 @@ function PendingTuneImport() {
   return null;
 }
 
+// The scanner's old address (/parse-abc); dist/parse-abc/index.html redirects too, for
+// visits that don't go through the service worker.
+function OldScannerAddress() {
+  useEffect(() => { route('/play-sheet-music/', true); }, []);
+  return null;
+}
+
 function AppRouter() {
   const { user, loading } = useAuth();
 
@@ -59,7 +66,8 @@ function AppRouter() {
     // Pages that work signed out; every other path shows the landing page
     return (
       <Router>
-        <ParseAbcPage path="/parse-abc" />
+        <PlaySheetMusicPage path="/play-sheet-music" />
+        <OldScannerAddress path="/parse-abc" />
         <LandingPage default />
       </Router>
     );
@@ -79,7 +87,8 @@ function AppRouter() {
         <SettingsPage path="/settings" />
         <InstallPage path="/install" />
         <UserPage path="/user" />
-        <ParseAbcPage path="/parse-abc" />
+        <PlaySheetMusicPage path="/play-sheet-music" />
+        <OldScannerAddress path="/parse-abc" />
       </Router>
     </>
   );

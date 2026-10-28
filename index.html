@@ -10,14 +10,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#101828" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at https://challenges.cloudflare.com https://static.cloudflareinsights.com 'wasm-unsafe-eval' 'sha256-KhCQNnMRGsdHwLfOZD7FGgHGJUs2VTMnC17mEJh8oTs='; style-src 'self' 'unsafe-inline'; connect-src 'self' https://pb.home.nkorobkov.com https://omr.tunebox.net https://paulrosen.github.io https://tunebox.goatcounter.com https://cloudflareinsights.com; img-src 'self' https://pb.home.nkorobkov.com https://i.ytimg.com data: blob:; media-src 'self' https://pb.home.nkorobkov.com https://paulrosen.github.io blob:; frame-src https://pb.home.nkorobkov.com https://www.youtube-nocookie.com https://challenges.cloudflare.com blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at https://challenges.cloudflare.com https://static.cloudflareinsights.com 'wasm-unsafe-eval' 'sha256-CP9+C1NBiML7SFBrIjtZTz3CDJ6u3yWUHqTJjKLBXc8='; style-src 'self' 'unsafe-inline'; connect-src 'self' https://pb.home.nkorobkov.com https://omr.tunebox.net https://paulrosen.github.io https://tunebox.goatcounter.com https://cloudflareinsights.com; img-src 'self' https://pb.home.nkorobkov.com https://i.ytimg.com data: blob:; media-src 'self' https://pb.home.nkorobkov.com https://paulrosen.github.io blob:; frame-src https://pb.home.nkorobkov.com https://www.youtube-nocookie.com https://challenges.cloudflare.com blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com" />
     <!-- Boot script (hash-allowlisted in the CSP above — update the sha256 if
          you change a single character). Runs before first paint: applies the
-         saved dark theme, and hides the prerendered landing page when it isn't
-         the content about to be rendered (signed-in user or a deep link), so
-         refreshes don't flash the landing snapshot. main.jsx removes .booting
+         saved dark theme, and hides the prerendered page (the landing page, or the
+         sheet music scanner's signed-out view) when it isn't the content about
+         to be rendered (signed-in user or another deep link), so refreshes
+         don't flash the snapshot. main.jsx removes .booting
          once the real app has rendered. -->
-    <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('tunebox_theme')==='dark')d.classList.add('dark');if(location.pathname!=='/'||localStorage.getItem('pocketbase_auth'))d.classList.add('booting')}catch(e){}})()</script>
+    <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('tunebox_theme')==='dark')d.classList.add('dark');var p=location.pathname;if((p!=='/'&&p.indexOf('/play-sheet-music')!==0)||localStorage.getItem('pocketbase_auth'))d.classList.add('booting')}catch(e){}})()</script>
     <style>.booting #app{display:none}html.dark{background:#101828}</style>
     <script data-goatcounter="https://tunebox.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>

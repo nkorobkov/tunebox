@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 
-// Cloudflare Turnstile (bot check for signed-out uploads on /parse-abc). The script is
+// Cloudflare Turnstile (bot check for signed-out uploads on /play-sheet-music). The script is
 // loaded only when the widget is first shown; the CSP allows challenges.cloudflare.com in
 // script-src and frame-src for it.
 let scriptPromise = null;
@@ -38,7 +38,7 @@ export function Turnstile({ siteKey, onToken, resetKey, onError }) {
         if (cancelled || !ref.current) return;
         widgetId.current = turnstile.render(ref.current, {
           sitekey: siteKey,
-          action: 'parse-abc',
+          action: 'play-sheet-music',
           theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
           callback: (token) => onTokenRef.current(token),
           'expired-callback': () => onTokenRef.current(null),

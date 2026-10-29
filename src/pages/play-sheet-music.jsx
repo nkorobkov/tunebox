@@ -5,7 +5,7 @@ import { Button } from '../components/common/button';
 import { AbcViewer } from '../components/tune/abc-viewer';
 import { AbcPlayer } from '../components/tune/abc-player';
 import { Turnstile } from '../components/parse/turnstile';
-import { recognizeImage, getQuota, OmrError, TURNSTILE_SITE_KEY } from '../lib/omr-api';
+import { recognizeImage, waitForJob, getQuota, OmrError, TURNSTILE_SITE_KEY } from '../lib/omr-api';
 import { isPdfFile, renderPdfPage } from '../lib/pdf-import';
 
 // Formats the recognition service takes as-is; anything else the browser can decode
@@ -32,6 +32,34 @@ function useObjectUrl(blob) {
     return () => URL.revokeObjectURL(u);
   }, [blob]);
   return url;
+}
+
+// The scan in progress, kept in this tab's session storage so that reloading the page
+// picks it up again: {id, name, preview (a small JPEG data URL), user, started}. The job id is an
+// unguessable token, and the service only shows a signed-in user's jobs to that user.
+const SCAN_KEY = 'tunebox_scan';
+
+function loadScan() {
+  try { return JSON.parse(sessionStorage.getItem(SCAN_KEY)); } catch { return null; }
+}
+
+function saveScan(scan) {
+  // Storage full or blocked: a reload then just loses the scan, as before
+  try { sessionStorage.setItem(SCAN_KEY, JSON.stringify(scan)); } catch { /* ignore */ }
+}
+
+function clearScan() {
+  try { sessionStorage.removeItem(SCAN_KEY); } catch { /* ignore */ }
+}
+
+async function previewDataUrl(blob, maxSide = 1200) {
+  const bitmap = await createImageBitmap(blob);
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.8);
 }
 
 function progressText(phase, job, seconds) {
@@ -68,7 +96,9 @@ function Scanner() {
   const [transpose, setTranspose] = useState(0);
   const inputRef = useRef(null);
   const abortRef = useRef(null);
-  const preview = useObjectUrl(image);
+  const startedRef = useRef(null); // when the scan was uploaded, kept across a reload
+  const [resumedPreview, setResumedPreview] = useState(null); // after a reload: no file
+  const preview = useObjectUrl(image) || resumedPreview;
   const busy = phase === 'preparing' || phase === 'uploading' || phase === 'working';
   const visitorsOff = !signedIn && !TURNSTILE_SITE_KEY;
 
@@ -80,8 +110,8 @@ function Scanner() {
 
   useEffect(() => {
     if (phase !== 'working') return;
-    const start = Date.now();
-    setSeconds(0);
+    const start = startedRef.current || Date.now();
+    setSeconds(Math.max(0, Math.round((Date.now() - start) / 1000)));
     const t = setInterval(() => setSeconds(Math.round((Date.now() - start) / 1000)), 1000);
     return () => clearInterval(t);
   }, [phase]);
@@ -93,6 +123,7 @@ function Scanner() {
   const pick = async (picked, page = 1) => {
     if (!picked) return;
     setError(''); setJob(null); setAbc(''); setTranspose(0); setFile(picked); setImage(null);
+    setResumedPreview(null);
     setPhase('preparing');
     try {
       if (isPdfFile(picked)) {
@@ -117,30 +148,47 @@ function Scanner() {
     return () => document.removeEventListener('paste', onPaste);
   }, []);
 
+  const finish = (result) => {
+    setJob(result);
+    if (result.status === 'done') {
+      setAbc(result.abc);
+    } else {
+      setError(result.error?.code === 'no_music_found'
+        ? 'No sheet music was found in this image. Try a sharper, straighter photo of the page.'
+        : result.error?.message || 'The scan failed.');
+    }
+    setPhase('done');
+  };
+
   const convert = async () => {
     if (!image) return;
     setError(''); setJob(null); setAbc(''); setPhase('uploading');
+    startedRef.current = null;
     const controller = new AbortController();
     abortRef.current = controller;
     const name = (file?.name || 'score').replace(/\.[^.]+$/, '') + (image.type === 'image/png' ? '.png' : '.jpg');
+    const remember = (id) => {
+      startedRef.current = Date.now();
+      const scan = { id, name: file?.name || name, preview: null, user: user?.id || null, started: startedRef.current };
+      saveScan(scan);
+      previewDataUrl(image)
+        .then((p) => { if (loadScan()?.id === id) saveScan({ ...scan, preview: p }); })
+        .catch(() => {});
+    };
     try {
       const result = await recognizeImage(image, name, {
         turnstileToken: signedIn ? undefined : token,
         signal: controller.signal,
+        onStart: remember,
         onProgress: (j) => { setJob(j); setPhase('working'); },
       });
-      setJob(result);
-      if (result.status === 'done') {
-        setAbc(result.abc);
-      } else {
-        setError(result.error?.code === 'no_music_found'
-          ? 'No sheet music was found in this image. Try a sharper, straighter photo of the page.'
-          : result.error?.message || 'The conversion failed.');
-      }
-      setPhase('done');
+      clearScan();
+      finish(result);
     } catch (err) {
+      // Aborted: the page is being left; the stored scan lets it pick the job up again
       if (err.name === 'AbortError') return;
-      setError(err instanceof OmrError ? err.message : 'The conversion failed. Try again.');
+      clearScan();
+      setError(err instanceof OmrError ? err.message : 'The scan failed. Try again.');
       setPhase('idle');
     } finally {
       // Bot-check tokens are single use
@@ -148,6 +196,30 @@ function Scanner() {
       refreshQuota();
     }
   };
+
+  // Pick up a scan that was running when the page was reloaded
+  useEffect(() => {
+    const scan = loadScan();
+    if (!scan?.id) return;
+    if (scan.user !== (user?.id || null)) { clearScan(); return; }
+    setFile({ name: scan.name });
+    setResumedPreview(scan.preview);
+    startedRef.current = scan.started || null;
+    setPhase('working');
+    const controller = new AbortController();
+    abortRef.current = controller;
+    waitForJob(scan.id, { signal: controller.signal, onProgress: setJob })
+      .then((result) => { clearScan(); finish(result); })
+      .catch((err) => {
+        if (err.name === 'AbortError') return;
+        clearScan();
+        setError(err.code === 'not_found'
+          ? 'The scan you started before reloading is no longer available. Please scan the page again.'
+          : err instanceof OmrError ? err.message : 'The scan failed. Try again.');
+        setPhase('idle');
+      })
+      .finally(refreshQuota);
+  }, []);
 
   const copy = async () => {
     await navigator.clipboard.writeText(abc);

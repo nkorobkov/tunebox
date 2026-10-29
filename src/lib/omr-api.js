@@ -54,27 +54,41 @@ function sleep(ms, signal) {
 }
 
 /**
- * Upload an image and wait for its ABC. onProgress gets the job while it's pending
- * ({status: 'queued'|'running', queue_position}).
+ * Upload an image and wait for its ABC. The upload answers at once with the pending job;
+ * onStart gets its id, which waitForJob can pick up again after a page reload. onProgress
+ * gets the job while it's pending ({status: 'queued'|'running', queue_position}).
  * @returns {Promise<object>} the finished job: {status: 'done', abc, chords, warnings}
  *   or {status: 'failed', error: {code, message}}
  */
-export async function recognizeImage(blob, filename, { turnstileToken, onProgress, signal } = {}) {
+export async function recognizeImage(blob, filename, { turnstileToken, onStart, onProgress, signal } = {}) {
   const form = new FormData();
   form.append('file', blob, filename);
-  let r = await call('/v1/recognize?wait=25', {
+  const r = await call('/v1/recognize?wait=0', {
     method: 'POST',
     body: form,
     headers: turnstileToken ? { 'CF-Turnstile-Token': turnstileToken } : {},
     signal,
   });
-  const location = r.location;
-  while (r.status === 202) {
+  if (r.status !== 202) return r.body;
+  onStart?.(r.body.id);
+  onProgress?.(r.body);
+  return waitForJob(r.body.id, { onProgress, signal });
+}
+
+/**
+ * Wait for a job to finish (see recognizeImage). Throws OmrError 'not_found' when the job
+ * is gone (results are kept for an hour) or belongs to someone else.
+ */
+export async function waitForJob(id, { onProgress, signal } = {}) {
+  for (;;) {
+    const started = Date.now();
+    // Long poll: the service answers as soon as the job finishes, or after 25 s
+    const r = await call(`/v1/jobs/${encodeURIComponent(id)}?wait=25`, { signal });
+    if (r.status !== 202) return r.body;
     onProgress?.(r.body);
-    await sleep((r.retryAfter || 5) * 1000, signal);
-    r = await call(location, { signal });
+    // Pace the polling should a proxy answer early
+    if (Date.now() - started < 2000) await sleep((r.retryAfter || 5) * 1000, signal);
   }
-  return r.body;
 }
 
 /** The caller's quota: {kind: 'user'|'anonymous', per_day, used_today, remaining_today, retry_after}. */

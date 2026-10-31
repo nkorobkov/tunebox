@@ -7,6 +7,10 @@ import { AbcPlayer } from '../components/tune/abc-player';
 import { Turnstile } from '../components/parse/turnstile';
 import { recognizeImage, waitForJob, getQuota, OmrError, TURNSTILE_SITE_KEY } from '../lib/omr-api';
 import { isPdfFile, renderPdfPage } from '../lib/pdf-import';
+import { parseAbcMeta } from '../lib/abc-utils';
+import { parkPendingTune } from '../lib/pending-tune';
+import { pb } from '../lib/pb';
+import { TUNE_TYPES } from '../components/tune/tune-form';
 
 // Formats the recognition service takes as-is; anything else the browser can decode
 // (e.g. HEIC photos in Safari) is converted to JPEG first.
@@ -63,17 +67,15 @@ async function previewDataUrl(blob, maxSide = 1200) {
 }
 
 function progressText(phase, job, seconds) {
-  if (phase === 'preparing') return 'Preparing the image…';
+  if (phase === 'preparing') return 'Preparing…';
   if (phase === 'uploading') return 'Uploading…';
   if (job?.status === 'queued') {
-    return job.queue_position > 1 ? `Waiting in line (${job.queue_position - 1} ahead of you)…` : 'Starting…';
+    return job.queue_position > 1 ? `In line, ${job.queue_position - 1} ahead…` : 'Starting…';
   }
-  return `Reading the music… ${seconds}s (usually under a minute)`;
+  return `Reading… ${seconds}s`;
 }
 
-const INTRO = 'Snap or upload a page of printed music and hear how the tune goes, chords and all. '
-  + 'TuneBox reads the notes, plays them back at any speed, and gives you the tune as notation '
-  + 'you can edit, copy and save.';
+const INTRO = 'Upload a photo or PDF of printed music. Listen, slow it down, change the key.';
 
 // The scanner itself; the page around it differs for signed-in users (app shell) and
 // visitors (standalone page in the style of /collections/, prerendered for search engines).
@@ -98,8 +100,11 @@ function Scanner() {
   const abortRef = useRef(null);
   const startedRef = useRef(null); // when the scan was uploaded, kept across a reload
   const [resumedPreview, setResumedPreview] = useState(null); // after a reload: no file
+  const resultRef = useRef(null);
   const preview = useObjectUrl(image) || resumedPreview;
   const busy = phase === 'preparing' || phase === 'uploading' || phase === 'working';
+  // This image has been scanned: no bot check or scan button until another one is picked
+  const scanned = phase === 'done';
   const visitorsOff = !signedIn && !TURNSTILE_SITE_KEY;
 
   const refreshQuota = useCallback(() => {
@@ -114,6 +119,11 @@ function Scanner() {
     setSeconds(Math.max(0, Math.round((Date.now() - start) / 1000)));
     const t = setInterval(() => setSeconds(Math.round((Date.now() - start) / 1000)), 1000);
     return () => clearInterval(t);
+  }, [phase]);
+
+  // Bring the result into view as soon as it arrives
+  useEffect(() => {
+    if (phase === 'done' && abc) resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [phase]);
 
   const signIn = async () => {
@@ -255,13 +265,12 @@ function Scanner() {
       {/* Signed-in users aren't shown their quota: they only hear about it if they reach it */}
       {!signedIn && quota && !atLimit && (
         <p class="text-sm text-gray-500">
-          Without an account you can scan {quota.per_day} tunes a day
-          ({quota.remaining_today} left today). {signInLink('Sign in')} to scan more.
+          {quota.remaining_today} of {quota.per_day} free scans left today. {signInLink('Sign in')} for more.
         </p>
       )}
 
       <div
-        class="bg-white rounded-xl border-2 border-dashed border-gray-300 hover:border-brand-600 p-6 text-center cursor-pointer"
+        class="bg-white rounded-lg border border-dashed border-gray-300 hover:border-gray-500 p-8 text-center cursor-pointer"
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files[0]); }}
@@ -269,9 +278,9 @@ function Scanner() {
         <input ref={inputRef} type="file" accept="image/*,.pdf,application/pdf" class="hidden"
           onChange={(e) => { pick(e.target.files[0]); e.target.value = ''; }} />
         <p class="text-sm text-gray-700">
-          {file ? file.name : 'Drop a picture or PDF here, click to choose, or paste'}
+          {file ? file.name : 'Drop, paste or choose an image'}
         </p>
-        <p class="text-xs text-gray-400 mt-1">PNG, JPEG or PDF · one page at a time</p>
+        <p class="text-xs text-gray-400 mt-1">PNG, JPEG or PDF</p>
       </div>
 
       {pdfPages > 1 && (
@@ -290,26 +299,26 @@ function Scanner() {
       )}
 
       {preview && (
-        <img src={preview} alt="The sheet music to scan" class="max-h-80 rounded-xl border border-gray-200 bg-white" />
+        <img src={preview} alt="The sheet music to scan" class="max-h-80 rounded-lg border border-gray-200 bg-white" />
       )}
 
-      {!signedIn && image && (
+      {!signedIn && image && !busy && !scanned && (
         <Turnstile
           siteKey={TURNSTILE_SITE_KEY}
           onToken={setToken}
           resetKey={turnstileReset}
-          onError={() => setError('The bot check couldn’t load. Disable content blockers for this page, or sign in.')}
+          onError={() => setError('The bot check didn’t load. Allow it in your content blocker, or sign in.')}
         />
       )}
 
-      <div class="flex items-center gap-3 flex-wrap">
-        <Button size="md" onClick={convert} disabled={!canConvert}>Scan and play</Button>
+      <div class="flex items-center gap-3 flex-wrap empty:hidden">
+        {(image || busy) && !scanned && <Button size="md" onClick={convert} disabled={!canConvert}>Scan</Button>}
         {busy && <span class="text-sm text-gray-500">{progressText(phase, job, seconds)}</span>}
         {atLimit && !busy && (
           <span class="text-sm text-amber-600">
             {signedIn
-              ? 'You’ve reached today’s scanning limit. It resets tomorrow.'
-              : <>You’ve reached today’s limit without an account. {signInLink('Sign in')} to keep scanning.</>}
+              ? 'Daily limit reached. It resets tomorrow.'
+              : <>Daily limit reached. {signInLink('Sign in')} to keep scanning.</>}
           </span>
         )}
       </div>
@@ -317,22 +326,21 @@ function Scanner() {
       {error && <p class="text-sm text-red-600">{error}</p>}
 
       {abc && (
-        <div class="space-y-4">
+        <div ref={resultRef} class="space-y-4 scroll-mt-20">
           {job?.warnings?.length > 0 && (
-            <p class="text-xs text-amber-600">
-              Some parts may be off — check the chords and repeats against the original.
-            </p>
+            <p class="text-xs text-amber-600">Check repeats and chords against the original.</p>
           )}
-          <div class="bg-white rounded-xl border border-gray-200 p-4">
+          <div class="bg-white rounded-lg border border-gray-200 p-4">
             <AbcViewer abc={abc} transpose={transpose} onTransposeChange={setTranspose} />
           </div>
           <AbcPlayer abc={abc} transpose={transpose} />
+          {signedIn && <AddToTunes key={job?.id} abc={abc} signedIn onSignIn={signIn} />}
           <div>
             <div class="flex items-center justify-between mb-1">
-              <label for="abc-text" class="text-sm font-medium text-gray-700">ABC notation (you can edit it)</label>
+              <label for="abc-text" class="text-sm font-medium text-gray-700">ABC</label>
               <div class="flex gap-2">
                 <Button variant="secondary" onClick={copy}>{copied ? 'Copied' : 'Copy'}</Button>
-                <Button variant="secondary" onClick={download}>Download .abc</Button>
+                <Button variant="secondary" onClick={download}>Download</Button>
               </div>
             </div>
             <textarea
@@ -341,12 +349,109 @@ function Scanner() {
               onInput={(e) => setAbc(e.target.value)}
               spellcheck={false}
               rows={10}
-              class="w-full font-mono text-xs border border-gray-300 rounded-md p-3 bg-white text-gray-800"
+              class="w-full font-mono text-xs border border-gray-200 rounded-lg p-3 bg-white text-gray-800"
             />
           </div>
+          {!signedIn && <AddToTunes key={job?.id} abc={abc} signedIn={false} onSignIn={signIn} />}
         </div>
       )}
     </div>
+  );
+}
+
+// The user_tunes record for a scanned tune: the title goes into the ABC too (scans
+// rarely have one), so the notation shows it.
+function tuneRecord(abc, title, type) {
+  const name = title.trim();
+  let text = abc.replace(/^T:.*\n?/m, '');
+  text = /^X:.*$/m.test(text) ? text.replace(/^(X:.*)$/m, `$1\nT:${name}`) : `T:${name}\n${text}`;
+  const key = /^K:[ \t]*(\S+)/m.exec(abc)?.[1];
+  return {
+    title: name,
+    type: type.trim().toLowerCase() || undefined,
+    abc: text,
+    setting_key: key && key !== 'none' ? key : undefined,
+  };
+}
+
+// "Add to my tunes" under a result. Signed in, the tune is created right away; signed
+// out, it's parked (src/lib/pending-tune.js) and created once Google sign-in returns to
+// the app, which then opens it, so a brand-new account starts with this one tune.
+function AddToTunes({ abc, signedIn, onSignIn }) {
+  const recognized = parseAbcMeta(abc).title;
+  const [title, setTitle] = useState(recognized === 'Untitled' ? '' : recognized);
+  const [type, setType] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [added, setAdded] = useState(null);
+  const [error, setError] = useState('');
+  const [askTitle, setAskTitle] = useState(false);
+  const titleRef = useRef(null);
+
+  const add = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) {
+      setAskTitle(true);
+      titleRef.current?.focus();
+      return;
+    }
+    const tune = tuneRecord(abc, title, type);
+    if (!signedIn) {
+      try { parkPendingTune(tune); } catch { setError('Couldn’t save the tune. Copy the ABC instead.'); return; }
+      onSignIn();
+      return;
+    }
+    setSaving(true); setError('');
+    try {
+      setAdded(await pb.collection('user_tunes').create({
+        ...tune, labels: [], instruments: {}, user: pb.authStore.record.id,
+      }));
+    } catch {
+      setError('Couldn’t add the tune. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (added) {
+    return (
+      <p class="m-0 text-sm text-gray-700">
+        Added “{added.title}” to your tunes. <a href={`/tune/${added.id}`} class="text-brand-700 underline">Open</a>
+      </p>
+    );
+  }
+
+  const field = 'px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500';
+  return (
+    <form onSubmit={add} class="space-y-2">
+      <div class="flex flex-wrap gap-2">
+        <input
+          ref={titleRef}
+          type="text"
+          aria-label="Title"
+          value={title}
+          onInput={(e) => setTitle(e.target.value)}
+          placeholder="Title"
+          class={`${field} flex-1 min-w-[12rem] ${askTitle && !title.trim() ? 'border-amber-500' : 'border-gray-300'}`}
+        />
+        <input
+          type="text"
+          aria-label="Type"
+          value={type}
+          onInput={(e) => setType(e.target.value)}
+          list="scan-tune-types"
+          placeholder="Type (optional)"
+          class={`${field} w-40 border-gray-300`}
+        />
+        <datalist id="scan-tune-types">
+          {TUNE_TYPES.map((t) => <option value={t} />)}
+        </datalist>
+        <Button type="submit" size="md" disabled={saving}>
+          {signedIn ? (saving ? 'Adding…' : 'Add to my tunes') : 'Sign in and save'}
+        </Button>
+      </div>
+      {askTitle && !title.trim() && <p class="m-0 text-sm text-amber-600">Name the tune first.</p>}
+      {error && <p class="m-0 text-sm text-red-600">{error}</p>}
+    </form>
   );
 }
 
@@ -355,50 +460,29 @@ function Scanner() {
 export const FAQ = [
   {
     q: 'Do I need an account?',
-    a: 'No. Without an account you can scan a few tunes a day. Sign in with Google to scan more '
-      + 'and to keep the tunes you learn in your TuneBox tunebook.',
+    a: 'No. You get a few free scans a day. Sign in with Google for more, and to save tunes.',
   },
   {
-    q: 'What kind of sheet music works?',
-    a: 'Printed music with one melody line, with or without chord symbols above it: fiddle tunes, '
-      + 'session and folk tunes, simple song melodies and lead sheets. Handwritten music, piano '
-      + 'scores with two staves, multi-part scores and tablature aren’t supported yet.',
-  },
-  {
-    q: 'Which files can I use?',
-    a: 'A photo from your phone, a screenshot, a scan (PNG or JPEG) or a PDF, one page at a time. '
-      + 'You can also paste an image straight from the clipboard.',
+    q: 'What sheet music works?',
+    a: 'Printed single-line melodies, with or without chord symbols: fiddle, folk and session '
+      + 'tunes, song melodies, lead sheets. Not handwriting, piano scores or tablature.',
   },
   {
     q: 'How accurate is it?',
-    a: 'On clean printed music it usually gets the notes, rhythm, key and chords right. Repeats '
-      + 'and first and second endings are the parts most worth checking against the page, and you '
-      + 'can fix anything by editing the notation.',
+    a: 'Clean printed music usually comes out right. Check repeats and endings; you can edit '
+      + 'anything in the notation.',
   },
   {
-    q: 'Can I slow it down or change the key?',
-    a: 'Yes. The player has a speed control and can loop the tune, and you can transpose it up or '
-      + 'down a semitone at a time; the notation and playback change together.',
+    q: 'What is ABC?',
+    a: 'A plain-text music notation used by thesession.org and most folk-music sites. Copy or '
+      + 'download it to use in any ABC program.',
   },
-  {
-    q: 'What is ABC notation?',
-    a: 'A plain-text way of writing tunes, used by thesession.org and most folk-music sites. You '
-      + 'can copy or download the result and open it in any ABC program, or keep it in TuneBox.',
-  },
-];
-
-const STEPS = [
-  ['Take a photo', 'Snap the page with your phone, or upload a scan, screenshot or PDF.'],
-  ['We read the music', 'Notes, rhythm, key, time signature, repeats and chord symbols, usually in under a minute.'],
-  ['Listen and learn', 'Play it back, slow it down, loop it, change the key, and copy or save the notation.'],
 ];
 
 // Signed-out visitors (and search engines: scripts/prerender.mjs renders this into
-// dist/play-sheet-music/index.html) get a standalone page in the style of the /collections/
-// index (scripts/build-collections.mjs): slim header with "hosted by TuneBox", a 56rem column,
-// a large heading with a brand-coloured phrase, a promo box and a small footer.
+// dist/play-sheet-music/index.html) get a standalone page: slim header with "hosted by
+// TuneBox", a 56rem column, the scanner, a short FAQ and a one-line footer.
 export function PublicPage() {
-  const { loginWithGoogle } = useAuth();
   return (
     <div class="theme-light min-h-screen bg-gray-50 text-gray-900 text-[15px] leading-normal">
       <header class="sticky top-0 z-20 bg-gray-50/85 backdrop-blur border-b border-gray-200">
@@ -412,61 +496,30 @@ export function PublicPage() {
 
       <div class="max-w-[56rem] mx-auto px-4">
         <section class="pt-10 pb-6">
-          <h1 class="m-0 mb-3 text-[2rem] leading-[1.15] font-bold tracking-[-.02em]">
-            Play sheet music <span class="text-brand-600">from a photo</span>
+          <h1 class="m-0 mb-2 text-[2rem] leading-[1.15] font-bold tracking-[-.02em]">
+            Play sheet music from a photo
           </h1>
-          <p class="text-gray-600">{INTRO}</p>
+          <p class="m-0 text-gray-600">{INTRO}</p>
         </section>
 
         <Scanner />
 
-        <section class="mt-12">
-          <h2 class="m-0 mb-4 text-[1.3rem] font-bold tracking-[-.01em]">How it works</h2>
-          <ol class="grid gap-3 sm:grid-cols-3 list-none p-0 m-0">
-            {STEPS.map(([title, text], i) => (
-              <li class="bg-white border border-gray-200 rounded-xl p-4">
-                <span class="text-[.8rem] font-semibold text-brand-600">{i + 1}</span>
-                <h3 class="m-0 mt-1 mb-1 text-base font-semibold">{title}</h3>
-                <p class="m-0 text-sm text-gray-600">{text}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section class="mt-10">
-          <h2 class="m-0 mb-3 text-[1.3rem] font-bold tracking-[-.01em]">Questions</h2>
-          <div class="divide-y divide-gray-200 border-y border-gray-200">
+        <section class="mt-16">
+          <h2 class="m-0 mb-2 text-base font-semibold">Questions</h2>
+          <dl class="m-0 divide-y divide-gray-200 border-y border-gray-200">
             {FAQ.map(({ q, a }) => (
-              <div class="py-4">
-                <h3 class="m-0 mb-1 text-base font-semibold">{q}</h3>
-                <p class="m-0 text-sm text-gray-600">{a}</p>
+              <div class="py-3">
+                <dt class="text-sm font-medium">{q}</dt>
+                <dd class="m-0 mt-0.5 text-sm text-gray-600">{a}</dd>
               </div>
             ))}
-          </div>
+          </dl>
         </section>
 
-        <section class="bg-brand-50 border border-brand-200 rounded-xl p-6 mt-10 mb-4 text-center">
-          <h2 class="m-0 mb-2 text-[1.3rem] font-bold tracking-[-.01em]">Keep the tunes you learn</h2>
-          <p class="mx-auto max-w-xl text-gray-600">
-            TuneBox is a digital tunebook and practice planner for traditional musicians. Sign in to
-            scan more tunes, keep your repertoire organized per instrument, and let spaced
-            repetition decide what to practice tonight. Or browse
-            the <a href="/collections/" class="text-brand-700 underline">tune collections</a> for
-            thousands of tunes from classic tunebooks.
-          </p>
-          <button
-            onClick={() => loginWithGoogle().catch(() => {})}
-            class="inline-block mt-4 px-6 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium text-[.9rem] cursor-pointer"
-          >
-            Sign in with Google
-          </button>
-        </section>
-
-        <footer class="py-6 text-[.8rem] text-gray-500 text-center">
-          <p class="m-0">
-            Music recognition by <a href="https://github.com/liebharc/homr" target="_blank" rel="noopener" class="text-brand-700">homr</a>,
-            an open-source music reader · page by <a href="/" class="text-brand-700">TuneBox</a>
-          </p>
+        <footer class="py-8 text-[.8rem] text-gray-500">
+          <a href="/" class="text-gray-700">TuneBox</a> is a tunebook and practice planner for
+          traditional musicians · <a href="/collections/" class="text-gray-700">Tune collections</a> ·
+          Recognition by <a href="https://github.com/liebharc/homr" target="_blank" rel="noopener" class="text-gray-700">homr</a>
         </footer>
       </div>
     </div>

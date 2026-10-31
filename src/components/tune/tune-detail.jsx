@@ -12,7 +12,8 @@ import { parseYouTube } from '../../lib/youtube';
 import { YouTubeEmbed } from '../common/youtube-embed';
 import { SheetMusicViewer } from './sheet-music-viewer';
 import { InstrumentProgress } from '../instruments/progress-tracker';
-import { useAttachments } from '../../hooks/use-attachments';
+import { useAttachments, getFileUrl } from '../../hooks/use-attachments';
+import { recognizeFile, abcFillPatch } from '../../lib/sheet-music-abc';
 import { getDefaultInstrument, saveDefaultInstrument } from '../../hooks/use-practice';
 import { useSetTunes } from '../../hooks/use-sets';
 import { normalizeSetName, setHref, setReadiness } from '../../lib/sets';
@@ -78,6 +79,32 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
   }, [pickingInstrument]);
   const { attachments, loading: attachmentsLoading, upload, update: updateAttachment, remove, setMainSource, mainSource } = useAttachments(tune.id);
   const { isOffline } = useConnectivity();
+
+  // ABC from a picture/PDF attachment, one at a time. The result is shown next to the
+  // attachment for the user to accept; accepting fills only the tune's empty fields.
+  // parsing: { id, status: 'parsing' | 'ready' | 'error', abc, error }
+  const [parsing, setParsing] = useState(null);
+  const parseAttachment = async (attachment, file) => {
+    setParsing({ id: attachment.id, status: 'parsing' });
+    try {
+      const source = file || new File([await (await fetch(getFileUrl(attachment))).blob()], attachment.file);
+      setParsing({ id: attachment.id, status: 'ready', abc: await recognizeFile(source) });
+    } catch (err) {
+      console.error('ABC recognition failed:', err);
+      setParsing({ id: attachment.id, status: 'error', error: err.message || 'Parsing failed.' });
+    }
+  };
+  const acceptParsed = async () => {
+    const patch = abcFillPatch(tune, parsing.abc);
+    if (Object.keys(patch).length) await onUpdate(patch);
+    setParsing(null);
+  };
+  const canParse = !tune.abc && !isOffline && parsing?.status !== 'parsing';
+  const uploadAndParse = async (data) => {
+    const record = await upload(data);
+    if (data.parseAbc) parseAttachment(record, data.file);
+    return record;
+  };
 
   const allInstruments = [...new Set([...Object.keys(tune.instruments || {}), ...(userInstruments || [])])];
 
@@ -331,13 +358,24 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
         ) : attachments.length === 0 ? (
           <p class="text-sm text-gray-400">No attachments yet.</p>
         ) : (
-          <AttachmentList attachments={attachments} onDelete={remove} onSetMainSource={setMainSource} onUpdate={updateAttachment} />
+          <AttachmentList
+            attachments={attachments}
+            onDelete={remove}
+            onSetMainSource={setMainSource}
+            onUpdate={updateAttachment}
+            onParseAbc={!tune.abc && !isOffline ? parseAttachment : undefined}
+            parsing={parsing}
+            parsedFills={parsing?.status === 'ready' ? abcFillPatch(tune, parsing.abc) : null}
+            onAcceptParsed={acceptParsed}
+            onDiscardParsed={() => setParsing(null)}
+          />
         )}
       </div>
 
       {showUpload && (
         <AttachmentUpload
-          onUpload={upload}
+          onUpload={uploadAndParse}
+          offerParseAbc={canParse}
           initialUrl={uploadUrl}
           onClose={() => { setShowUpload(false); setUploadUrl(''); }}
         />

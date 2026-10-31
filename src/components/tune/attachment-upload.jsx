@@ -3,6 +3,7 @@ import { isAudio, isImage } from '../../hooks/use-attachments';
 import { isYouTubeUrl } from '../../lib/youtube';
 import { Button } from '../common/button';
 import { Dialog } from '../common/dialog';
+import { canParseAbc } from '../../lib/sheet-music-abc';
 
 const FILE_TYPES = [
   { value: '', label: 'No type' },
@@ -31,7 +32,7 @@ function autoDetectType(filename) {
   return '';
 }
 
-export function AttachmentUpload({ onUpload, onClose, initialUrl = '' }) {
+export function AttachmentUpload({ onUpload, onClose, initialUrl = '', offerParseAbc = false }) {
   const [mode, setMode] = useState(initialUrl ? 'link' : 'file');
   const [file, setFile] = useState(null);
   const [url, setUrl] = useState(initialUrl);
@@ -40,6 +41,7 @@ export function AttachmentUpload({ onUpload, onClose, initialUrl = '' }) {
   const [label, setLabel] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [parseAbc, setParseAbc] = useState(true);
   const fileRef = useRef();
 
   const handleFileChange = (e) => {
@@ -65,6 +67,8 @@ export function AttachmentUpload({ onUpload, onClose, initialUrl = '' }) {
   const showBpm = type === 'recording' || type === 'backing_track';
   const urlValid = isYouTubeUrl(url.trim());
   const canSubmit = isLink ? urlValid : !!file;
+  // The tune has no ABC yet and this is a picture or PDF: read the notes from it
+  const showParse = offerParseAbc && !isLink && file && canParseAbc(file.name);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,6 +82,7 @@ export function AttachmentUpload({ onUpload, onClose, initialUrl = '' }) {
         type: type || undefined,
         bpm: bpm && showBpm ? Number(bpm) : undefined,
         label: label || undefined,
+        parseAbc: !!(showParse && parseAbc),
       });
       onClose();
     } catch (err) {
@@ -167,6 +172,13 @@ export function AttachmentUpload({ onUpload, onClose, initialUrl = '' }) {
                 <p class="text-xs text-gray-400 mt-1">Shown next to the video during practice.</p>
               )}
             </div>
+          )}
+
+          {showParse && (
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={parseAbc} onChange={e => setParseAbc(e.target.checked)} />
+              Parse ABC from this file
+            </label>
           )}
 
           {error && <p class="text-sm text-red-500">{error}</p>}

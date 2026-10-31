@@ -3,6 +3,42 @@ import { getFileUrl, isAudio, isImage } from '../../hooks/use-attachments';
 import { parseYouTube, shortYouTubeUrl } from '../../lib/youtube';
 import { YouTubeEmbed } from '../common/youtube-embed';
 import { useConnectivity } from '../../lib/connectivity';
+import { canParseAbc } from '../../lib/sheet-music-abc';
+import { AbcViewer } from './abc-viewer';
+import { Button } from '../common/button';
+
+// What accepting a parse would fill in, e.g. "ABC and key D"
+function describeFills(fills) {
+  const parts = [];
+  if (fills.abc) parts.push('ABC');
+  if (fills.setting_key) parts.push(`key ${fills.setting_key}`);
+  if (fills.type) parts.push(`type ${fills.type}`);
+  return parts.join(', ').replace(/, ([^,]*)$/, ' and $1');
+}
+
+function ParsedAbc({ abc, fills, onAccept, onDiscard }) {
+  const [saving, setSaving] = useState(false);
+  const what = describeFills(fills);
+  const accept = async () => {
+    setSaving(true);
+    try { await onAccept(); } finally { setSaving(false); }
+  };
+  return (
+    <div class="mb-2 space-y-2">
+      <div class="rounded border border-gray-200 bg-white p-2">
+        <AbcViewer abc={abc} />
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        {what ? (
+          <Button onClick={accept} disabled={saving}>{saving ? 'Adding…' : `Add ${what} to the tune`}</Button>
+        ) : (
+          <span class="text-xs text-gray-500">The tune already has all of this.</span>
+        )}
+        <Button variant="secondary" onClick={onDiscard} disabled={saving}>Discard</Button>
+      </div>
+    </div>
+  );
+}
 
 const TYPE_LABELS = {
   sheet_music: 'Sheet music',
@@ -21,7 +57,7 @@ const TYPE_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
-function AttachmentItem({ attachment, onDelete, onSetMainSource, onUpdate }) {
+function AttachmentItem({ attachment, onDelete, onSetMainSource, onUpdate, onParseAbc, parsing, parsedFills, onAcceptParsed, onDiscardParsed }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draftType, setDraftType] = useState('');
@@ -37,6 +73,9 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource, onUpdate }) {
   const displayUrl = isLink ? shortYouTubeUrl(attachment.url) : null;
   const displayName = attachment.label || filename || displayUrl;
   const isSheetMusic = attachment.type === 'sheet_music';
+  // Offered while the tune has no ABC; one parse runs at a time
+  const parsable = onParseAbc && !isLink && canParseAbc(filename);
+  const parseHere = parsing?.id === attachment.id ? parsing.status : null;
 
   // A video link can't serve as sheet music.
   const typeOptions = isLink ? TYPE_OPTIONS.filter(t => t.value !== 'sheet_music') : TYPE_OPTIONS;
@@ -81,6 +120,16 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource, onUpdate }) {
           </div>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
+          {parsable && parseHere !== 'ready' && (
+            <button
+              onClick={() => onParseAbc(attachment)}
+              disabled={parsing?.status === 'parsing'}
+              class="text-xs text-gray-400 hover:text-blue-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Read the notes into the tune's ABC"
+            >
+              {parseHere === 'parsing' ? 'parsing…' : 'parse ABC'}
+            </button>
+          )}
           {onUpdate && !editing && (
             <button
               onClick={startEdit}
@@ -138,6 +187,11 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource, onUpdate }) {
           )}
         </div>
       </div>
+
+      {parseHere === 'error' && <p class="text-xs text-red-500 mb-2">{parsing.error}</p>}
+      {parseHere === 'ready' && (
+        <ParsedAbc abc={parsing.abc} fills={parsedFills} onAccept={onAcceptParsed} onDiscard={onDiscardParsed} />
+      )}
 
       {editing && (
         <div class="flex items-center gap-2 mb-2 flex-wrap">
@@ -203,13 +257,13 @@ function AttachmentItem({ attachment, onDelete, onSetMainSource, onUpdate }) {
   );
 }
 
-export function AttachmentList({ attachments, onDelete, onSetMainSource, onUpdate }) {
+export function AttachmentList({ attachments, onDelete, onSetMainSource, onUpdate, onParseAbc, parsing, parsedFills, onAcceptParsed, onDiscardParsed }) {
   if (!attachments.length) return null;
 
   return (
     <div class="space-y-2">
       {attachments.map(a => (
-        <AttachmentItem key={a.id} attachment={a} onDelete={onDelete} onSetMainSource={onSetMainSource} onUpdate={onUpdate} />
+        <AttachmentItem key={a.id} attachment={a} onDelete={onDelete} onSetMainSource={onSetMainSource} onUpdate={onUpdate} onParseAbc={onParseAbc} parsing={parsing} parsedFills={parsedFills} onAcceptParsed={onAcceptParsed} onDiscardParsed={onDiscardParsed} />
       ))}
     </div>
   );

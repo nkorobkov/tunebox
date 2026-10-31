@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { pb } from '../../lib/pb';
 import { recognizeLines, releaseOcrWorker } from '../../lib/ocr';
-import { analyzePdf, isPdfFile, renderPdfPage } from '../../lib/pdf-import';
+import { analyzePdf, isPdfFile } from '../../lib/pdf-import';
 import { extractTitleFromLines } from '../../lib/ocr-title';
-import { recognizeImage, toUploadable } from '../../lib/omr-api';
+import { recognizeFile } from '../../lib/sheet-music-abc';
 import { parseAbcMeta } from '../../lib/abc-utils';
 import { TUNE_TYPES } from '../tune/tune-form';
 import { AbcViewer } from '../tune/abc-viewer';
@@ -26,28 +26,6 @@ function ocrStatusText(item) {
 
 const PARSE_LABELS = { queued: 'Queued', parsing: 'Parsing…' };
 const isParsePending = (item) => item.abcStatus === 'queued' || item.abcStatus === 'parsing';
-
-function sleep(ms, signal) {
-  return new Promise((resolve, reject) => {
-    const t = setTimeout(resolve, ms);
-    signal.addEventListener('abort', () => { clearTimeout(t); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
-  });
-}
-
-// Send one file to the recognition service. The service allows one upload a minute per
-// user, so a queue of files waits its turn instead of failing.
-async function recognizeFile(item, signal) {
-  const image = item.isPdf ? (await renderPdfPage(item.file, 1)).blob : await toUploadable(item.file);
-  const name = item.file.name.replace(/\.[^.]+$/, '') + (image.type === 'image/png' ? '.png' : '.jpg');
-  for (;;) {
-    try {
-      return await recognizeImage(image, name, { signal });
-    } catch (err) {
-      if (err.code !== 'rate_limited') throw err;
-      await sleep((err.retryAfter || 10) * 1000, signal);
-    }
-  }
-}
 
 function FileRow({ item, onChange, onRemove, onParse, disabled, parseDisabled }) {
   const status = ocrStatusText(item);
@@ -217,21 +195,14 @@ export function FileImport({ createTune }) {
       let patch;
       let stopQueue = false;
       try {
-        const result = await recognizeFile(next, controller.signal);
-        if (result.status === 'done') {
-          const meta = parseAbcMeta(result.abc);
-          patch = current => ({
-            abcStatus: 'done',
-            abc: result.abc,
-            title: current.title || (meta.title !== 'Untitled' ? meta.title : ''),
-            key: current.key || (meta.key && meta.key !== 'none' ? meta.key : ''),
-          });
-        } else {
-          patch = () => ({
-            abcStatus: null,
-            abcError: result.error?.code === 'no_music_found' ? 'No sheet music found in this file.' : result.error?.message || 'Parsing failed.',
-          });
-        }
+        const abc = await recognizeFile(next.file, { signal: controller.signal });
+        const meta = parseAbcMeta(abc);
+        patch = current => ({
+          abcStatus: 'done',
+          abc,
+          title: current.title || (meta.title !== 'Untitled' ? meta.title : ''),
+          key: current.key || (meta.key && meta.key !== 'none' ? meta.key : ''),
+        });
       } catch (err) {
         if (err.name === 'AbortError') return; // leaving the view
         console.error('ABC recognition failed for', next.file.name, err);

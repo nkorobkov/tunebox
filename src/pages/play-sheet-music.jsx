@@ -5,27 +5,12 @@ import { Button } from '../components/common/button';
 import { AbcViewer } from '../components/tune/abc-viewer';
 import { AbcPlayer } from '../components/tune/abc-player';
 import { Turnstile } from '../components/parse/turnstile';
-import { recognizeImage, waitForJob, getQuota, OmrError, TURNSTILE_SITE_KEY } from '../lib/omr-api';
+import { recognizeImage, waitForJob, getQuota, toUploadable, OmrError, TURNSTILE_SITE_KEY } from '../lib/omr-api';
 import { isPdfFile, renderPdfPage } from '../lib/pdf-import';
 import { parseAbcMeta } from '../lib/abc-utils';
 import { parkPendingTune } from '../lib/pending-tune';
 import { pb } from '../lib/pb';
 import { TUNE_TYPES } from '../components/tune/tune-form';
-
-// Formats the recognition service takes as-is; anything else the browser can decode
-// (e.g. HEIC photos in Safari) is converted to JPEG first.
-const DIRECT_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
-
-async function toUploadable(file) {
-  if (DIRECT_TYPES.includes(file.type)) return file;
-  const bitmap = await createImageBitmap(file).catch(() => null);
-  if (!bitmap) throw new OmrError('unsupported', 'This file type isn’t supported. Use a PNG, JPEG or PDF.');
-  const canvas = document.createElement('canvas');
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  canvas.getContext('2d').drawImage(bitmap, 0, 0);
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
-}
 
 function useObjectUrl(blob) {
   const [url, setUrl] = useState(null);

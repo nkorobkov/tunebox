@@ -295,6 +295,10 @@ export function LandingPage() {
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
           <span>TuneBox — a practice companion for traditional musicians</span>
           <span>
+            <a href="/collections/" native class="underline hover:text-gray-300">Tune collections</a>
+            {' '}&middot;{' '}
+            <a href="/play-sheet-music/" class="underline hover:text-gray-300">Sheet music scanner</a>
+            {' '}&middot;{' '}
             <a href="/privacy.html" class="underline hover:text-gray-300">Privacy Policy</a>
             {' '}&middot;{' '}
             <a href="/terms.html" class="underline hover:text-gray-300">Terms of Service</a>

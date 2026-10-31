@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { pb } from '../../lib/pb';
 import { recognizeLines, releaseOcrWorker } from '../../lib/ocr';
-import { analyzePdf, isPdfFile } from '../../lib/pdf-import';
+import { analyzePdf, isPdfFile, renderPdfPage } from '../../lib/pdf-import';
 import { extractTitleFromLines } from '../../lib/ocr-title';
+import { recognizeImage, toUploadable } from '../../lib/omr-api';
+import { parseAbcMeta } from '../../lib/abc-utils';
 import { TUNE_TYPES } from '../tune/tune-form';
+import { AbcViewer } from '../tune/abc-viewer';
 import { Button } from '../common/button';
 import { useConnectivity } from '../../lib/connectivity';
 
@@ -21,7 +24,32 @@ function ocrStatusText(item) {
   }
 }
 
-function FileRow({ item, onChange, onRemove, disabled }) {
+const PARSE_LABELS = { queued: 'Queued', parsing: 'Parsing…' };
+const isParsePending = (item) => item.abcStatus === 'queued' || item.abcStatus === 'parsing';
+
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms);
+    signal.addEventListener('abort', () => { clearTimeout(t); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
+  });
+}
+
+// Send one file to the recognition service. The service allows one upload a minute per
+// user, so a queue of files waits its turn instead of failing.
+async function recognizeFile(item, signal) {
+  const image = item.isPdf ? (await renderPdfPage(item.file, 1)).blob : await toUploadable(item.file);
+  const name = item.file.name.replace(/\.[^.]+$/, '') + (image.type === 'image/png' ? '.png' : '.jpg');
+  for (;;) {
+    try {
+      return await recognizeImage(image, name, { signal });
+    } catch (err) {
+      if (err.code !== 'rate_limited') throw err;
+      await sleep((err.retryAfter || 10) * 1000, signal);
+    }
+  }
+}
+
+function FileRow({ item, onChange, onRemove, onParse, disabled, parseDisabled }) {
   const status = ocrStatusText(item);
   return (
     <div class="bg-white rounded-lg border border-gray-200 p-4">
@@ -77,7 +105,33 @@ function FileRow({ item, onChange, onRemove, disabled }) {
               class={inputClass}
             />
           </div>
-          <p class="text-xs text-gray-400 truncate">{item.file.name}</p>
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-xs text-gray-400 truncate">{item.file.name}</p>
+            {item.abcStatus !== 'done' && (
+              <Button variant="secondary" onClick={onParse} disabled={parseDisabled || isParsePending(item)}>
+                {PARSE_LABELS[item.abcStatus] || 'Parse ABC'}
+              </Button>
+            )}
+          </div>
+          {item.abcError && <p class="text-xs text-red-500">{item.abcError}</p>}
+          {item.abcStatus === 'done' && (
+            <div class="space-y-2">
+              <div class="rounded border border-gray-200 bg-white p-2">
+                <AbcViewer abc={item.abc} />
+              </div>
+              <details>
+                <summary class="text-xs text-gray-500 cursor-pointer">Edit ABC</summary>
+                <textarea
+                  value={item.abc}
+                  onInput={e => onChange({ abc: e.target.value })}
+                  spellcheck={false}
+                  rows={8}
+                  disabled={disabled}
+                  class="mt-1 w-full font-mono text-xs border border-gray-300 rounded-md p-2 bg-white text-gray-800"
+                />
+              </details>
+            </div>
+          )}
         </div>
         <button
           type="button"
@@ -104,6 +158,8 @@ export function FileImport({ createTune }) {
   const itemsRef = useRef(items);
   itemsRef.current = items;
   const ocrBusy = useRef(false);
+  const parseBusy = useRef(false);
+  const parseAbort = useRef(null);
 
   const updateItem = (id, patch) => {
     setItems(prev => prev.map(it => (it.id === id ? { ...it, ...patch } : it)));
@@ -147,8 +203,57 @@ export function FileImport({ createTune }) {
     })();
   }, [items]);
 
+  // ABC recognition pump: files queued by their Parse button or "Parse all" go to the
+  // recognition service one at a time. abcStatus: null | 'queued' | 'parsing' | 'done'.
+  useEffect(() => {
+    if (parseBusy.current) return;
+    const next = items.find(it => it.abcStatus === 'queued');
+    if (!next) return;
+    parseBusy.current = true;
+    updateItem(next.id, { abcStatus: 'parsing', abcError: '' });
+    const controller = new AbortController();
+    parseAbort.current = controller;
+    (async () => {
+      let patch;
+      let stopQueue = false;
+      try {
+        const result = await recognizeFile(next, controller.signal);
+        if (result.status === 'done') {
+          const meta = parseAbcMeta(result.abc);
+          patch = current => ({
+            abcStatus: 'done',
+            abc: result.abc,
+            title: current.title || (meta.title !== 'Untitled' ? meta.title : ''),
+            key: current.key || (meta.key && meta.key !== 'none' ? meta.key : ''),
+          });
+        } else {
+          patch = () => ({
+            abcStatus: null,
+            abcError: result.error?.code === 'no_music_found' ? 'No sheet music found in this file.' : result.error?.message || 'Parsing failed.',
+          });
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return; // leaving the view
+        console.error('ABC recognition failed for', next.file.name, err);
+        stopQueue = err.code === 'quota_exceeded';
+        patch = () => ({ abcStatus: null, abcError: err.message || 'Parsing failed.' });
+      }
+      parseBusy.current = false;
+      setItems(prev => prev.map(it => {
+        if (it.id === next.id) return { ...it, ...patch(it) };
+        // Out of scans for today: the rest of the queue would fail the same way
+        return stopQueue && it.abcStatus === 'queued' ? { ...it, abcStatus: null } : it;
+      }));
+    })();
+  }, [items]);
+
+  const queueParse = (ids) => {
+    setItems(prev => prev.map(it => (ids.includes(it.id) && !it.abcStatus ? { ...it, abcStatus: 'queued', abcError: '' } : it)));
+  };
+
   // Free object URLs and the OCR wasm heap when leaving the view.
   useEffect(() => () => {
+    parseAbort.current?.abort();
     for (const it of itemsRef.current) revokeItemUrls(it);
     releaseOcrWorker();
   }, []);
@@ -172,6 +277,9 @@ export function FileImport({ createTune }) {
         tempo: '',
         ocrStatus: 'queued',
         error: '',
+        abcStatus: null,
+        abc: '',
+        abcError: '',
       };
     });
     setItems(prev => [...prev, ...newItems]);
@@ -191,13 +299,15 @@ export function FileImport({ createTune }) {
     const added = [];
     for (const item of itemsRef.current) {
       const title = item.title.trim();
-      if (!title) continue;
+      // Files still being parsed stay in the list to be added once their ABC is in
+      if (!title || isParsePending(item)) continue;
       try {
         const record = await createTune({
           title,
           type: item.type.trim() || undefined,
           setting_key: item.key.trim() || undefined,
           canonical_tempo: item.tempo ? Number(item.tempo) : undefined,
+          abc: item.abcStatus === 'done' && item.abc.trim() ? item.abc : undefined,
           labels: [],
           instruments: {},
         });
@@ -221,8 +331,10 @@ export function FileImport({ createTune }) {
     setAdding(false);
   };
 
-  const titledCount = items.filter(it => it.title.trim()).length;
-  const untitledCount = items.length - titledCount;
+  const titledCount = items.filter(it => it.title.trim() && !isParsePending(it)).length;
+  const untitledCount = items.filter(it => !it.title.trim() && !isParsePending(it)).length;
+  const pendingCount = items.filter(isParsePending).length;
+  const unparsed = items.filter(it => !it.abcStatus).map(it => it.id);
 
   const picker = (label) => (
     <label class={`inline-block px-4 py-2 rounded-md text-sm font-medium cursor-pointer ${items.length === 0 ? 'bg-brand-600 text-white hover:bg-brand-700' : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
@@ -258,13 +370,22 @@ export function FileImport({ createTune }) {
             item={item}
             onChange={patch => updateItem(item.id, patch)}
             onRemove={() => removeItem(item.id)}
+            onParse={() => queueParse([item.id])}
             disabled={adding}
+            parseDisabled={adding || isOffline}
           />
         ))}
       </div>
 
       <div class="flex items-center justify-between flex-wrap gap-2">
-        {picker('Add more files')}
+        <div class="flex items-center gap-2">
+          {picker('Add more files')}
+          {items.length > 1 && unparsed.length > 0 && (
+            <Button variant="secondary" size="md" onClick={() => queueParse(unparsed)} disabled={adding || isOffline}>
+              Parse all
+            </Button>
+          )}
+        </div>
         <div class="flex items-center gap-3">
           {addedCount > 0 && (
             <span class="text-xs text-brand-700 dark:text-brand-400">{addedCount} added</span>
@@ -282,6 +403,11 @@ export function FileImport({ createTune }) {
       {untitledCount > 0 && (
         <p class="text-xs text-amber-600 text-right">
           {untitledCount} file{untitledCount !== 1 ? 's' : ''} without a title will be skipped.
+        </p>
+      )}
+      {pendingCount > 0 && (
+        <p class="text-xs text-gray-500 text-right">
+          {pendingCount} still parsing: add {pendingCount !== 1 ? 'them' : 'it'} when done.
         </p>
       )}
     </div>

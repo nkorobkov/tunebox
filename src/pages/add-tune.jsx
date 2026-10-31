@@ -17,7 +17,7 @@ const VIEWS = [
   { value: 'search', label: 'Search The Session' },
   { value: 'manual', label: 'Add manually' },
   { value: 'bulk', label: 'Bulk import' },
-  { value: 'files', label: 'File import' },
+  { value: 'files', label: 'From picture' },
   { value: 'tunebook', label: 'Import session tunebook' },
 ];
 
@@ -73,12 +73,6 @@ export function AddTunePage() {
       <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Add tune</h1>
         <div class="flex flex-wrap gap-2">
-          <a
-            href="/play-sheet-music/"
-            class="px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            Scan sheet music
-          </a>
           {/* Static pages outside the SPA (public/collections/); `native` keeps preact-router out of it. */}
           <a
             href="/collections/"

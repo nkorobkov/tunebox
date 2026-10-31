@@ -133,6 +133,14 @@ export function UserPage() {
             </CalendarBoundary>
           )}
         </div>
+
+        <p class="text-sm text-gray-500">
+          More from TuneBox:{' '}
+          {/* Static pages outside the SPA (public/collections/); `native` keeps preact-router out of it. */}
+          <a href="/collections/" native class="text-brand-700 hover:underline">Tune collections</a>
+          {' · '}
+          <a href="/play-sheet-music/" class="text-brand-700 hover:underline">Sheet music scanner</a>
+        </p>
       </div>
     </Shell>
   );

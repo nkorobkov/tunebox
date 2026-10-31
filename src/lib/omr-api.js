@@ -91,6 +91,22 @@ export async function waitForJob(id, { onProgress, signal } = {}) {
   }
 }
 
+// Formats the recognition service takes as-is; anything else the browser can decode
+// (e.g. HEIC photos in Safari) is converted to JPEG first.
+const DIRECT_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+/** An image file the service accepts: as-is, or re-encoded as JPEG. */
+export async function toUploadable(file) {
+  if (DIRECT_TYPES.includes(file.type)) return file;
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (!bitmap) throw new OmrError('unsupported', 'This file type isn’t supported. Use a PNG, JPEG or PDF.');
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0);
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+}
+
 /** The caller's quota: {kind: 'user'|'anonymous', per_day, used_today, remaining_today, retry_after}. */
 export async function getQuota() {
   return (await call('/v1/quota')).body;

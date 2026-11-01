@@ -72,7 +72,7 @@ export function SettingsPage() {
     <Shell>
       <h1 class="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
 
-      <div class="max-w-xl space-y-8">
+      <div class="space-y-8">
         {/* Account */}
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <h2 class="text-base font-semibold text-gray-900 mb-3">Account</h2>

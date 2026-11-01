@@ -20,15 +20,17 @@ export function TuneForm({ initial = {}, onSubmit, submitLabel = 'Save' }) {
     e.preventDefault();
     setSubmitting(true);
     try {
+      // Cleared fields must be sent as empty values: `undefined` is dropped
+      // from the request body, so PocketBase would keep the old value.
       await onSubmit({
         title,
-        type: type || undefined,
-        setting_key: settingKey || undefined,
-        canonical_tempo: canonicalTempo ? Number(canonicalTempo) : undefined,
-        author: author || undefined,
-        abc: abc || undefined,
-        notes: notes || undefined,
-        source_url: sourceUrl || undefined,
+        type,
+        setting_key: settingKey,
+        canonical_tempo: canonicalTempo ? Number(canonicalTempo) : null,
+        author,
+        abc,
+        notes,
+        source_url: sourceUrl,
       });
     } finally {
       setSubmitting(false);

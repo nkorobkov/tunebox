@@ -47,6 +47,9 @@ export function MoreTunes({ learning, playing, notStarted, instrument, onStartLe
   const practiceable = [...learning, ...playing];
   const due = practiceable.filter(t => isDue(t, instrument) && !practicedToday(t, instrument)).sort(byTitle);
   const done = practiceable.filter(t => practicedToday(t, instrument)).sort(byTitle);
+  // Playing tunes the schedule is resting — fine to practise early: the
+  // algorithm scales stability growth by how much of the rest was used.
+  const resting = playing.filter(t => !isDue(t, instrument) && !practicedToday(t, instrument)).sort(byTitle);
 
   const handleStartLearning = async (tune) => {
     if (savingTuneId) return;
@@ -58,7 +61,7 @@ export function MoreTunes({ learning, playing, notStarted, instrument, onStartLe
     }
   };
 
-  if (due.length === 0 && done.length === 0 && notStarted.length === 0) return null;
+  if (due.length === 0 && done.length === 0 && resting.length === 0 && notStarted.length === 0) return null;
 
   const tuneLink = (tune) => (
     <li key={tune.id}>
@@ -84,6 +87,12 @@ export function MoreTunes({ learning, playing, notStarted, instrument, onStartLe
         <div>
           <p class="text-xs text-gray-400 mb-1">Practiced today — review again</p>
           <ul class="leading-tight">{done.map(tuneLink)}</ul>
+        </div>
+      )}
+      {resting.length > 0 && (
+        <div>
+          <p class="text-xs text-gray-400 mb-1">Not due today</p>
+          <ul class="leading-tight">{resting.map(tuneLink)}</ul>
         </div>
       )}
       {notStarted.length > 0 && onStartLearning && (

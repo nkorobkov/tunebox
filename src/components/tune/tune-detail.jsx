@@ -366,6 +366,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
             onParseAbc={!tune.abc && !isOffline ? parseAttachment : undefined}
             parsing={parsing}
             parsedFills={parsing?.status === 'ready' ? abcFillPatch(tune, parsing.abc) : null}
+            parsedTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)}
             onAcceptParsed={acceptParsed}
             onDiscardParsed={() => setParsing(null)}
           />

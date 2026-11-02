@@ -75,6 +75,38 @@ export async function recognizeImage(blob, filename, { turnstileToken, onStart, 
   return waitForJob(r.body.id, { onProgress, signal });
 }
 
+// Refusals that only mean "not yet": the per-user interval between uploads, an upload
+// still running (another tab), the server's queue being full
+const RETRYABLE = { rate_limited: 10, too_many_jobs: 15, busy: 30 };
+
+/**
+ * recognizeImage, waiting out the refusals that only mean "not yet" and trying again.
+ * onWait gets the seconds it's about to wait. The bot check runs after these checks on the
+ * server, so a signed-out visitor's token is still unused when one of them refuses.
+ */
+export async function recognizeWhenAllowed(blob, filename, { onWait, ...options } = {}) {
+  for (;;) {
+    try {
+      return await recognizeImage(blob, filename, options);
+    } catch (err) {
+      if (!(err.code in RETRYABLE)) throw err;
+      const seconds = err.retryAfter || RETRYABLE[err.code];
+      onWait?.(seconds);
+      await sleep(seconds * 1000, options.signal);
+    }
+  }
+}
+
+/** "in 5 hours", "in 1 hour", "in 20 minutes", for a quota's retry_after. */
+export function resetsIn(seconds) {
+  if (seconds < 3600) {
+    const minutes = Math.max(1, Math.ceil(seconds / 60));
+    return `in ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  }
+  const hours = Math.round(seconds / 3600);
+  return `in ${hours} hour${hours !== 1 ? 's' : ''}`;
+}
+
 /**
  * Wait for a job to finish (see recognizeImage). Throws OmrError 'not_found' when the job
  * is gone (results are kept for an hour) or belongs to someone else.

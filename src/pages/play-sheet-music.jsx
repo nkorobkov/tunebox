@@ -5,7 +5,7 @@ import { Button } from '../components/common/button';
 import { AbcViewer } from '../components/tune/abc-viewer';
 import { AbcPlayer } from '../components/tune/abc-player';
 import { Turnstile } from '../components/parse/turnstile';
-import { recognizeImage, waitForJob, getQuota, toUploadable, OmrError, TURNSTILE_SITE_KEY } from '../lib/omr-api';
+import { recognizeWhenAllowed, waitForJob, getQuota, resetsIn, toUploadable, OmrError, TURNSTILE_SITE_KEY } from '../lib/omr-api';
 import { isPdfFile, renderPdfPage } from '../lib/pdf-import';
 import { parseAbcMeta } from '../lib/abc-utils';
 import { parkPendingTune } from '../lib/pending-tune';
@@ -54,6 +54,7 @@ async function previewDataUrl(blob, maxSide = 1200) {
 function progressText(phase, job, seconds) {
   if (phase === 'preparing') return 'Preparing…';
   if (phase === 'uploading') return 'Uploading…';
+  if (phase === 'waiting') return 'Waiting for your turn…';
   if (job?.status === 'queued') {
     return job.queue_position > 1 ? `In line, ${job.queue_position - 1} ahead…` : 'Starting…';
   }
@@ -87,7 +88,7 @@ function Scanner() {
   const [resumedPreview, setResumedPreview] = useState(null); // after a reload: no file
   const resultRef = useRef(null);
   const preview = useObjectUrl(image) || resumedPreview;
-  const busy = phase === 'preparing' || phase === 'uploading' || phase === 'working';
+  const busy = phase === 'preparing' || phase === 'uploading' || phase === 'waiting' || phase === 'working';
   // This image has been scanned: no bot check or scan button until another one is picked
   const scanned = phase === 'done';
   const visitorsOff = !signedIn && !TURNSTILE_SITE_KEY;
@@ -171,10 +172,11 @@ function Scanner() {
         .catch(() => {});
     };
     try {
-      const result = await recognizeImage(image, name, {
+      const result = await recognizeWhenAllowed(image, name, {
         turnstileToken: signedIn ? undefined : token,
         signal: controller.signal,
-        onStart: remember,
+        onWait: () => setPhase('waiting'),
+        onStart: (id) => { setPhase('uploading'); remember(id); },
         onProgress: (j) => { setJob(j); setPhase('working'); },
       });
       clearScan();
@@ -302,7 +304,7 @@ function Scanner() {
         {atLimit && !busy && (
           <span class="text-sm text-amber-600">
             {signedIn
-              ? 'Daily limit reached. It resets tomorrow.'
+              ? `Daily limit reached. It resets ${resetsIn(quota.retry_after)}.`
               : <>Daily limit reached. {signInLink('Sign in')} to keep scanning.</>}
           </span>
         )}

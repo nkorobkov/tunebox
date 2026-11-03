@@ -54,6 +54,24 @@ function OldScannerAddress() {
   return null;
 }
 
+// Unknown address while signed in. Usually a page newer than the cached app: right after
+// a deploy, the service worker may still serve the old build, and the new one takes over
+// and reloads the page moments later. Keeping the URL (no redirect) means that reload
+// lands on the right page. Without this route the signed-in router rendered nothing.
+function NotFound() {
+  return (
+    <div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div class="text-center space-y-3">
+        <p class="m-0 text-gray-700">This page didn’t load. Try reloading.</p>
+        <div class="flex gap-4 justify-center text-sm">
+          <button type="button" onClick={() => window.location.reload()} class="text-blue-600 hover:underline cursor-pointer">Reload</button>
+          <a href="/" class="text-blue-600 hover:underline">Go to your tunes</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AppRouter() {
   const { user, loading } = useAuth();
 
@@ -94,6 +112,7 @@ function AppRouter() {
         <PlaySheetMusicPage path="/play-sheet-music" />
         <OldScannerAddress path="/parse-abc" />
         <ResetPasswordPage path="/auth/reset/:token" />
+        <NotFound default />
       </Router>
     </>
   );

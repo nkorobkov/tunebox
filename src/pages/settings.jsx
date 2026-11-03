@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'preact/hooks';
+import { useState, useCallback, useEffect } from 'preact/hooks';
 import { Shell } from '../components/layout/shell';
 import { InstrumentManager } from '../components/instruments/instrument-manager';
 import { useAuth } from '../lib/auth';
@@ -8,6 +8,76 @@ import { getTheme, setTheme } from '../lib/theme';
 import { OfflineBanner } from '../components/common/offline-banner';
 import { useConnectivity } from '../lib/connectivity';
 import { FeedbackFooter } from '../components/feedback/feedback-footer';
+import { Button } from '../components/common/button';
+
+// How this account signs in. Accounts with a linked Google login are Google-only (the
+// server refuses codes, passwords and reset emails for them); code accounts may add a
+// backup password through the "set password" email (see pages/reset-password.jsx).
+function SignInMethod({ user }) {
+  const { sendPasswordLink } = useAuth();
+  const [google, setGoogle] = useState(null); // null while checking
+  const [link, setLink] = useState('idle');   // idle | sending | sent | failed
+
+  useEffect(() => {
+    pb.collection('_externalAuths')
+      .getList(1, 10, { filter: `recordRef = "${user.id}"`, requestKey: 'settings-external-auths' })
+      .then((res) => setGoogle(res.items.some((a) => a.provider === 'google')))
+      .catch(() => setGoogle(null));
+  }, [user.id]);
+
+  if (google === null) return null;
+  if (google) return <p>You sign in with Google.</p>;
+
+  const send = async () => {
+    setLink('sending');
+    try { await sendPasswordLink(user.email); setLink('sent'); } catch { setLink('failed'); }
+  };
+  return (
+    <div class="space-y-2">
+      <p>You sign in with a code sent to your email. A password is optional.</p>
+      {link === 'sent'
+        ? <p class="text-gray-700">Check your email for a link to set your password.</p>
+        : (
+          <Button variant="secondary" onClick={send} disabled={link === 'sending'}>
+            {link === 'sending' ? 'Sending…' : 'Email me a link to set a password'}
+          </Button>
+        )}
+      {link === 'failed' && <p class="text-red-600">Couldn’t send the email. Try again.</p>}
+    </div>
+  );
+}
+
+function NameField({ user }) {
+  const [name, setName] = useState(user?.name || '');
+  const [state, setState] = useState('idle'); // idle | saving | saved | failed
+  const dirty = name.trim() !== (user?.name || '');
+
+  const save = async (e) => {
+    e.preventDefault();
+    setState('saving');
+    try {
+      // The SDK refreshes the auth store with the updated record
+      await pb.collection('users').update(user.id, { name: name.trim() });
+      setState('saved');
+    } catch {
+      setState('failed');
+    }
+  };
+
+  return (
+    <form onSubmit={save} class="flex flex-wrap items-center gap-2">
+      <label for="settings-name">Name:</label>
+      <input
+        id="settings-name" type="text" autocomplete="name" value={name} placeholder="Your name"
+        onInput={(e) => { setName(e.target.value); setState('idle'); }}
+        class="px-2 py-1 border border-gray-300 rounded-md text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+      />
+      {dirty && <Button type="submit" disabled={state === 'saving'}>{state === 'saving' ? 'Saving…' : 'Save'}</Button>}
+      {state === 'saved' && !dirty && <span class="text-gray-400">Saved</span>}
+      {state === 'failed' && <span class="text-red-600">Couldn’t save</span>}
+    </form>
+  );
+}
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -76,9 +146,10 @@ export function SettingsPage() {
         {/* Account */}
         <div class="bg-white rounded-lg border border-gray-200 p-4">
           <h2 class="text-base font-semibold text-gray-900 mb-3">Account</h2>
-          <div class="text-sm text-gray-500 space-y-1">
+          <div class="text-sm text-gray-500 space-y-3">
             <p>Email: {user?.email}</p>
-            <p>Name: {user?.name || '—'}</p>
+            <NameField user={user} />
+            <SignInMethod user={user} />
           </div>
         </div>
 

@@ -9,6 +9,7 @@ import { recognizeWhenAllowed, waitForJob, getQuota, resetsIn, toUploadable, Omr
 import { isPdfFile, renderPdfPage } from '../lib/pdf-import';
 import { parseAbcMeta } from '../lib/abc-utils';
 import { parkPendingTune } from '../lib/pending-tune';
+import { SignInDialog } from '../components/auth/sign-in-dialog';
 import { pb } from '../lib/pb';
 import { TUNE_TYPES } from '../components/tune/tune-form';
 
@@ -66,8 +67,9 @@ const INTRO = 'Upload a photo or PDF of printed music. Listen, slow it down, cha
 // The scanner itself; the page around it differs for signed-in users (app shell) and
 // visitors (standalone page in the style of /collections/, prerendered for search engines).
 function Scanner() {
-  const { user, loginWithGoogle } = useAuth();
+  const { user } = useAuth();
   const signedIn = !!user;
+  const [signInTitle, setSignInTitle] = useState(null); // dialog open when set
   const [file, setFile] = useState(null);          // what the user picked
   const [image, setImage] = useState(null);        // what gets uploaded (PDF page rendered)
   const [pdfPages, setPdfPages] = useState(0);
@@ -112,9 +114,9 @@ function Scanner() {
     if (phase === 'done' && abc) resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [phase]);
 
-  const signIn = async () => {
-    try { await loginWithGoogle(); } catch { setError('Sign-in failed. Please try again.'); }
-  };
+  const signIn = () => setSignInTitle('Sign in to TuneBox');
+  // After "Sign in and save" parked the tune (it's added once sign-in completes)
+  const signInToSave = () => setSignInTitle('Sign in to save this tune');
 
   const pick = async (picked, page = 1) => {
     if (!picked) return;
@@ -239,10 +241,13 @@ function Scanner() {
     <button onClick={signIn} class="text-brand-700 underline hover:text-brand-800 cursor-pointer">{text}</button>
   );
 
+  const signInDialog = signInTitle && <SignInDialog title={signInTitle} onClose={() => setSignInTitle(null)} />;
+
   if (visitorsOff) {
     return (
       <div class="bg-white rounded-xl border border-gray-200 p-4 text-sm text-gray-700">
         {signInLink('Sign in')} to scan sheet music.
+        {signInDialog}
       </div>
     );
   }
@@ -321,7 +326,7 @@ function Scanner() {
             <AbcViewer abc={abc} transpose={transpose} onTransposeChange={setTranspose} />
           </div>
           <AbcPlayer abc={abc} transpose={transpose} />
-          {signedIn && <AddToTunes key={job?.id} abc={abc} signedIn onSignIn={signIn} />}
+          {signedIn && <AddToTunes key={job?.id} abc={abc} signedIn onSignIn={signInToSave} />}
           <div>
             <div class="flex items-center justify-between mb-1">
               <label for="abc-text" class="text-sm font-medium text-gray-700">ABC</label>
@@ -339,9 +344,10 @@ function Scanner() {
               class="w-full font-mono text-xs border border-gray-200 rounded-lg p-3 bg-white text-gray-800"
             />
           </div>
-          {!signedIn && <AddToTunes key={job?.id} abc={abc} signedIn={false} onSignIn={signIn} />}
+          {!signedIn && <AddToTunes key={job?.id} abc={abc} signedIn={false} onSignIn={signInToSave} />}
         </div>
       )}
+      {signInDialog}
     </div>
   );
 }
@@ -447,7 +453,7 @@ function AddToTunes({ abc, signedIn, onSignIn }) {
 export const FAQ = [
   {
     q: 'Do I need an account?',
-    a: 'No. You get a few free scans a day. Sign in with Google for more, and to save tunes.',
+    a: 'No. You get a few free scans a day. Sign in for more, and to save tunes.',
   },
   {
     q: 'What sheet music works?',

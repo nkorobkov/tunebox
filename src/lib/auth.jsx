@@ -81,6 +81,34 @@ export function AuthProvider({ children }) {
     window.location.href = authUrl;
   }, []);
 
+  // Email sign-in: a one-time code is the main method (requesting one for a new address
+  // creates the account, server-side in pb_hooks/auth_rules.pb.js), a password is an
+  // optional backup. Accounts with a linked Google login reject both with `use_google`
+  // (see authErrorCode). Code requests need a Turnstile token.
+  const requestCode = useCallback(async (email, turnstileToken) => {
+    const { otpId } = await pb.collection('users').requestOTP(normalizeEmail(email), {
+      body: { email: normalizeEmail(email), turnstileToken },
+    });
+    return otpId;
+  }, []);
+
+  const verifyCode = useCallback(
+    (otpId, code) => pb.collection('users').authWithOTP(otpId, code.replace(/\D/g, '')),
+    [],
+  );
+
+  const loginWithPassword = useCallback(
+    (email, password) => pb.collection('users').authWithPassword(normalizeEmail(email), password),
+    [],
+  );
+
+  // "Set a password": PB only changes a password given the old one, which code accounts
+  // never had, so it goes through the reset email (/auth/reset/:token).
+  const sendPasswordLink = useCallback(
+    (email) => pb.collection('users').requestPasswordReset(normalizeEmail(email)),
+    [],
+  );
+
   const logout = useCallback(() => {
     pb.authStore.clear();
     clearTuneCache();
@@ -89,10 +117,32 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{
+      user, loading, loginWithGoogle, requestCode, verifyCode, loginWithPassword, sendPasswordLink, logout,
+    }}>
       {children}
     </AuthContext.Provider>
   );
+}
+
+// Code accounts are created with lowercase addresses; PB matches emails case-sensitively.
+function normalizeEmail(email) {
+  return email.trim().toLowerCase();
+}
+
+/**
+ * The reason an auth request failed, for the sign-in UI: 'use_google' (Google-only
+ * account), 'turnstile_failed', 'rate_limited', 'invalid' (wrong code/password or bad
+ * input), 'offline' or 'unknown'.
+ */
+export function authErrorCode(err) {
+  const data = err?.response?.data || {};
+  if (data.email?.code === 'use_google') return 'use_google';
+  if (data.turnstileToken?.code === 'turnstile_failed') return 'turnstile_failed';
+  if (err?.status === 429) return 'rate_limited';
+  if (err?.status === 0) return 'offline';
+  if (err?.status === 400) return 'invalid';
+  return 'unknown';
 }
 
 export function useAuth() {

@@ -15,6 +15,7 @@ import { SettingsPage } from './pages/settings';
 import { InstallPage } from './pages/install';
 import { UserPage } from './pages/user';
 import { PlaySheetMusicPage } from './pages/play-sheet-music';
+import { ResetPasswordPage } from './pages/reset-password';
 import { LoadingIndicator } from './components/loading-indicator';
 
 function FlushOnReconnect() {
@@ -34,7 +35,9 @@ function ServiceWorkerBootstrap() {
   return null;
 }
 
-// Adds the tune a signed-out visitor picked on a collection page before signing in.
+// Adds the tune a signed-out visitor picked on a collection page (or scanned) before
+// signing in. Mounted when the signed-in router first renders, so it runs after any
+// kind of sign-in: the Google redirect, or a code/password in the sign-in dialog.
 function PendingTuneImport() {
   useEffect(() => {
     claimPendingTune()
@@ -68,6 +71,7 @@ function AppRouter() {
       <Router>
         <PlaySheetMusicPage path="/play-sheet-music" />
         <OldScannerAddress path="/parse-abc" />
+        <ResetPasswordPage path="/auth/reset/:token" />
         <LandingPage default />
       </Router>
     );
@@ -89,6 +93,7 @@ function AppRouter() {
         <UserPage path="/user" />
         <PlaySheetMusicPage path="/play-sheet-music" />
         <OldScannerAddress path="/parse-abc" />
+        <ResetPasswordPage path="/auth/reset/:token" />
       </Router>
     </>
   );

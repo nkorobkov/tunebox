@@ -37,7 +37,17 @@ The frontend talks to a self-hosted PocketBase instance at `https://pb.home.nkor
 Preact SPA talking directly to PocketBase (no intermediate backend). All data access is through the PocketBase JS SDK client in `src/lib/pb.js`.
 
 ### Auth Flow
-`AuthProvider` in `src/lib/auth.jsx` wraps the app. It uses PocketBase's Google OAuth2 provider. The `useAuth()` hook exposes `user`, `loginWithGoogle()`, `logout()`. When not authenticated, the router renders `LoginPage` instead of the app routes.
+`AuthProvider` in `src/lib/auth.jsx` wraps the app; `useAuth()` exposes `user`, `loginWithGoogle()`, `requestCode()`/`verifyCode()` (emailed one-time codes), `loginWithPassword()`, `sendPasswordLink()` and `logout()`, and `authErrorCode(err)` maps failures for the UI. Signed out, the router renders the landing page (plus the scanner and `/auth/reset/:token`). Sign-in UI is `components/auth/sign-in-dialog.jsx`, opened from the landing page, the scanner, and `/?signin=email` (the collection pages' "Continue with email").
+
+Rules, enforced server-side in `pocketbase/pb_hooks/auth_rules.pb.js` (+ `auth_lib.js`) and the `1784500000_users_otp_auth` migration:
+- **Google accounts are Google-only.** Any account with a linked Google login gets `use_google` (400, `data.email.code`) for code requests, password sign-in and reset emails; the dialog switches to "… signs in with Google". This deliberately reveals whether an address has a Google account. A code account that later signs in with Google is linked by PB and becomes Google-only too.
+- **Codes are the main email method and double as sign-up**: a code request for an unknown address creates an unverified account with a random password, then sends the code; entering it verifies the account (`authRule` is `verified = true`). Unverified accounts are deleted after a day (cron in the same hook file). Codes are 6 digits, valid 10 minutes, and the code is in the email subject.
+- **Code requests need a Turnstile token** (body field `turnstileToken`, verified with siteverify using `TURNSTILE_SECRET`/`TURNSTILE_HOSTNAMES` in PB's environment; fails closed if unset). Consequence: in `npm run dev` (Turnstile's test site key against the production PB) code requests fail — sign in with Google or a password there.
+- **Passwords are an optional backup** for code accounts. PB only changes a password given the old one, so "Email me a link to set a password" on the settings page sends PB's reset email, whose link opens `/auth/reset/:token` (`pages/reset-password.jsx`). There's no "forgot password": a code always works.
+- **`createRule` is `@request.context = "oauth2"`**: only Google sign-up creates records through the API (code sign-ups come from the hook). A public create rule would let anyone pre-register someone else's address with a password that starts working once the owner verifies it.
+- Per-IP rate limits on `users:requestOTP`, `users:requestPasswordReset`, `users:authWithPassword`. Mail goes through Resend's SMTP (`1784400000_mail_settings`; the API key is only on the server), from `no-reply@tunebox.net`. PB's "new login" alert emails are off: they fire for Google sign-ins too.
+
+A signed-out visitor's parked tune (`parkPendingTune`) is claimed by `PendingTuneImport`, which mounts with the signed-in router, so it works after any kind of sign-in. Passkeys aren't supported (PB has no WebAuthn; it would need a custom Go build).
 
 ### Data Model (PocketBase Collections)
 Six collections, heavily denormalized:
@@ -45,7 +55,7 @@ Six collections, heavily denormalized:
 - **`user_tunes`** — the core record. Holds tune data (title, type, abc, session_id), labels and instrument progress as JSON fields, spaced repetition state (next_review, interval_days, ease_factor, consecutive_correct), and practice_tempo. `backing` (JSON) holds the generated backing's chord chart (`{ chords: [...] | null, bars }`, see Generated backing below). All CRUD scoped to `user = @request.auth.id`.
 - **`attachments`** — per-tune media, related to user_tunes. Each record holds either a `file` (both optional in the schema) or a `url` (YouTube links), plus `type` (sheet_music / recording / backing_track / source / other), `bpm`, `label`, `main_source`. `backing_track` records surface on the practice card; the `main_source` sheet_music record replaces ABC rendering.
 - **`practice_log`** — append-only practice history (fluency_rating 1-5, tempo_used, practiced_at). Related to user_tunes.
-- **`users`** — built-in auth collection extended with `instruments` JSON field (array of instrument names).
+- **`users`** — built-in auth collection extended with `instruments` JSON field (array of instrument names). Sign-in methods: Google OAuth2, emailed one-time codes, optional passwords (see Auth Flow).
 - **`feedback`** — in-app feedback from the "Leave feedback" form (`kind`, `message`, plus the `page` it was sent from). `user` is deliberately optional with `cascadeDelete: false` and the address is denormalized into `user_email`, so a report outlives the account that sent it; update/delete rules are null, making records immutable to everyone but a superuser.
 - **`set_attachments`** — the same media shape as `attachments` but attached to a *set* instead of a tune (chiefly the backing track a set is practised over). Sets have no table, so records key on `user` + `set_key` (the normalized set name from `src/lib/sets.js`); `set_name` keeps the display spelling for reference only.
 

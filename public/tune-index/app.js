@@ -186,7 +186,7 @@
   // localStorage (the SDK's LocalAuthStore entry): add the tune right here
   // after a small confirmation. Signed-out visitors get a sign-in dialog; if
   // they sign in, the tune is parked in localStorage and the app creates it
-  // after the OAuth round trip (src/lib/pending-tune.js — keep the key in sync).
+  // after sign-in (src/lib/pending-tune.js — keep the key in sync).
   var PB_URL = list.getAttribute('data-pb');
   var PENDING_KEY = 'tunebox.pendingTune';
 
@@ -341,7 +341,7 @@
   }
 
   // -- sign-in dialog (signed out) --
-  var dialog = null, dialogTitle, dialogError, signinBtn, pendingCard = null;
+  var dialog = null, dialogTitle, dialogError, signinBtn, emailBtn, pendingCard = null;
   function buildDialog() {
     dialog = el('dialog', 'signin');
     dialog.setAttribute('aria-labelledby', 'signin-title');
@@ -361,7 +361,11 @@
     signinBtn = el('button', 'btn btn-primary', 'Sign in with Google');
     signinBtn.type = 'button';
     signinBtn.addEventListener('click', startSignin);
-    [close, logo, dialogTitle, p, dialogError, signinBtn].forEach(function (n) { dialog.appendChild(n); });
+    emailBtn = el('button', 'btn', 'Continue with email');
+    emailBtn.type = 'button';
+    emailBtn.style.marginTop = '.5rem';
+    emailBtn.addEventListener('click', startEmailSignin);
+    [close, logo, dialogTitle, p, dialogError, signinBtn, emailBtn].forEach(function (n) { dialog.appendChild(n); });
     // Click on the backdrop (outside the dialog box) closes it.
     dialog.addEventListener('click', function (e) {
       var r = dialog.getBoundingClientRect();
@@ -377,6 +381,7 @@
     dialogError.hidden = true;
     signinBtn.disabled = false;
     signinBtn.textContent = 'Sign in with Google';
+    emailBtn.disabled = false;
     dialog.showModal();
   }
 
@@ -402,6 +407,20 @@
     }).catch(function () {
       signinBtn.disabled = false;
       signinBtn.textContent = 'Sign in with Google';
+      dialogError.textContent = 'Sign-in could not start — check your connection and try again.';
+      dialogError.hidden = false;
+    });
+  }
+
+  // Email sign-in (one-time code) happens in the app: park the tune, then open the
+  // app's sign-in dialog (/?signin=email, see src/pages/landing.jsx).
+  function startEmailSignin() {
+    emailBtn.disabled = true;
+    buildTune(pendingCard).then(function (tune) {
+      localStorage.setItem(PENDING_KEY, JSON.stringify({ tune: tune, savedAt: Date.now() }));
+      location.href = '/?signin=email';
+    }).catch(function () {
+      emailBtn.disabled = false;
       dialogError.textContent = 'Sign-in could not start — check your connection and try again.';
       dialogError.hidden = false;
     });

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 
-// Cloudflare Turnstile (bot check for signed-out uploads on /play-sheet-music). The script is
+// Cloudflare Turnstile (bot check for signed-out uploads on /play-sheet-music, and for
+// email sign-in codes, verified by PocketBase in pb_hooks/auth_lib.js). The script is
 // loaded only when the widget is first shown; the CSP allows challenges.cloudflare.com in
 // script-src and frame-src for it.
 let scriptPromise = null;
@@ -25,7 +26,7 @@ function loadTurnstile() {
  * the check errors). Tokens are single use: change resetKey after each upload to get a
  * fresh one.
  */
-export function Turnstile({ siteKey, onToken, resetKey, onError }) {
+export function Turnstile({ siteKey, onToken, resetKey, onError, action = 'play-sheet-music', appearance = 'always' }) {
   const ref = useRef(null);
   const widgetId = useRef(null);
   const onTokenRef = useRef(onToken);
@@ -38,7 +39,8 @@ export function Turnstile({ siteKey, onToken, resetKey, onError }) {
         if (cancelled || !ref.current) return;
         widgetId.current = turnstile.render(ref.current, {
           sitekey: siteKey,
-          action: 'play-sheet-music',
+          action,
+          appearance,
           theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
           callback: (token) => onTokenRef.current(token),
           'expired-callback': () => onTokenRef.current(null),
@@ -60,5 +62,6 @@ export function Turnstile({ siteKey, onToken, resetKey, onError }) {
     }
   }, [resetKey]);
 
-  return <div ref={ref} class="min-h-[65px]" />;
+  // 'interaction-only' widgets take no space unless Cloudflare wants a click
+  return <div ref={ref} class={appearance === 'always' ? 'min-h-[65px]' : ''} />;
 }

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import abcjs from 'abcjs';
 import { useAuth } from '../lib/auth';
+import { GoogleButton } from '../components/auth/google-button';
+import { SignInDialog } from '../components/auth/sign-in-dialog';
 
 // A-part of The Kesh (traditional jig) — rendered live in the hero mock.
 const HERO_ABC = `X:1
@@ -10,17 +12,6 @@ L:1/8
 K:G
 |:G3 GAB|ABA ABd|edd gdd|edB dBA|
 GAG GAB|ABA ABd|edd gdd|BAF G3:|`;
-
-function GoogleIcon({ size = 'w-5 h-5' }) {
-  return (
-    <svg class={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-    </svg>
-  );
-}
 
 function Icon({ path, extra }) {
   return (
@@ -79,18 +70,6 @@ function PracticeCardMock() {
       </div>
       <p class="text-center text-xs text-gray-400 mt-3">Practice mode — TuneBox picks the tune and the tempo.</p>
     </div>
-  );
-}
-
-function GoogleButton({ onClick, children, class: cls = '' }) {
-  return (
-    <button
-      onClick={onClick}
-      class={`inline-flex items-center justify-center gap-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${cls}`}
-    >
-      <GoogleIcon />
-      {children}
-    </button>
   );
 }
 
@@ -164,6 +143,17 @@ const STEPS = [
 export function LandingPage() {
   const { loginWithGoogle } = useAuth();
   const [error, setError] = useState('');
+  const [signingIn, setSigningIn] = useState(false);
+
+  // /?signin=email opens the dialog (the collection pages' "Use email instead")
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('signin') !== 'email') return;
+    setSigningIn(true);
+    params.delete('signin');
+    const rest = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''));
+  }, []);
 
   const handleLogin = async () => {
     setError('');
@@ -181,9 +171,13 @@ export function LandingPage() {
       <header class="sticky top-0 z-20 bg-gray-50/80 backdrop-blur border-b border-gray-200">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <img src="/tunebook.svg" alt="TuneBox" class="h-7" />
-          <GoogleButton onClick={handleLogin} class="px-4 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-100">
+          <button
+            type="button"
+            onClick={() => setSigningIn(true)}
+            class="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 cursor-pointer"
+          >
             Sign in
-          </GoogleButton>
+          </button>
         </div>
       </header>
 
@@ -203,6 +197,9 @@ export function LandingPage() {
               <GoogleButton onClick={handleLogin} class="px-6 py-3 text-base bg-white border border-gray-300 shadow-sm text-gray-800 hover:bg-gray-100">
                 Continue with Google
               </GoogleButton>
+              <button type="button" onClick={() => setSigningIn(true)} class="text-sm text-gray-600 hover:text-gray-900 underline cursor-pointer">
+                Continue with email
+              </button>
               {error && <p class="text-sm text-red-600">{error}</p>}
               <p class="text-sm text-gray-500">Free · Nothing to install · Your data exports anytime</p>
               <a href="/play-sheet-music/" class="text-sm text-blue-600 hover:underline">
@@ -282,10 +279,13 @@ export function LandingPage() {
           <p class="mt-3 text-gray-400 max-w-xl mx-auto">
             Sign in, add the tunes you're working on, and let tonight's practice plan itself.
           </p>
-          <div class="mt-8 flex justify-center">
+          <div class="mt-8 flex flex-col items-center gap-3">
             <GoogleButton onClick={handleLogin} class="px-6 py-3 text-base bg-white text-gray-800 hover:bg-gray-100">
               Continue with Google
             </GoogleButton>
+            <button type="button" onClick={() => setSigningIn(true)} class="text-sm text-gray-400 hover:text-white underline cursor-pointer">
+              Continue with email
+            </button>
           </div>
         </div>
       </section>
@@ -305,6 +305,8 @@ export function LandingPage() {
           </span>
         </div>
       </footer>
+
+      {signingIn && <SignInDialog onClose={() => setSigningIn(false)} />}
     </div>
   );
 }

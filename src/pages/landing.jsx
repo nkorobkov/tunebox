@@ -68,7 +68,7 @@ function PracticeCardMock() {
           <span class="text-center text-sm font-medium py-2 rounded-lg bg-brand-600 text-white">Easy</span>
         </div>
       </div>
-      <p class="text-center text-xs text-gray-400 mt-3">Practice mode — TuneBox picks the tune and the tempo.</p>
+      <p class="text-center text-xs text-gray-400 mt-3">Practice mode: TuneBox picks the tune and the tempo.</p>
     </div>
   );
 }
@@ -77,32 +77,32 @@ const FEATURES = [
   {
     icon: <Icon path={ICONS.instruments} />,
     title: 'Every instrument, tracked separately',
-    body: 'The same tune on fiddle and whistle are different skills. TuneBox keeps tempo, keys, and progress per instrument, so each one gets its own practice queue.',
+    body: 'A tune on fiddle and on whistle are different skills. TuneBox tracks tempo and progress per instrument, with a practice queue for each.',
   },
   {
     icon: <Icon path={ICONS.abc} />,
-    title: 'ABC notation, alive',
-    body: 'Paste ABC and get clean sheet music, synth playback at any tempo, and one-tap transposition. A built-in metronome keeps you honest.',
+    title: 'Sheet music from ABC',
+    body: 'Paste ABC to get sheet music, playback at any tempo and one-tap transposition. Includes a metronome.',
   },
   {
     icon: <Icon path={ICONS.search} />,
     title: 'Import from thesession.org',
-    body: 'Search the largest archive of traditional tunes and pull one in — notation included — in seconds. Bulk-import whole tunebooks, too.',
+    body: 'Search the largest archive of traditional tunes and add one with its notation. Bulk-import whole tunebooks too.',
   },
   {
     icon: <Icon path={ICONS.tag} extra={ICONS.tagDot} />,
-    title: 'Sets, tags, and labels',
-    body: 'Group tunes into sets in playing order, tag them for gigs and sessions, and filter your library or practice session by any of it.',
+    title: 'Sets and tags',
+    body: 'Group tunes into sets in playing order, tag them for sessions and gigs, and filter your library or practice by them.',
   },
   {
     icon: <Icon path={ICONS.mic} />,
     title: 'Recordings and backing tracks',
-    body: 'Attach source recordings, record yourself to hear your progress, or record a backing track and play along — retempo\'d to today\'s practice speed.',
+    body: 'Attach source recordings, record yourself to hear your progress, or play along with a backing track at today\'s practice tempo.',
   },
   {
     icon: <Icon path={ICONS.offline} extra={ICONS.offlineSlash} />,
     title: 'Works offline',
-    body: 'TuneBox installs to your phone like an app. Your tunes are cached locally and practice logs sync when you\'re back online.',
+    body: 'Install TuneBox on your phone like an app. Your tunes stay available offline, and practice logs sync when you reconnect.',
   },
 ];
 
@@ -113,30 +113,30 @@ const FAQ = [
   },
   {
     q: 'How is it different from a paper tunebook or a spreadsheet?',
-    a: 'A list tells you what you know; TuneBox also tells you what to play tonight. Every tune is searchable, grouped into sets, tagged for sessions and gigs, and rendered as sheet music from ABC notation — and the built-in spaced repetition keeps old tunes from quietly disappearing.',
+    a: 'A list shows what you know; TuneBox also shows what to practice today. Tunes are searchable, grouped into sets, tagged and rendered as sheet music, and regular reviews keep old tunes from slipping.',
   },
   {
     q: 'How does the practice scheduling work?',
-    a: 'New tunes climb a tempo ladder: TuneBox remembers the speed you can actually play and nudges the metronome up each session. Learned tunes go into a review rotation that brings each one back just before it starts to fade — the same spaced-repetition idea behind flashcard apps, adapted to muscle memory and tempo.',
+    a: 'New tunes start slow: TuneBox saves the tempo you can play and raises it each session. Learned tunes come back for review just before you\'re likely to forget them, and less often as you know them better. It\'s spaced repetition, adapted to tempo and muscle memory.',
   },
   {
     q: 'Where do the tunes come from?',
-    a: 'Paste ABC notation directly, or search thesession.org — the largest archive of traditional tunes — and import a tune with notation in seconds. You can also bulk-import an existing tunebook, and everything exports back out as PDF, ABC, or a full ZIP archive.',
+    a: 'Paste ABC, search thesession.org, scan sheet music from a photo, or bulk-import an existing tunebook. Everything exports as PDF, ABC or a ZIP archive.',
   },
 ];
 
 const STEPS = [
   {
-    title: 'Learning mode: climb the tempo ladder',
-    body: 'New tunes start slow. TuneBox remembers the tempo you can actually play and nudges the metronome up each session until you hit target speed.',
+    title: 'Learning: build up to speed',
+    body: 'New tunes start slow. TuneBox saves the tempo you can play and raises it each session until you reach target speed.',
   },
   {
-    title: 'Playing mode: never lose a tune',
-    body: 'Once a tune is up to speed, TuneBox models how quickly it fades from your fingers and brings it back for review just before it slips away.',
+    title: 'Playing: review before you forget',
+    body: 'Learned tunes come back just before you\'re likely to forget them. Tunes you know well come back less often.',
   },
   {
-    title: 'One tap, and on to the next',
-    body: 'Open the practice queue, play the tune, rate it Easy, Good, or Hard. That\'s the whole workflow — the scheduling maths is TuneBox\'s job.',
+    title: 'Practice: play, rate, next',
+    body: 'Open the queue, play the tune, rate it Hard, Good or Easy. TuneBox schedules the next review.',
   },
 ];
 
@@ -186,12 +186,10 @@ export function LandingPage() {
         <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div>
             <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-balance">
-              Every tune you know, <span class="text-brand-600">ready when you are.</span>
+              Stop forgetting <span class="text-brand-600">tunes you've learned.</span>
             </h1>
             <p class="mt-5 text-lg text-gray-600 max-w-xl">
-              TuneBox is a digital tunebook for traditional musicians. It keeps your session
-              repertoire organized across all your instruments and tells you exactly what to
-              practice today — spaced repetition built for tunes, not flashcards.
+              TuneBox tracks your repertoire and tells you what to practice before it slips.
             </p>
             <div class="mt-8 flex flex-col items-start gap-3">
               <GoogleButton onClick={handleLogin} class="px-6 py-3 text-base bg-white border border-gray-300 shadow-sm text-gray-800 hover:bg-gray-100">
@@ -214,10 +212,9 @@ export function LandingPage() {
       {/* How practice works */}
       <section class="bg-white border-y border-gray-200">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-          <h2 class="text-3xl font-bold tracking-tight text-center">Practice that plans itself</h2>
+          <h2 class="text-3xl font-bold tracking-tight text-center">How practice works</h2>
           <p class="mt-3 text-gray-600 text-center max-w-2xl mx-auto">
-            Fifty tunes in, "what should I play tonight?" becomes the hard part.
-            TuneBox answers it with an algorithm built around how musicians actually learn.
+            TuneBox builds a daily practice list from your repertoire.
           </p>
           <div class="mt-12 grid sm:grid-cols-3 gap-8">
             {STEPS.map((step, i) => (
@@ -235,7 +232,7 @@ export function LandingPage() {
       <section class="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
         <h2 class="text-3xl font-bold tracking-tight text-center">More than a tune list</h2>
         <p class="mt-3 text-gray-600 text-center max-w-2xl mx-auto">
-          Everything around the practice — collecting, organizing, hearing, and sharing your tunes.
+          Collect, organize and listen to your tunes.
         </p>
         <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {FEATURES.map((f) => (
@@ -253,8 +250,7 @@ export function LandingPage() {
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-14 text-center">
           <h2 class="text-2xl font-bold tracking-tight">Your tunebook stays yours</h2>
           <p class="mt-3 text-gray-600 max-w-2xl mx-auto">
-            Export a printable PDF tunebook with a full index, a plain ABC file that opens anywhere,
-            or a complete ZIP archive with every recording and practice log. No lock-in, ever.
+            Export a printable PDF, a plain ABC file, or a ZIP with all recordings and practice logs.
           </p>
         </div>
       </section>

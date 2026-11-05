@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'preact/hooks';
+import { useState, useMemo, useEffect } from 'preact/hooks';
 import { Shell } from '../components/layout/shell';
 import { TuneCard, SetGroup } from '../components/tune/tune-card';
 import { LabelFilter } from '../components/library/label-filter';
@@ -7,6 +7,7 @@ import { ExportDialog } from '../components/library/export-dialog';
 import { LoadingIndicator } from '../components/loading-indicator';
 import { Button } from '../components/common/button';
 import { useTunes } from '../hooks/use-tunes';
+import { useQueryState } from '../hooks/use-query-state';
 import { useAuth } from '../lib/auth';
 import { instrumentProficiency } from '../lib/practice-algorithm';
 import { getDefaultTempo } from '../lib/abc-utils';
@@ -89,12 +90,13 @@ function sortTunes(tunes, sort) {
 export function LibraryPage() {
   const { tunes, loading, updateTune, deleteTune } = useTunes();
   const { user } = useAuth();
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [sort, setSort] = useState('newest');
-  const [labelFilters, setLabelFilters] = useState([]); // ["type:value", ...] — tunes must match all (AND)
-  const [proficiencyFilter, setProficiencyFilter] = useState('');
-  const [instrumentFilter, setInstrumentFilter] = useState('');
+  // Filters live in the URL query, so opening a tune and going back keeps them.
+  const [search, setSearch] = useQueryState('q', '');
+  const [typeFilter, setTypeFilter] = useQueryState('type', '');
+  const [sort, setSort] = useQueryState('sort', 'newest');
+  const [labelFilters, setLabelFilters] = useQueryState('label', [], { list: true }); // ["type:value", ...] — tunes must match all (AND)
+  const [proficiencyFilter, setProficiencyFilter] = useQueryState('level', '');
+  const [instrumentFilter, setInstrumentFilter] = useQueryState('instrument', '');
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkProgress, setBulkProgress] = useState('');
@@ -158,12 +160,24 @@ export function LibraryPage() {
       );
     }
     return sortTunes(result, sort);
-  }, [tunes, search, typeFilter, labelFilters, proficiencyFilter, instrumentFilter, sort]);
+  }, [tunes, search, typeFilter, labelFilters.join('\n'), proficiencyFilter, instrumentFilter, sort]); // eslint-disable-line react-hooks/exhaustive-deps -- labelFilters is a fresh array each render
 
   const types = useMemo(() =>
     [...new Set(tunes.map(t => t.type).filter(Boolean))].sort(),
     [tunes]
   );
+
+  // Drop filters from the URL that no longer match anything (a tag removed
+  // from its last tune, an instrument removed in settings) — otherwise the list
+  // would be empty with no chip left to clear the filter.
+  useEffect(() => {
+    if (loading || tunes.length === 0) return; // empty = failed fetch or empty library
+    const labelKeys = new Set(tunes.flatMap(t => (t.labels || []).map(l => `${l.type}:${l.value}`)));
+    const kept = labelFilters.filter(key => labelKeys.has(key));
+    if (kept.length !== labelFilters.length) setLabelFilters(kept);
+    if (typeFilter && !types.includes(typeFilter)) setTypeFilter('');
+    if (instrumentFilter && !allInstruments.includes(instrumentFilter)) setInstrumentFilter('');
+  }, [loading, tunes, types, allInstruments]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Bulk selection ---
   // Selected tunes in the current sort order (also the export/print order).

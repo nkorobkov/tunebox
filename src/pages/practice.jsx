@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'preact/hooks';
+import { useState, useCallback, useEffect, useRef } from 'preact/hooks';
 import { route } from 'preact-router';
 import { Shell } from '../components/layout/shell';
 import { PracticeCard } from '../components/practice/practice-card';
@@ -39,7 +39,7 @@ const PLAYING_MESSAGES = {
   relearn: 'Back to learning mode — we\'ll rebuild it from a slower tempo.',
 };
 
-export function PracticePage({ tune: tuneIdParam, set: setKeyParam }) {
+export function PracticePage({ tune: tuneIdParam, set: setKeyParam, session: sessionParam }) {
   const { user } = useAuth();
   const userInstruments = user?.instruments || [];
   const [instrument, setInstrument] = useState(() => {
@@ -86,6 +86,40 @@ export function PracticePage({ tune: tuneIdParam, set: setKeyParam }) {
       })
       .finally(() => setSingleTuneLoading(false));
   }, [tuneIdParam, setKeyParam]);
+
+  // A queue session is its own history entry (?session=1, or =review for
+  // "review again"), so the back button returns to practice home instead of
+  // leaving the page. The URL drives `practicing`: entering it (start button,
+  // reload, forward) starts a session, leaving it (back, Stop) ends one.
+  const pushedSession = useRef(false);
+  const exiting = useRef(false); // history.back() is async — don't pop twice
+  const sessionLogRef = useRef(sessionLog);
+  sessionLogRef.current = sessionLog;
+  useEffect(() => {
+    if (tuneIdParam || setKeyParam) return;
+    exiting.current = false;
+    if (sessionParam) {
+      setIsReview(sessionParam === 'review');
+      setSessionLog([]);
+      setShowSummary(false);
+      setLastResult(null);
+      setPracticing(true);
+    } else {
+      pushedSession.current = false;
+      setPracticing(false);
+      setLastResult(null);
+      if (sessionLogRef.current.length > 0) setShowSummary(true);
+    }
+  }, [sessionParam, tuneIdParam, setKeyParam]);
+
+  const exitSession = () => {
+    // Pop our own entry rather than adding /practice on top of it, so the
+    // history doesn't end up with practice home twice.
+    if (exiting.current) return;
+    exiting.current = true;
+    if (pushedSession.current) window.history.back();
+    else route('/practice', true);
+  };
 
   // Deep link into one set — the session hook narrows the queue to it.
   useEffect(() => {
@@ -143,11 +177,8 @@ export function PracticePage({ tune: tuneIdParam, set: setKeyParam }) {
   };
 
   const startSession = (review) => {
-    setIsReview(review);
-    setSessionLog([]);
-    setShowSummary(false);
-    setPracticing(true);
-    setLastResult(null);
+    pushedSession.current = true;
+    route(`/practice?session=${review ? 'review' : '1'}`);
   };
   const handleStart = () => startSession(false);
   const handleReviewAgain = () => startSession(true);
@@ -170,8 +201,7 @@ export function PracticePage({ tune: tuneIdParam, set: setKeyParam }) {
       refetch();
       return;
     }
-    setPracticing(false);
-    if (sessionLog.length > 0) setShowSummary(true);
+    exitSession();
     refetch();
   };
 
@@ -263,10 +293,7 @@ export function PracticePage({ tune: tuneIdParam, set: setKeyParam }) {
   // Queue exhausted after practicing something → move to the summary screen.
   const queueExhausted = practicing && !singleTune && !session.loading && !session.currentItem && !lastResult;
   useEffect(() => {
-    if (queueExhausted && sessionLog.length > 0) {
-      setPracticing(false);
-      setShowSummary(true);
-    }
+    if (queueExhausted && sessionLog.length > 0) exitSession();
   }, [queueExhausted, sessionLog.length]);
 
   // Refresh tune data behind the summary / post-practice screens so

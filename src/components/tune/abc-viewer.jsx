@@ -17,21 +17,37 @@ function transposedKeyName(abc, semitones) {
   return KEYS[newIdx] + (suffix ? ' ' + suffix : '');
 }
 
-export function AbcViewer({ abc, transpose = 0, onTransposeChange, savedTranspose, onSave }) {
+/**
+ * `highlightChar` (optional): startChar of a note to mark as "playing now" —
+ * the practice card's follow-along cursor for the generated backing.
+ */
+export function AbcViewer({ abc, transpose = 0, onTransposeChange, savedTranspose, onSave, highlightChar = null }) {
   const [localTranspose, setLocalTranspose] = useState(0);
   const t = onTransposeChange ? transpose : localTranspose;
   const setT = onTransposeChange || setLocalTranspose;
 
   const ref = useRef();
+  const tuneRef = useRef(null);
+  const [renderCount, setRenderCount] = useState(0);
   useEffect(() => {
     if (ref.current && abc) {
-      abcjs.renderAbc(ref.current, abc, {
+      tuneRef.current = abcjs.renderAbc(ref.current, abc, {
         responsive: 'resize',
         add_classes: true,
         visualTranspose: t,
-      });
+      })[0] || null;
+      setRenderCount(n => n + 1);
     }
   }, [abc, t]);
+
+  // Mark the playing note (no scrolling — the page stays where the user put it).
+  useEffect(() => {
+    const tune = tuneRef.current;
+    if (highlightChar == null || !tune) return;
+    const els = tune.getElementFromChar(highlightChar)?.abselem?.elemset || [];
+    for (const el of els) el.classList.add('abc-cursor');
+    return () => { for (const el of els) el.classList.remove('abc-cursor'); };
+  }, [highlightChar, renderCount]);
 
   if (!abc) {
     return <p class="text-gray-400 italic">No ABC notation available</p>;

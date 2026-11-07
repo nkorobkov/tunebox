@@ -93,7 +93,9 @@ const fifthPc = (chord) => (chord.tones.length >= 3 ? chord.tones[2] : chord.roo
  * @returns plan {
  *   sequence, wholeSec, musicStart, loopStart, loopEnd, end (whole notes),
  *   countInClicks: [{ t, accent }] (played by the engine, not in the sequence),
- *   timeline: [{bar, start}] (shifted), drone: { tonicMidi } | null
+ *   timeline: [{bar, start}] (shifted),
+ *   cursor: [{ t, bar, off }] — voice 1's notes as heard (shifted, swung), keyed
+ *     by written bar + offset so the score can follow along, drone: { tonicMidi } | null
  * } or null when the tune has nothing playable.
  */
 export function arrange({ abc, model, chordValues, tempo, transpose = 0, prefs, tuneType, seed = 1 }) {
@@ -341,6 +343,21 @@ export function arrange({ abc, model, chordValues, tempo, transpose = 0, prefs, 
     tracks.push([{ cmd: 'program', channel: 0, instrument: 0 }, { cmd: 'note', pitch: 60, volume: 1, start: 0, duration: EIGHTH, instrument: 0, gap: 0 }]);
   }
 
+  // Where each written melody note sounds, for the score's follow-along cursor.
+  // Bar + offset (not startChar) so it also finds the note in the score's ABC,
+  // which may carry injected chord symbols and so different char positions.
+  const cursor = [];
+  for (const e of voiceTracks[0]) {
+    if (e.cmd !== 'note' || e.startChar == null) continue;
+    const pos = model.charMap.get(e.startChar);
+    if (!pos) continue;
+    const t = swung(e.start + shift, e.duration).t;
+    const prev = cursor[cursor.length - 1];
+    if (prev && Math.abs(prev.t - t) < EPS) continue; // chord notes share a start
+    cursor.push({ t, bar: pos.bar, off: pos.off });
+  }
+  cursor.sort((a, b) => a.t - b.t);
+
   const droneOn = (vol.drone ?? 0) > 0;
   return {
     sequence: { tracks, totalDuration: endAt + barLength * 1.25 },
@@ -351,6 +368,7 @@ export function arrange({ abc, model, chordValues, tempo, transpose = 0, prefs, 
     loopEnd,
     end: endAt + barLength,
     timeline: timeline.map(o => ({ bar: o.bar, start: o.start + shift })),
+    cursor,
     drone: droneOn ? { tonicMidi: inRange(model.key.tonicPc + transpose, 45), fifth: prefs.drone === 'fifth', level: vol.drone / 100 } : null,
   };
 }

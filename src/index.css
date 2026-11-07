@@ -91,6 +91,12 @@
   background-color: #1e2939;
 }
 
+/* Follow-along cursor: the note the generated backing is playing now. */
+.abc-viewer .abc-cursor,
+.abc-viewer .abc-cursor * {
+  fill: #2563eb;
+}
+
 /* Sheet music must stay black-on-white — abcjs SVGs use currentColor. */
 .dark .abc-viewer {
   background: #fff;

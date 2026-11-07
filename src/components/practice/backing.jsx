@@ -40,6 +40,7 @@ export function useBacking({ tune, abc, tempo, transpose, chordState, enabled = 
   const [status, setStatus] = useState('idle'); // idle | loading | playing
   const [playError, setPlayError] = useState(null);
   const [activeBar, setActiveBar] = useState(null);
+  const [cursorKey, setCursorKey] = useState(null); // "bar:off" of the melody note sounding now
   const playerRef = useRef(null);
   const bufferRef = useRef(null); // { plan, buffer }
   const renderId = useRef(0);
@@ -67,6 +68,7 @@ export function useBacking({ tune, abc, tempo, transpose, chordState, enabled = 
     playerRef.current = new BackingPlayer(() => {
       setStatus('idle');
       setActiveBar(null);
+      setCursorKey(null);
       releasePlayback(tokenRef.current);
     });
   }
@@ -97,7 +99,7 @@ export function useBacking({ tune, abc, tempo, transpose, chordState, enabled = 
     return () => clearTimeout(t);
   }, [plan, status]);
 
-  // follow the playing bar on the chart
+  // follow the playing bar on the chart and the playing note on the score
   useEffect(() => {
     if (status !== 'playing') return;
     let raf;
@@ -105,6 +107,8 @@ export function useBacking({ tune, abc, tempo, transpose, chordState, enabled = 
       const p = player.position();
       const current = bufferRef.current?.plan;
       setActiveBar(p === null || !current ? null : barAt(current.timeline, p));
+      const note = p === null || !current ? null : noteAt(current.cursor, p);
+      setCursorKey(note ? `${note.bar}:${note.off}` : null);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -137,11 +141,12 @@ export function useBacking({ tune, abc, tempo, transpose, chordState, enabled = 
     player.stop();
     setStatus('idle');
     setActiveBar(null);
+    setCursorKey(null);
     releasePlayback(tokenRef.current);
   };
   tokenRef.current.stop = stop;
 
-  return { available: !!model, ready: !!plan, status, play, stop, playError, activeBar, prefs, setPrefs, family, chordState, transpose };
+  return { available: !!model, ready: !!plan, status, play, stop, playError, activeBar, cursorKey, prefs, setPrefs, family, chordState, transpose };
 }
 
 /** The generated backing's settings: the sound (open by default), then the chord chart. */
@@ -333,6 +338,19 @@ function Segmented({ options, value, onChange }) {
       ))}
     </div>
   );
+}
+
+// The melody note sounding at position p: the last one started, until the
+// tune runs out (count-in and the ending tail show nothing).
+function noteAt(cursor, p) {
+  if (!cursor?.length || p < cursor[0].t) return null;
+  let lo = 0;
+  let hi = cursor.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (cursor[mid].t <= p) lo = mid; else hi = mid - 1;
+  }
+  return cursor[lo];
 }
 
 function barAt(timeline, p) {

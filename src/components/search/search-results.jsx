@@ -5,7 +5,25 @@ import { buildAbcString, getDefaultTempo } from '../../lib/abc-utils';
 import { AbcViewer } from '../tune/abc-viewer';
 import { AbcPlayer } from '../tune/abc-player';
 
-export function SearchResults({ results, onImport }) {
+// A user_tunes record for one thesession.org setting of a tune.
+export function sessionTuneRecord(tune, setting) {
+  return {
+    title: tune.name,
+    type: tune.type,
+    abc: buildAbcString(tune.name, tune.type, setting.key, setting.abc),
+    session_id: tune.id,
+    session_url: tune.url || `https://thesession.org/tunes/${tune.id}`,
+    setting_key: setting.key,
+    canonical_tempo: getDefaultTempo(tune.type),
+    labels: [],
+    instruments: {},
+  };
+}
+
+// `quickAdd` (optional): { status(id) → 'added' | 'adding' | 'failed' | null,
+// href(id) → link to the library copy or null, add(tune) } — gives each row a
+// one-click "Add" button (first setting) beside the expand-to-preview row.
+export function SearchResults({ results, onImport, quickAdd }) {
   const [expandedId, setExpandedId] = useState(null);
   const [tuneDetail, setTuneDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -36,18 +54,7 @@ export function SearchResults({ results, onImport }) {
   const handleImport = async (tune, setting) => {
     setImporting(tune.id);
     try {
-      const abc = buildAbcString(tune.name, tune.type, setting.key, setting.abc);
-      await onImport({
-        title: tune.name,
-        type: tune.type,
-        abc,
-        session_id: tune.id,
-        session_url: tune.url,
-        setting_key: setting.key,
-        canonical_tempo: getDefaultTempo(tune.type),
-        labels: [],
-        instruments: {},
-      });
+      await onImport(sessionTuneRecord(tune, setting));
     } finally {
       setImporting(null);
     }
@@ -68,7 +75,11 @@ export function SearchResults({ results, onImport }) {
                 <span class="ml-2 text-xs text-gray-400">aka {tune.alias}</span>
               )}
             </div>
-            <span class="text-xs text-gray-400">#{tune.id}</span>
+            {quickAdd ? (
+              <QuickAddButton tune={tune} quickAdd={quickAdd} disabled={isOffline} />
+            ) : (
+              <span class="text-xs text-gray-400">#{tune.id}</span>
+            )}
           </div>
 
           {expandedId === tune.id && (
@@ -132,5 +143,31 @@ export function SearchResults({ results, onImport }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function QuickAddButton({ tune, quickAdd, disabled }) {
+  const status = quickAdd.status(tune.id);
+  const href = quickAdd.href(tune.id);
+  const stop = (e) => e.stopPropagation();
+  if (status === 'added' || href) {
+    return href ? (
+      <a href={href} onClick={stop} class="shrink-0 ml-3 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+        In library
+      </a>
+    ) : (
+      <span class="shrink-0 ml-3 text-sm text-gray-400">Added</span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={(e) => { stop(e); quickAdd.add(tune); }}
+      disabled={disabled || status === 'adding'}
+      title={disabled ? 'Unavailable offline' : 'Add the first setting to your library'}
+      class="shrink-0 ml-3 px-3 py-1 text-sm rounded-md bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 cursor-pointer"
+    >
+      {status === 'adding' ? 'Adding…' : status === 'failed' ? 'Retry' : '+ Add'}
+    </button>
   );
 }

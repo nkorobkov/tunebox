@@ -6,7 +6,7 @@
 // lazy-loaded from /abcjs/ (copied out of node_modules by
 // copy-vendor-assets.mjs on postinstall).
 //
-// The app links here only via the add-tune page's "Browse collections"; these
+// The app links here only via the add-tune page's "Browse tune collections"; these
 // are otherwise standalone SEO / traffic pages that link out to tunebox.net.
 //
 // Tune records: { book, name, type?, url?, abc?, settings?, closest?,

@@ -53,7 +53,7 @@ function getExternalLink(tune) {
   return null;
 }
 
-export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
+export function TuneDetail({ tune, onUpdate, onDelete, userInstruments, onAddInstrumentToProfile }) {
   const [editing, setEditing] = useState(false);
   const [confirmRemoveSet, setConfirmRemoveSet] = useState(false);
   const [addingSet, setAddingSet] = useState(false);
@@ -316,6 +316,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments }) {
           defaultTargetTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)}
           onUpdate={(instruments) => onUpdate({ instruments })}
           onPractice={practiceWithInstrument}
+          onAddToProfile={onAddInstrumentToProfile}
         />
       </div>
 

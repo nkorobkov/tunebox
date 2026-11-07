@@ -3,7 +3,7 @@
 // counts read from each page's dataset (scripts/<slug>/tunes.json).
 // Add a new tune-index page to COLLECTIONS below and re-run:
 //   node scripts/build-collections.mjs
-// Linked from the app's add-tune page ("Browse collections").
+// Linked from the app's add-tune page ("Browse tune collections").
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

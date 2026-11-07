@@ -1,5 +1,5 @@
 // ABC from a picture or PDF of sheet music, through the recognition service (omr-api.js).
-// Used by the "From picture" import and by sheet-music attachments on the tune page.
+// Used by the "From file/picture" import and by sheet-music attachments on the tune page.
 import { recognizeWhenAllowed, toUploadable } from './omr-api';
 import { isPdfFile, renderPdfPage } from './pdf-import';
 import { parseAbcMeta } from './abc-utils';

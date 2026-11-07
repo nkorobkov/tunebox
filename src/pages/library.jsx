@@ -355,7 +355,7 @@ export function LibraryPage() {
           <div class="bg-white rounded-lg border border-gray-200 p-8 text-center max-w-md mx-auto mt-8">
             <h2 class="text-lg font-semibold text-gray-900">Start your tunebook</h2>
             <p class="text-sm text-gray-500 mt-2 mb-5">
-              Search The Session for a tune you're working on, or add one of your own with ABC notation.
+              Search for a tune you're working on, or add one from sheet music or a file.
             </p>
             <Button size="md" href="/add">Add your first tune</Button>
           </div>

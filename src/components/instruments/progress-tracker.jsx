@@ -1,7 +1,9 @@
 import { useState } from 'preact/hooks';
 import { useConnectivity } from '../../lib/connectivity';
 
-export function InstrumentProgress({ instruments, userInstruments, defaultTargetTempo = 0, onUpdate, onPractice }) {
+// `onAddToProfile(name)` (optional) is called when an instrument typed in via
+// "Other..." isn't in the user's profile yet, so it joins their instrument list.
+export function InstrumentProgress({ instruments, userInstruments, defaultTargetTempo = 0, onUpdate, onPractice, onAddToProfile }) {
   const [adding, setAdding] = useState(false);
   const [newInstrument, setNewInstrument] = useState('');
   const [customMode, setCustomMode] = useState(false);
@@ -9,10 +11,19 @@ export function InstrumentProgress({ instruments, userInstruments, defaultTarget
   const offlineTitle = isOffline ? 'Unavailable offline' : undefined;
 
   const handleAdd = async () => {
-    const name = newInstrument.trim();
+    const typed = newInstrument.trim();
+    // Reuse the profile's spelling when it's just a case difference ("fiddle" → "Fiddle").
+    const name = userInstruments.find(i => i.toLowerCase() === typed.toLowerCase()) || typed;
     if (!name || instruments[name]) return;
     const updated = { ...instruments, [name]: { keys: [], current_tempo: 0, target_tempo: defaultTargetTempo || 0 } };
     await onUpdate(updated);
+    if (onAddToProfile && !userInstruments.includes(name)) {
+      try {
+        await onAddToProfile(name);
+      } catch (err) {
+        console.error('Failed to add instrument to profile:', err);
+      }
+    }
     setNewInstrument('');
     setCustomMode(false);
     setAdding(false);

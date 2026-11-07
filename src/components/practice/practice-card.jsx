@@ -2,11 +2,11 @@ import { useState, useEffect, useMemo } from 'preact/hooks';
 import { AbcViewer } from '../tune/abc-viewer';
 import { AbcPlayer } from '../tune/abc-player';
 import { SheetMusicViewer } from '../tune/sheet-music-viewer';
-import { Metronome } from './metronome';
+import { PracticeSound, usePracticeSoundMode } from './practice-sound';
 import { TrackPlayer } from './track-player';
 import { FluencyRater } from './fluency-rater';
 import { BackingTrackPlayer } from './backing-track-player';
-import { BackingPanel } from './backing-panel';
+import { useBacking } from './backing';
 import { useTuneChords } from '../../hooks/use-tune-chords';
 import { injectChordSymbols } from '../../lib/backing/abc-bars';
 import { barSlots, NO_CHORD } from '../../lib/backing/chords';
@@ -34,7 +34,7 @@ export function fmtElapsed(s) {
 
 /**
  * Active practice view for one tune. The card owns a single shared `tempo`:
- * metronome, backing-track rate, the sheet-music MIDI player and the
+ * metronome, generated backing, backing-track rate, the sheet-music MIDI player and the
  * progress button all follow it. Mount with key={tune.id} so per-tune state
  * (tempo, timer, spoilers) resets between tunes.
  */
@@ -56,8 +56,10 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
     ? buildAbcString(tune.title, tune.type, tune.setting_key, tune.abc)
     : null), [tune.abc, tune.title, tune.type, tune.setting_key]);
   const chordState = useTuneChords(tune, fullAbc);
+  const [soundMode, setSoundMode] = usePracticeSoundMode();
+  const backing = useBacking({ tune, abc: fullAbc, tempo, transpose, chordState, enabled: soundMode === 'backing' });
   const [showBacking, setShowBacking] = useState(false);
-  // Once chords are saved or being worked on, the sheet music shows them too.
+  // Once chords are saved or the backing is in use, the sheet music shows them too.
   const showChords = showBacking || chordState.source === 'saved';
   const sheetAbc = useChordedAbc(fullAbc, chordState, showChords);
   const meetsTarget = tempo >= instData.target_tempo;
@@ -99,21 +101,19 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
         >{fmtElapsed(elapsed)}</span>
       </div>
 
-      {/* Tempo + metronome */}
+      {/* Tempo + backing/metronome */}
       <div class="space-y-1.5">
         <p class="text-sm text-gray-500">{hint}</p>
-        <Metronome
+        <PracticeSound
           tempo={tempo}
           onTempoChange={setTempo}
           targetTempo={instData.target_tempo}
           defaultTimeSignature={getMeter(tune.type)}
-          extraButton={fullAbc && (
-            <BackingToggle open={showBacking} onClick={() => setShowBacking(!showBacking)} />
-          )}
+          backing={backing}
+          mode={soundMode}
+          onModeChange={setSoundMode}
+          onBackingShown={setShowBacking}
         />
-        {showBacking && fullAbc && (
-          <BackingPanel tune={tune} abc={fullAbc} tempo={tempo} transpose={transpose} chordState={chordState} />
-        )}
       </div>
 
       {/* Playback tools */}
@@ -191,34 +191,6 @@ function useChordedAbc(abc, { model, chords }, enabled) {
       return slots.map((name, h) => ({ name: name === NO_CHORD ? 'N.C.' : name, off: h * half }));
     });
   }, [abc, model, chords, enabled]);
-}
-
-function BackingIcon({ class: cls }) {
-  return (
-    <svg class={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M9 18V5l12-2v13" />
-      <circle cx="6" cy="18" r="3" />
-      <circle cx="18" cy="16" r="3" />
-    </svg>
-  );
-}
-
-function BackingToggle({ open, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-expanded={open}
-      title="Generated backing track"
-      aria-label="Generated backing track"
-      class={`shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-md text-sm font-medium border cursor-pointer ${
-        open ? 'bg-brand-50 border-brand-600 text-brand-800 dark:text-brand-400' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
-      }`}
-    >
-      <BackingIcon class="w-4 h-4" />
-      {/* icon only on phones, where the word doesn't fit beside the metronome */}
-      <span class="hidden sm:inline">Backing</span>
-    </button>
-  );
 }
 
 function TuneHeader({ tune, instrument, targetTempo }) {

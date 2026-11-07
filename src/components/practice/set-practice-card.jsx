@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { Metronome } from './metronome';
+import { PracticeSound } from './practice-sound';
 import { FluencyRater } from './fluency-rater';
 import { BackingTrackPlayer } from './backing-track-player';
 import { SheetMusic, Spoiler, useElapsedSeconds, fmtElapsed } from './practice-card';
@@ -123,7 +123,7 @@ export function SetPracticeCard({ item, instrument, onCompleteSet, onSkip }) {
         <p class="text-sm text-gray-500">
           Play all {item.tunes.length} tunes through at {targetTempo} BPM.
         </p>
-        <Metronome
+        <PracticeSound
           tempo={tempo}
           onTempoChange={setTempo}
           targetTempo={targetTempo}

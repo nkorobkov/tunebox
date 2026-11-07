@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
 import { ChordChart } from './chord-chart';
-import { PlayIcon, StopIcon } from './tool-tile';
 import { arrange } from '../../lib/backing/arrange';
 import { BackingPlayer, renderPlan, unlockAudio } from '../../lib/backing/engine';
 import { loadPrefs, savePrefs, DEFAULT_PREFS, INSTRUMENTS, GUITARS, MELODY_INSTRUMENTS } from '../../lib/backing/prefs';
@@ -26,13 +25,18 @@ function usePrefs() {
 }
 
 /**
- * Generated backing for one tune: player, chord chart, and the arrangement
- * settings. `chordState` comes from useTuneChords (owned by the card, so the
- * sheet music can show the same chords).
+ * Generated backing for one tune: the player state, without UI. Owned by the
+ * practice card (alongside `chordState` from useTuneChords, which the sheet
+ * music shares); the play button lives in PracticeSound and the settings in
+ * BackingOptions. `available` is false when the tune has no notation;
+ * nothing is arranged unless `enabled`.
  */
-export function BackingPanel({ tune, abc, tempo, transpose, chordState }) {
-  const { model, chords, suggested, setBar, resetToSuggested, save, saving, error, dirty, source, mismatch } = chordState;
-  const [prefs, setPrefs] = usePrefs();
+export function useBacking({ tune, abc, tempo, transpose, chordState, enabled = true }) {
+  const { model, chords } = chordState;
+  const [savedPrefs, setPrefs] = usePrefs();
+  // The backing always loops and counts in (no switches for them any more,
+  // so earlier saved "off" values are ignored).
+  const prefs = { ...savedPrefs, loop: true, countIn: true };
   const [status, setStatus] = useState('idle'); // idle | loading | playing
   const [playError, setPlayError] = useState(null);
   const [activeBar, setActiveBar] = useState(null);
@@ -46,14 +50,16 @@ export function BackingPanel({ tune, abc, tempo, transpose, chordState }) {
   const { loop, ...arrangePrefs } = prefs;
   const prefsKey = JSON.stringify(arrangePrefs);
   const plan = useMemo(() => {
-    if (!model || !chords || !tempo) return null;
+    // arranging is real work (it runs abcjs's audio setup), so skip it while
+    // the metronome is the chosen sound
+    if (!enabled || !abc || !model || !chords || !tempo) return null;
     try {
       return arrange({ abc, model, chordValues: chords, tempo, transpose, prefs: arrangePrefs, tuneType: tune.type });
     } catch (err) {
       console.error('Backing arrangement failed:', err);
       return null;
     }
-  }, [abc, model, chords, tempo, transpose, prefsKey, tune.type]);
+  }, [enabled, abc, model, chords, tempo, transpose, prefsKey, tune.type]);
 
   // starting the backing stops the metronome, and vice versa
   const tokenRef = useRef({ stop: () => {} });
@@ -135,36 +141,19 @@ export function BackingPanel({ tune, abc, tempo, transpose, chordState }) {
   };
   tokenRef.current.stop = stop;
 
-  if (!model) {
-    return (
-      <div class="bg-white rounded-lg border border-gray-200 p-4 text-sm text-gray-400">
-        This tune has no notation to build a backing from.
-      </div>
-    );
-  }
+  return { available: !!model, ready: !!plan, status, play, stop, playError, activeBar, prefs, setPrefs, family, chordState, transpose };
+}
+
+/** The generated backing's settings: the sound (open by default), then the chord chart. */
+export function BackingOptions({ backing }) {
+  const { prefs, setPrefs, family, activeBar, chordState, transpose } = backing;
+  const { model, chords, suggested, setBar, resetToSuggested, save, saving, error, dirty, source, mismatch } = chordState;
+  if (!model) return null;
 
   const shownKey = transposeKey(model.key, transpose);
-  const toggleClass = (on) => `px-2.5 py-2.5 rounded-md text-xs font-medium border cursor-pointer ${
-    on ? 'bg-brand-50 border-brand-600 text-brand-800 dark:text-brand-400' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-  }`;
-
   return (
-    <div class="bg-white rounded-lg border border-gray-200 p-3 space-y-3">
-      <div class="flex items-center gap-2">
-        <button
-          onClick={status === 'idle' ? play : stop}
-          disabled={!plan}
-          class={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium cursor-pointer text-white disabled:opacity-50 ${
-            status === 'idle' ? 'bg-brand-600 hover:bg-brand-700' : 'bg-red-600 hover:bg-red-700'
-          }`}
-        >
-          {status === 'idle' ? <PlayIcon class="w-4 h-4" /> : <StopIcon class="w-4 h-4" />}
-          {status === 'loading' ? 'Preparing…' : status === 'playing' ? 'Stop backing' : 'Play backing'}
-        </button>
-        <button onClick={() => setPrefs({ loop: !loop })} class={toggleClass(loop)} title="Loop the tune">Loop</button>
-        <button onClick={() => setPrefs({ countIn: !prefs.countIn })} class={toggleClass(prefs.countIn)} title="One bar of clicks before the tune">Count-in</button>
-      </div>
-      {playError && <p class="text-xs text-red-600">{playError}</p>}
+    <div class="space-y-3">
+      <BackingSettings prefs={prefs} setPrefs={setPrefs} family={family} />
 
       <details class="group/chords border-t border-gray-100 pt-2">
         <summary class="cursor-pointer list-none flex items-center gap-2 text-sm select-none">
@@ -202,8 +191,6 @@ export function BackingPanel({ tune, abc, tempo, transpose, chordState }) {
           </div>
         </div>
       </details>
-
-      <BackingSettings prefs={prefs} setPrefs={setPrefs} family={family} />
     </div>
   );
 }
@@ -253,7 +240,7 @@ function BackingSettings({ prefs, setPrefs, family }) {
   };
   const chordLabel = chordOptions.find(o => o.id === chordValue)?.label;
 
-  // Loop and count-in live on the player row, so they're left alone.
+  // Loop and count-in are always on and have no switches; leave them alone.
   const atDefaults = Object.keys(DEFAULT_PREFS)
     .filter(k => k !== 'loop' && k !== 'countIn')
     .every(k => JSON.stringify(prefs[k]) === JSON.stringify(DEFAULT_PREFS[k]));
@@ -267,7 +254,7 @@ function BackingSettings({ prefs, setPrefs, family }) {
   ].filter(Boolean).join(' · ');
 
   return (
-    <details class="group border-t border-gray-100 pt-2">
+    <details open class="group">
       <summary class="cursor-pointer list-none flex items-center gap-2 text-sm select-none">
         <span class="inline-block text-gray-400 transition-transform group-open:rotate-90">▸</span>
         <span class="font-medium text-gray-700">Sound</span>

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'preact/hooks';
+import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
 import abcjs from 'abcjs';
 import { useConnectivity } from '../../lib/connectivity';
+import { parseBars } from '../../lib/backing/abc-bars';
 
 const KEYS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const KEY_MAP = { 'C#': 1, 'Db': 1, 'D#': 3, 'Eb': 3, 'F#': 6, 'Gb': 6, 'G#': 8, 'Ab': 8, 'A#': 10, 'Bb': 10 };
@@ -18,10 +19,12 @@ function transposedKeyName(abc, semitones) {
 }
 
 /**
- * `highlightChar` (optional): startChar of a note to mark as "playing now" —
- * the practice card's follow-along cursor for the generated backing.
+ * `cursorKey` (optional): the note playing now as "bar:off" (written bar +
+ * offset, from the generated backing or AbcPlayer's `onCursor`) — marked with
+ * a red note and a band. Keyed by bar rather than startChar because the
+ * player's ABC and this one can differ (tempo header, chord symbols).
  */
-export function AbcViewer({ abc, transpose = 0, onTransposeChange, savedTranspose, onSave, highlightChar = null }) {
+export function AbcViewer({ abc, transpose = 0, onTransposeChange, savedTranspose, onSave, cursorKey = null }) {
   const [localTranspose, setLocalTranspose] = useState(0);
   const t = onTransposeChange ? transpose : localTranspose;
   const setT = onTransposeChange || setLocalTranspose;
@@ -40,13 +43,26 @@ export function AbcViewer({ abc, transpose = 0, onTransposeChange, savedTranspos
     }
   }, [abc, t]);
 
-  // Mark the playing note (no scrolling — the page stays where the user put it).
+  const charAt = useMemo(() => {
+    const map = new Map();
+    const model = abc ? parseBars(abc) : null;
+    if (model) for (const [char, { bar, off }] of model.charMap) map.set(`${bar}:${off}`, char);
+    return map;
+  }, [abc]);
+  const highlightChar = cursorKey ? charAt.get(cursorKey) ?? null : null;
+
+  // Mark the playing note: colour it and lay a band behind it spanning the
+  // staff (no scrolling — the page stays where the user put it).
   useEffect(() => {
     const tune = tuneRef.current;
     if (highlightChar == null || !tune) return;
     const els = tune.getElementFromChar(highlightChar)?.abselem?.elemset || [];
     for (const el of els) el.classList.add('abc-cursor');
-    return () => { for (const el of els) el.classList.remove('abc-cursor'); };
+    const band = addCursorBand(els);
+    return () => {
+      for (const el of els) el.classList.remove('abc-cursor');
+      band?.remove();
+    };
   }, [highlightChar, renderCount]);
 
   if (!abc) {
@@ -83,4 +99,27 @@ export function AbcViewer({ abc, transpose = 0, onTransposeChange, savedTranspos
       <div ref={ref} class="abc-viewer" />
     </div>
   );
+}
+
+// A translucent rect behind the note, the note's width (plus padding) and the
+// height of its staff, inserted first in the staff line's group so it sits
+// under the notation. abcjs draws each line as an untransformed
+// g.abcjs-staff-wrapper, so bounding boxes share its coordinates.
+function addCursorBand(els) {
+  const note = els.find(el => /abcjs-(note|rest)\b/.test(el.getAttribute('class') || '')) || els[0];
+  const wrapper = note?.closest('.abcjs-staff-wrapper');
+  if (!wrapper) return null;
+  const nb = note.getBBox();
+  const sb = wrapper.querySelector('.abcjs-staff')?.getBBox() || nb;
+  const top = Math.min(sb.y, nb.y) - 6;
+  const bottom = Math.max(sb.y + sb.height, nb.y + nb.height) + 6;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('class', 'abc-cursor-band');
+  rect.setAttribute('x', nb.x - 4);
+  rect.setAttribute('y', top);
+  rect.setAttribute('width', nb.width + 8);
+  rect.setAttribute('height', bottom - top);
+  rect.setAttribute('rx', 3);
+  wrapper.insertBefore(rect, wrapper.firstChild);
+  return rect;
 }

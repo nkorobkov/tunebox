@@ -14,6 +14,7 @@ import { getDefaultTempo } from '../lib/abc-utils';
 import { addKnownTag } from '../lib/tag-store';
 import { groupSets, setKeyOf } from '../lib/sets';
 import { FeedbackFooter } from '../components/feedback/feedback-footer';
+import { OnboardingSteps } from '../components/library/onboarding-steps';
 
 function TuneList({ tunes, selectable = false, selectedIds, onToggleSelect }) {
   // Sets are grouped by normalized name; each one lands where its first
@@ -352,25 +353,22 @@ export function LibraryPage() {
         <LoadingIndicator />
       ) : filtered.length === 0 ? (
         tunes.length === 0 ? (
-          <div class="bg-white rounded-lg border border-gray-200 p-8 text-center max-w-md mx-auto mt-8">
-            <h2 class="text-lg font-semibold text-gray-900">Start your tunebook</h2>
-            <p class="text-sm text-gray-500 mt-2 mb-5">
-              Search for a tune you're working on, or add one from sheet music or a file.
-            </p>
-            <Button size="md" href="/add">Add your first tune</Button>
-          </div>
+          <OnboardingSteps tunes={tunes} />
         ) : (
           <div class="text-center py-12">
             <p class="text-gray-400">No tunes match your filters.</p>
           </div>
         )
       ) : (
+        <>
+        {!selectMode && <OnboardingSteps tunes={tunes} />}
         <TuneList
           tunes={filtered}
           selectable={selectMode}
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
         />
+        </>
       )}
 
       {!selectMode && <FeedbackFooter />}

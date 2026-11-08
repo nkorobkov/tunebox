@@ -8,7 +8,7 @@ import { FluencyRater } from './fluency-rater';
 import { BackingTrackPlayer } from './backing-track-player';
 import { useBacking } from './backing';
 import { useTuneChords } from '../../hooks/use-tune-chords';
-import { injectChordSymbols, parseBars } from '../../lib/backing/abc-bars';
+import { injectChordSymbols } from '../../lib/backing/abc-bars';
 import { barSlots, NO_CHORD } from '../../lib/backing/chords';
 import { PracticeHistoryChart } from './practice-history-chart';
 import { useAttachments, isAudio } from '../../hooks/use-attachments';
@@ -62,7 +62,9 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
   // Once chords are saved or the backing is in use, the sheet music shows them too.
   const showChords = showBacking || chordState.source === 'saved';
   const sheetAbc = useChordedAbc(fullAbc, chordState, showChords);
-  const cursorChar = useCursorChar(sheetAbc, backing.cursorKey);
+  // the note being played — by the generated backing, else by the score's own player
+  const [playerCursorKey, setPlayerCursorKey] = useState(null);
+  const cursorKey = backing.cursorKey ?? playerCursorKey;
   const meetsTarget = tempo >= instData.target_tempo;
 
   const withSaving = (fn) => async (...args) => {
@@ -176,25 +178,14 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
         tempo={tempo}
         transpose={transpose}
         onTransposeChange={setTranspose}
-        cursorChar={cursorChar}
+        cursorKey={cursorKey}
         playerDisabled={backing.status !== 'idle'}
+        onPlayerCursor={setPlayerCursorKey}
       />
 
       <PracticeHistoryChart entries={history} targetTempo={instData.target_tempo} />
     </div>
   );
-}
-
-// The backing reports the playing note as "bar:off" (written bar + offset);
-// find that note's startChar in the ABC the score actually renders.
-function useCursorChar(viewAbc, cursorKey) {
-  const charAt = useMemo(() => {
-    const model = viewAbc ? parseBars(viewAbc) : null;
-    const map = new Map();
-    if (model) for (const [char, { bar, off }] of model.charMap) map.set(`${bar}:${off}`, char);
-    return map;
-  }, [viewAbc]);
-  return cursorKey ? charAt.get(cursorKey) ?? null : null;
 }
 
 function useChordedAbc(abc, { model, chords }, enabled) {
@@ -224,7 +215,7 @@ function TuneHeader({ tune, instrument, targetTempo }) {
   );
 }
 
-export function SheetMusic({ mainSource, fullAbc, viewAbc, tempo, transpose, onTransposeChange, cursorChar = null, playerDisabled = false }) {
+export function SheetMusic({ mainSource, fullAbc, viewAbc, tempo, transpose, onTransposeChange, cursorKey = null, playerDisabled = false, onPlayerCursor }) {
   const playerProps = { disabled: playerDisabled, disabledTitle: 'Stop the backing to play the tune' };
   if (mainSource) {
     return (
@@ -241,9 +232,9 @@ export function SheetMusic({ mainSource, fullAbc, viewAbc, tempo, transpose, onT
   if (fullAbc) {
     return (
       <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4 abc-full-bleed">
-        <AbcViewer abc={viewAbc || fullAbc} transpose={transpose} onTransposeChange={onTransposeChange} highlightChar={cursorChar} />
+        <AbcViewer abc={viewAbc || fullAbc} transpose={transpose} onTransposeChange={onTransposeChange} cursorKey={cursorKey} />
         <div class="mt-3">
-          <AbcPlayer abc={fullAbc} defaultTempo={tempo} transpose={transpose} {...playerProps} />
+          <AbcPlayer abc={fullAbc} defaultTempo={tempo} transpose={transpose} {...playerProps} onCursor={onPlayerCursor} />
         </div>
       </div>
     );
@@ -270,11 +261,11 @@ export function Spoiler({ label, children }) {
   );
 }
 
-function PracticeSpoilers({ tune, mainSource, fullAbc, viewAbc, tempo, transpose, onTransposeChange, cursorChar, playerDisabled }) {
+function PracticeSpoilers({ tune, mainSource, fullAbc, viewAbc, tempo, transpose, onTransposeChange, cursorKey, playerDisabled, onPlayerCursor }) {
   return (
     <div class="border-t border-gray-200 pt-1">
       <Spoiler label="sheet music">
-        <SheetMusic mainSource={mainSource} fullAbc={fullAbc} viewAbc={viewAbc} tempo={tempo} transpose={transpose} onTransposeChange={onTransposeChange} cursorChar={cursorChar} playerDisabled={playerDisabled} />
+        <SheetMusic mainSource={mainSource} fullAbc={fullAbc} viewAbc={viewAbc} tempo={tempo} transpose={transpose} onTransposeChange={onTransposeChange} cursorKey={cursorKey} playerDisabled={playerDisabled} onPlayerCursor={onPlayerCursor} />
       </Spoiler>
       {tune.notes && (
         <Spoiler label="notes">

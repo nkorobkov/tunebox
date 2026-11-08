@@ -94,7 +94,13 @@
 /* Follow-along cursor: the note the generated backing is playing now. */
 .abc-viewer .abc-cursor,
 .abc-viewer .abc-cursor * {
-  fill: #2563eb;
+  fill: #dc2626;
+  stroke: #dc2626;
+  stroke-width: 0.8;
+}
+.abc-viewer .abc-cursor-band {
+  fill: rgba(220, 38, 38, 0.15);
+  stroke: none;
 }
 
 /* Sheet music must stay black-on-white — abcjs SVGs use currentColor. */

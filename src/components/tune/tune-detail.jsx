@@ -65,6 +65,7 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments, onAddIns
   const [pickingInstrument, setPickingInstrument] = useState(false);
   const practiceMenuRef = useRef(null);
   const [transpose, setTranspose] = useState(tune.transpose || 0);
+  const [cursorKey, setCursorKey] = useState(null); // note the player is on, for the score's band
 
   // Close the practice instrument dropdown on outside click
   useEffect(() => {
@@ -295,9 +296,10 @@ export function TuneDetail({ tune, onUpdate, onDelete, userInstruments, onAddIns
             onTransposeChange={setTranspose}
             savedTranspose={tune.transpose || 0}
             onSave={(val) => onUpdate({ transpose: val })}
+            cursorKey={cursorKey}
           />
           <div class="mt-3">
-            <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} transpose={transpose} />
+            <AbcPlayer abc={fullAbc} defaultTempo={tune.practice_tempo || tune.canonical_tempo || getDefaultTempo(tune.type)} transpose={transpose} onCursor={setCursorKey} />
           </div>
         </div>
       ) : null}

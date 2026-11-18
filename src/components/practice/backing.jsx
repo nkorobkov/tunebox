@@ -1,13 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
+import { useState, useMemo } from 'preact/hooks';
 import { ChordChart } from './chord-chart';
 import { arrange } from '../../lib/backing/arrange';
-import { BackingPlayer, renderPlan, unlockAudio } from '../../lib/backing/engine';
 import { loadPrefs, savePrefs, DEFAULT_PREFS, INSTRUMENTS, GUITARS, MELODY_INSTRUMENTS } from '../../lib/backing/prefs';
 import {
   rhythmFamily, FAMILY_LABELS, STRUM_PATTERNS, PIANO_PATTERNS, SWING_LEVELS, swingSupported, swingValue,
 } from '../../lib/backing/patterns';
 import { keyName, transposeKey } from '../../lib/backing/chords';
-import { claimPlayback, releasePlayback } from '../../lib/exclusive-playback';
+import { usePlanPlayer } from '../../hooks/use-plan-player';
 
 const OFF = { id: 'off', label: 'Off' };
 const BASS_STYLES = [{ id: 'root', label: 'Root' }, { id: 'rootFifth', label: 'Root–5th' }, { id: 'walking', label: 'Walking' }];
@@ -37,14 +36,6 @@ export function useBacking({ tune, abc, tempo, transpose, chordState, enabled = 
   // The backing always loops and counts in (no switches for them any more,
   // so earlier saved "off" values are ignored).
   const prefs = { ...savedPrefs, loop: true, countIn: true };
-  const [status, setStatus] = useState('idle'); // idle | loading | playing
-  const [playError, setPlayError] = useState(null);
-  const [activeBar, setActiveBar] = useState(null);
-  const [cursorKey, setCursorKey] = useState(null); // "bar:off" of the melody note sounding now
-  const playerRef = useRef(null);
-  const bufferRef = useRef(null); // { plan, buffer }
-  const renderId = useRef(0);
-
   const family = model ? rhythmFamily(model.meter, tune.type) : 'generic';
 
   // loop doesn't change the arrangement — keep it out of the plan's inputs
@@ -62,91 +53,8 @@ export function useBacking({ tune, abc, tempo, transpose, chordState, enabled = 
     }
   }, [enabled, abc, model, chords, tempo, transpose, prefsKey, tune.type]);
 
-  // starting the backing stops the metronome, and vice versa
-  const tokenRef = useRef({ stop: () => {} });
-  if (!playerRef.current) {
-    playerRef.current = new BackingPlayer(() => {
-      setStatus('idle');
-      setActiveBar(null);
-      setCursorKey(null);
-      releasePlayback(tokenRef.current);
-    });
-  }
-  const player = playerRef.current;
-
-  useEffect(() => () => {
-    player.stop();
-    releasePlayback(tokenRef.current);
-  }, []);
-  useEffect(() => { player.setLoop(loop); }, [loop]);
-
-  // Re-render while playing when anything that shapes the sound changes, and
-  // carry on from the same bar.
-  useEffect(() => {
-    if (status !== 'playing' || !plan || bufferRef.current?.plan === plan) return;
-    const id = ++renderId.current;
-    const t = setTimeout(async () => {
-      try {
-        const buffer = await renderPlan(plan);
-        if (id !== renderId.current || !player.playing) return;
-        const from = carryPosition(bufferRef.current?.plan, player.position(), plan);
-        bufferRef.current = { plan, buffer };
-        player.start(buffer, plan, { from, loop });
-      } catch (err) {
-        console.error('Backing render failed:', err);
-      }
-    }, 350);
-    return () => clearTimeout(t);
-  }, [plan, status]);
-
-  // follow the playing bar on the chart and the playing note on the score
-  useEffect(() => {
-    if (status !== 'playing') return;
-    let raf;
-    const tick = () => {
-      const p = player.position();
-      const current = bufferRef.current?.plan;
-      setActiveBar(p === null || !current ? null : barAt(current.timeline, p));
-      const note = p === null || !current ? null : noteAt(current.cursor, p);
-      setCursorKey(note ? `${note.bar}:${note.off}` : null);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [status]);
-
-  const play = async () => {
-    if (!plan) return;
-    unlockAudio(); // synchronously, inside the tap
-    claimPlayback(tokenRef.current);
-    setPlayError(null);
-    setStatus('loading');
-    const id = ++renderId.current;
-    try {
-      const buffer = bufferRef.current?.plan === plan ? bufferRef.current.buffer : await renderPlan(plan);
-      if (id !== renderId.current) return;
-      bufferRef.current = { plan, buffer };
-      player.start(buffer, plan, { from: 0, loop });
-      setStatus('playing');
-    } catch (err) {
-      console.error('Backing render failed:', err);
-      setPlayError(navigator.onLine === false ? 'Couldn’t load the instrument sounds offline.' : 'Couldn’t prepare the backing.');
-      setStatus('idle');
-      releasePlayback(tokenRef.current);
-    }
-  };
-
-  const stop = () => {
-    renderId.current++;
-    player.stop();
-    setStatus('idle');
-    setActiveBar(null);
-    setCursorKey(null);
-    releasePlayback(tokenRef.current);
-  };
-  tokenRef.current.stop = stop;
-
-  return { available: !!model, ready: !!plan, status, play, stop, playError, activeBar, cursorKey, prefs, setPrefs, family, chordState, transpose };
+  const playback = usePlanPlayer(plan, { loop: true });
+  return { available: !!model, ready: !!plan, ...playback, prefs, setPrefs, family, chordState, transpose };
 }
 
 /** The generated backing's settings: the sound (open by default), then the chord chart. */
@@ -338,41 +246,4 @@ function Segmented({ options, value, onChange }) {
       ))}
     </div>
   );
-}
-
-// The melody note sounding at position p: the last one started, until the
-// tune runs out (count-in and the ending tail show nothing).
-function noteAt(cursor, p) {
-  if (!cursor?.length || p < cursor[0].t) return null;
-  let lo = 0;
-  let hi = cursor.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi + 1) >> 1;
-    if (cursor[mid].t <= p) lo = mid; else hi = mid - 1;
-  }
-  return cursor[lo];
-}
-
-function barAt(timeline, p) {
-  if (!timeline.length || p < timeline[0].start) return null;
-  let lo = 0;
-  let hi = timeline.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi + 1) >> 1;
-    if (timeline[mid].start <= p) lo = mid; else hi = mid - 1;
-  }
-  return timeline[lo].bar;
-}
-
-// Where to resume in a re-rendered arrangement: the same bar occurrence, same
-// distance into it (positions are in whole notes, so tempo changes carry over).
-function carryPosition(oldPlan, p, newPlan) {
-  if (!oldPlan || p === null) return 0;
-  const tl = oldPlan.timeline;
-  if (p < tl[0].start) return 0;
-  let i = tl.length - 1;
-  while (i > 0 && tl[i].start > p) i--;
-  const target = newPlan.timeline[i];
-  if (!target) return newPlan.loopStart;
-  return Math.max(0, target.start + (p - tl[i].start));
 }

@@ -91,6 +91,11 @@ function startDrone(ctx, dest, { tonicMidi, fifth, level }, when) {
 /**
  * Plays rendered backing. position() reports where in the arrangement
  * (whole notes, count-in included) playback is, wrapping with the loop.
+ *
+ * start() options: `from` (whole notes), `loop`, `loopStart`/`loopEnd` (the
+ * plan's whole-tune loop unless given — the tune player loops a selection),
+ * and `countIn`: one bar of the plan's count-in clicks *before* `from`, for
+ * starting mid-tune (a plan's own count-in is already in the buffer at 0).
  */
 export class BackingPlayer {
   constructor(onEnded) {
@@ -99,24 +104,32 @@ export class BackingPlayer {
     this.drone = null;
     this.plan = null;
     this.t0 = 0;
+    this.musicAt = 0;
   }
 
   get playing() {
     return !!this.source;
   }
 
-  start(buffer, plan, { from = 0, loop = true } = {}) {
+  /** True during a count-in lead, before the buffer itself starts. */
+  get counting() {
+    return !!this.source && backingAudioContext().currentTime < this.musicAt;
+  }
+
+  start(buffer, plan, { from = 0, loop = true, loopStart = plan.loopStart, loopEnd = plan.loopEnd, countIn = false } = {}) {
     const ctx = backingAudioContext();
     this.stop();
     const ws = plan.wholeSec;
     const src = ctx.createBufferSource();
     src.buffer = buffer;
     src.loop = loop;
-    src.loopStart = plan.loopStart * ws;
-    src.loopEnd = plan.loopEnd * ws;
+    src.loopStart = loopStart * ws;
+    src.loopEnd = loopEnd * ws;
     src.connect(ctx.destination);
     const when = ctx.currentTime + 0.06;
-    src.start(when, from * ws);
+    const lead = countIn ? plan.barLength : 0;
+    const at = when + lead * ws;
+    src.start(at, from * ws);
     src.onended = () => {
       if (this.source !== src) return;
       this.source = null;
@@ -126,28 +139,49 @@ export class BackingPlayer {
     this.source = src;
     this.plan = plan;
     this.loop = loop;
-    this.t0 = when - from * ws;
-    this.clicks = (plan.countInClicks || [])
-      .filter(c => c.t >= from - 1e-6)
-      .map(c => scheduleClick(ctx, this.t0 + c.t * ws, c.accent));
+    this.loopStart = loopStart;
+    this.loopEnd = loopEnd;
+    this.t0 = at - from * ws;
+    this.musicAt = at;
+    const clicks = plan.countInClicks || [];
+    this.clicks = countIn
+      ? clicks.map(c => scheduleClick(ctx, when + c.t * ws, c.accent))
+      : clicks.filter(c => c.t >= from - 1e-6).map(c => scheduleClick(ctx, this.t0 + c.t * ws, c.accent));
     if (plan.drone) {
-      this.drone = startDrone(ctx, ctx.destination, plan.drone, Math.max(when, this.t0 + plan.musicStart * ws));
+      this.drone = startDrone(ctx, ctx.destination, plan.drone, Math.max(at, this.t0 + plan.musicStart * ws));
     }
   }
 
   setLoop(loop) {
     if (!this.source || loop === this.loop) return;
+    this.setRegion({ loop, loopStart: this.loopStart, loopEnd: this.loopEnd });
+  }
+
+  /**
+   * Change the loop region without a gap. Returns false (and changes
+   * nothing) when playback is outside the new region or still counting in —
+   * the caller restarts from the region instead.
+   */
+  setRegion({ loop, loopStart, loopEnd }) {
+    if (!this.source || this.counting) return false;
     const pos = this.position();
+    if (loop && (pos < loopStart - 1e-6 || pos >= loopEnd)) return false;
+    const ws = this.plan.wholeSec;
     this.source.loop = loop;
+    this.source.loopStart = loopStart * ws;
+    this.source.loopEnd = loopEnd * ws;
     this.loop = loop;
-    // re-anchor so position() stops (or starts) wrapping from here
-    this.t0 = backingAudioContext().currentTime - pos * this.plan.wholeSec;
+    this.loopStart = loopStart;
+    this.loopEnd = loopEnd;
+    // re-anchor so position() wraps (or stops wrapping) from here
+    this.t0 = backingAudioContext().currentTime - pos * ws;
+    return true;
   }
 
   position() {
     if (!this.source || !this.plan) return null;
-    const { wholeSec, loopStart, loopEnd } = this.plan;
-    let p = (backingAudioContext().currentTime - this.t0) / wholeSec;
+    const { loopStart, loopEnd } = this;
+    let p = (backingAudioContext().currentTime - this.t0) / this.plan.wholeSec;
     if (this.loop && p > loopEnd) p = loopStart + ((p - loopStart) % (loopEnd - loopStart));
     return p;
   }

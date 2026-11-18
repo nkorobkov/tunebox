@@ -7,6 +7,7 @@ import { TrackPlayer } from './track-player';
 import { FluencyRater } from './fluency-rater';
 import { BackingTrackPlayer } from './backing-track-player';
 import { useBacking } from './backing';
+import { useTunePlayer } from './tune-player';
 import { useTuneChords } from '../../hooks/use-tune-chords';
 import { injectChordSymbols } from '../../lib/backing/abc-bars';
 import { barSlots, NO_CHORD } from '../../lib/backing/chords';
@@ -34,9 +35,9 @@ export function fmtElapsed(s) {
 
 /**
  * Active practice view for one tune. The card owns a single shared `tempo`:
- * metronome, generated backing, backing-track rate, the sheet-music MIDI player and the
+ * metronome, generated backing, backing-track rate, the tune player and the
  * progress button all follow it. Mount with key={tune.id} so per-tune state
- * (tempo, timer, spoilers) resets between tunes.
+ * (tempo, timer, loop, open panels) resets between tunes.
  */
 export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleLearning, onCompletePlaying, onSkip }) {
   const [saving, setSaving] = useState(false);
@@ -62,9 +63,13 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
   // Once chords are saved or the backing is in use, the sheet music shows them too.
   const showChords = showBacking || chordState.source === 'saved';
   const sheetAbc = useChordedAbc(fullAbc, chordState, showChords);
-  // the note being played — by the generated backing, else by the score's own player
+  const tunePlayer = useTunePlayer({
+    abc: fullAbc, model: chordState.model, tempo, transpose, soundPrefs: backing.prefs, tuneType: tune.type,
+    looping: soundMode === 'loop',
+  });
+  // the note being played — by the generated backing, the loop, else the score's own player
   const [playerCursorKey, setPlayerCursorKey] = useState(null);
-  const cursorKey = backing.cursorKey ?? playerCursorKey;
+  const cursorKey = backing.cursorKey ?? tunePlayer.cursorKey ?? playerCursorKey;
   const meetsTarget = tempo >= instData.target_tempo;
 
   const withSaving = (fn) => async (...args) => {
@@ -113,6 +118,7 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
           targetTempo={instData.target_tempo}
           defaultTimeSignature={getMeter(tune.type)}
           backing={backing}
+          tunePlayer={tunePlayer}
           mode={soundMode}
           onModeChange={setSoundMode}
           onBackingShown={setShowBacking}
@@ -170,18 +176,28 @@ export function PracticeCard({ tune, instrument, onCompleteLearning, onStruggleL
         </div>
       )}
 
-      <PracticeSpoilers
-        tune={tune}
-        mainSource={mainSource}
-        fullAbc={fullAbc}
-        viewAbc={sheetAbc}
-        tempo={tempo}
-        transpose={transpose}
-        onTransposeChange={setTranspose}
-        cursorKey={cursorKey}
-        playerDisabled={backing.status !== 'idle'}
-        onPlayerCursor={setPlayerCursorKey}
-      />
+      <div class="border-t border-gray-200 pt-1">
+        <Spoiler label="sheet music">
+          <SheetMusic
+            mainSource={mainSource}
+            fullAbc={fullAbc}
+            viewAbc={sheetAbc}
+            tempo={tempo}
+            transpose={transpose}
+            onTransposeChange={setTranspose}
+            cursorKey={cursorKey}
+            playerDisabled={backing.status !== 'idle' || tunePlayer.status !== 'idle'}
+            onPlayerCursor={setPlayerCursorKey}
+          />
+        </Spoiler>
+        {tune.notes && (
+          <Spoiler label="notes">
+            <div class="bg-white rounded-lg border border-gray-200 p-4">
+              <NotesContent notes={tune.notes} />
+            </div>
+          </Spoiler>
+        )}
+      </div>
 
       <PracticeHistoryChart entries={history} targetTempo={instData.target_tempo} />
     </div>
@@ -216,7 +232,7 @@ function TuneHeader({ tune, instrument, targetTempo }) {
 }
 
 export function SheetMusic({ mainSource, fullAbc, viewAbc, tempo, transpose, onTransposeChange, cursorKey = null, playerDisabled = false, onPlayerCursor }) {
-  const playerProps = { disabled: playerDisabled, disabledTitle: 'Stop the backing to play the tune' };
+  const playerProps = { disabled: playerDisabled, disabledTitle: 'Stop the backing or loop to play the tune' };
   if (mainSource) {
     return (
       <div class="bg-white lg:rounded-lg lg:border lg:border-gray-200 lg:p-4">
@@ -258,22 +274,5 @@ export function Spoiler({ label, children }) {
         {children}
       </div>
     </details>
-  );
-}
-
-function PracticeSpoilers({ tune, mainSource, fullAbc, viewAbc, tempo, transpose, onTransposeChange, cursorKey, playerDisabled, onPlayerCursor }) {
-  return (
-    <div class="border-t border-gray-200 pt-1">
-      <Spoiler label="sheet music">
-        <SheetMusic mainSource={mainSource} fullAbc={fullAbc} viewAbc={viewAbc} tempo={tempo} transpose={transpose} onTransposeChange={onTransposeChange} cursorKey={cursorKey} playerDisabled={playerDisabled} onPlayerCursor={onPlayerCursor} />
-      </Spoiler>
-      {tune.notes && (
-        <Spoiler label="notes">
-          <div class="bg-white rounded-lg border border-gray-200 p-4">
-            <NotesContent notes={tune.notes} />
-          </div>
-        </Spoiler>
-      )}
-    </div>
   );
 }

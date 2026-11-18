@@ -91,7 +91,7 @@ const fifthPc = (chord) => (chord.tones.length >= 3 ? chord.tones[2] : chord.roo
 
 /**
  * @returns plan {
- *   sequence, wholeSec, musicStart, loopStart, loopEnd, end (whole notes),
+ *   sequence, wholeSec, barLength, musicStart, loopStart, loopEnd, end (whole notes),
  *   countInClicks: [{ t, accent }] (played by the engine, not in the sequence),
  *   timeline: [{bar, start}] (shifted),
  *   cursor: [{ t, bar, off }] — voice 1's notes as heard (shifted, swung), keyed
@@ -362,6 +362,7 @@ export function arrange({ abc, model, chordValues, tempo, transpose = 0, prefs, 
   return {
     sequence: { tracks, totalDuration: endAt + barLength * 1.25 },
     wholeSec,
+    barLength,
     musicStart: shift,
     countInClicks,
     loopStart,
